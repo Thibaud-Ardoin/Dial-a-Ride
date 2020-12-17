@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from utils import get_device
 from generator import PixelInstance
-from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1
+from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, NoPoolCNN1
 
 
 def parse_args(args):
@@ -54,7 +54,7 @@ def parse_args(args):
         help='optimizer used for the training process')
 
     parser.add_argument(
-        '--criterion', type=str, default='MSE', choices=['MSE'],
+        '--criterion', type=str, default='MSE', choices=['MSE', 'l1'],
         help='How should the loss be calculated')
 
     parser.add_argument(
@@ -92,7 +92,7 @@ def parse_args(args):
 # Epoch wise testing process
 #######
 
-def testing(model, testloader, criterion, testing_size):
+def testing(model, testloader, criterion, testing_size, input_type):
     loss = 0
     correct = 0
     pointing_accuracy = 0
@@ -102,18 +102,24 @@ def testing(model, testloader, criterion, testing_size):
     with torch.no_grad():
         for i, data in enumerate(testloader):
             inputs, neighbors = data[0].to(device, non_blocking=True), data[1]
-            labels = neighbors[0].to(device, non_blocking=True)
-            outputs = model(inputs)
+            labels = neighbors[:,0].to(device, non_blocking=True)
+
+            shuffled_indexes = torch.randperm(neighbors.shape[1])
+            anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
+
+            if input_type=='map':
+                outputs = model(inputs)
+            elif input_type=='map+coord':
+                outputs = model(inputs, anonym_neighbors)
+
             loss += criterion(outputs, labels.float())
             total += labels.size(0)
             rounded = torch.round(outputs)
             rx, ry = rounded.reshape(2, labels.size(0))
             lx, ly = labels.reshape(2, labels.size(0))
             correct += ((rx == lx) & (ry == ly)).sum().item()
-            # print(rx,' ',lx, ' ', ry, ' ', ly)
-            # print(correct)
 
-            distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1), neighbors))
+            distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1), neighbors.cpu()[0]))
             # Case where the model aims perfectly to one pixel
             pointing_accuracy += (np.sum(np.min(distance_pred2points, axis=0) == 0))
             # Case where the nearest pixel to prediction is the nearest_neighbors
@@ -143,35 +149,43 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         model.train()
         running_loss = 0
         total = 0
+        input_type = "map"
 
         for data in tqdm(trainloader):
             if input_type=='map':
                 # data pixels and labels to GPU if available
-                inputs, labels = data[0].to(device, non_blocking=True), data[1][0].to(device, non_blocking=True)
+                inputs, neighbors = data[0].to(device, non_blocking=True), data[1].to(device, non_blocking=True)
+                labels = neighbors[:,0]
                 # set the parameter gradients to zero
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = criterion(outputs, labels.float())
                 # propagate the loss backward
-                loss.backward()
-                # update the gradients
-                optimizer.step()
-                total += labels.size(0)
 
-                running_loss += loss.item()
-            # elif input_type=='map+coord':
-            #     inputs, neighbors = data[0].to(device, non_blocking=True), data[1].to(device, non_blocking=True)
-            #     optimizer.zero_grad()
-            #     outputs = model(inputs)
-            #     loss = criterion(outputs, labels.float())
+            elif input_type=='map+coord':
+                inputs, neighbors = data[0].to(device, non_blocking=True), data[1].to(device, non_blocking=True)
+                labels = neighbors[:,0]
 
+                shuffled_indexes = torch.randperm(neighbors.shape[1])
+                anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
 
-        scheduler.step(loss)
+                optimizer.zero_grad()
+                outputs = model(inputs, anonym_neighbors)
+
+                loss = criterion(outputs, labels.float())
+
+            loss.backward()
+            # update the gradients
+            optimizer.step()
+            total += labels.size(0)
+            running_loss += loss.item()
+
+        scheduler.step(running_loss)
         # Print results for epoch
         print('\t * [Epoch %d] loss: %.3f' %
                       (epoch + 1, running_loss / total))
         # print('\t * Scheduler, the current learning rate is: ', scheduler.get_lr())
-        test_statistics = testing(model, testloader, criterion, testing_size)
+        test_statistics = testing(model, testloader, criterion, testing_size, input_type)
         print('\t * Testing accuracy : %0.3f %%' % (test_statistics['accuracy']))
         print('\t * Testing loss : %0.3f' % (test_statistics['loss']))
         print('\t * Testing right pointing accuracy : %0.3f' % (test_statistics['point_acc']))
@@ -182,7 +196,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         training_statistics['test_loss'].append(test_statistics['loss'])
         training_statistics['test_nearest_acc'].append(test_statistics['nearest_acc'])
         training_statistics['test_point_acc'].append(test_statistics['point_acc'])
-        training_statistics['train_loss'].append(loss)
+        training_statistics['train_loss'].append(running_loss)
         plot_statistics(training_statistics, name)
 
         #
@@ -291,7 +305,10 @@ if __name__ == '__main__':
 
     # Define NN
     try :
-        model = locals()[flags.model]().to(device)
+        if flags.model=='FC1':
+            model = locals()[flags.model](50, 128).to(device)
+        else :
+            model = locals()[flags.model]().to(device)
     except:
         raise "The model as input has not been found !"
     # if flags.model == 'CNN2':
@@ -310,6 +327,8 @@ if __name__ == '__main__':
     # loss
     if flags.criterion == 'MSE':
         criterion = nn.MSELoss()
+    elif flags.criterion == 'l1':
+        criterion = nn.L1Loss()
     else :
         raise "Not found criterion"
 

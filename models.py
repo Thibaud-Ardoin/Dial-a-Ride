@@ -39,7 +39,7 @@ class NNPixelDataset(Dataset):
         image = np.asarray(instance.image).astype(np.uint8).reshape(instance.size, instance.size, 1)
         image = self.transforms(image)
 
-        return (image, instance.neighbor_list)
+        return (image, torch.tensor(instance.neighbor_list))
 
 
 class CNN1(nn.Module):
@@ -111,6 +111,29 @@ class CNN3(nn.Module):
         x = self.fc2(x)
         return x
 
+class NoPoolCNN1(nn.Module):
+    """ Neural network definition
+    """
+    def __init__(self):
+        super(NoPoolCNN1, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32,
+                               kernel_size=3, stride=1)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=16,
+                               kernel_size=3, stride=1)
+        self.fc1 = nn.Linear(in_features=33856, out_features=128)
+        self.fc2 = nn.Linear(in_features=128, out_features=2)
+
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        # x = F.avg_pool2d(x, 2, 2)
+        x = F.relu(self.conv2(x))
+        # x = F.avg_pool2d(x, 2, 2)
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
 class SkipCNN1(nn.Module):
     """ Neural network definition
     """
@@ -146,7 +169,7 @@ class CoCNN1(nn.Module):
                                kernel_size=3, stride=1)
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=32,
                                kernel_size=3, stride=1)
-        self.fc1 = nn.Linear(in_features=4608, out_features=128)
+        self.fc1 = nn.Linear(in_features=3876, out_features=128)
         self.fc2 = nn.Linear(in_features=128, out_features=2)
 
 
@@ -157,8 +180,12 @@ class CoCNN1(nn.Module):
         x = F.relu(self.conv2(x))
         x = F.avg_pool2d(x, 2, 2)
         x = x.view(x.size(0), -1)
+        flat_coord = coord.float().view(coord.size(0), -1)
 
-        x = F.relu(self.fc1(x + coord))
+        # print(flat_coord.size())
+        # print(x.size())
+
+        x = F.relu(self.fc1(torch.cat((x, flat_coord), 1)))
         x = self.fc2(x)
         return x
 
@@ -166,9 +193,9 @@ class FC1(nn.Module):
     """ Neural network definition
     """
     def __init__(self, size, hidden_layers):
-        super(CNN2, self).__init__()
+        super(FC1, self).__init__()
         self.size = size
-        self.hidden_layers = hidden_layerss
+        self.hidden_layers = hidden_layers
         self.fc1 = nn.Linear(in_features=self.size**2, out_features=self.hidden_layers)
         self.fc2 = nn.Linear(in_features=self.hidden_layers, out_features=2)
 
