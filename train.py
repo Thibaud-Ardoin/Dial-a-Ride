@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from utils import get_device
 from generator import PixelInstance
-from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, NoPoolCNN1
+from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, NoPoolCNN1, CoCNNNoPool1
 
 
 def parse_args(args):
@@ -86,6 +86,10 @@ def parse_args(args):
         '--checkpoint_dir', type=str, default='',
         help='Directory for loading the checkpoint')
 
+    parser.add_argument(
+        '--input_type', type=str, default='map',
+        help='Type of the data input in the model')
+
     return parser.parse_known_args(args)[0]
 
 #######
@@ -135,7 +139,7 @@ def testing(model, testloader, criterion, testing_size, input_type):
 # Training function
 ######
 
-def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type):
+def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type):
     print(' - Start Training - ')
     max_test_accuracy = 0
     training_statistics = {
@@ -149,7 +153,6 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         model.train()
         running_loss = 0
         total = 0
-        input_type = "map"
 
         for data in tqdm(trainloader):
             if input_type=='map':
@@ -214,27 +217,44 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
 # Final validation step
 ######
 
-def validation(model, validationLoader, criterion):
+def validation(model, validationLoader, criterion, input_type):
     print(' - Start Validation provcess - ')
     loss = 0
     correct = 0
     total = 0
+    pointing_accuracy = 0
+    nearest_accuracy = 0
     model.eval()
     with torch.no_grad():
         for data in tqdm(validationLoader):
-            inputs, labels = data[0].to(device, non_blocking=True), data[1][0].to(device, non_blocking=True)
-            outputs = model(inputs)
+            inputs, neighbors = data[0].to(device, non_blocking=True), data[1]
+            labels = neighbors[:,0].to(device, non_blocking=True)
+
+            shuffled_indexes = torch.randperm(neighbors.shape[1])
+            anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
+
+            if input_type=='map':
+                outputs = model(inputs)
+            elif input_type=='map+coord':
+                outputs = model(inputs, anonym_neighbors)
+
             loss += criterion(outputs, labels.float())
             total += labels.size(0)
-
             rounded = torch.round(outputs)
             rx, ry = rounded.reshape(2, labels.size(0))
             lx, ly = labels.reshape(2, labels.size(0))
             correct += ((rx == lx) & (ry == ly)).sum().item()
-    print('\t * Accuracy of the network on test images: %0.3f %%' % (
-        100 * correct / total))
-    print('\t * Average Loss of the network on test images: %0.3f' % (
-        loss / total))
+
+            distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1), neighbors.cpu()[0]))
+            # Case where the model aims perfectly to one pixel
+            # pointing_accuracy += (np.sum(np.min(distance_pred2points, axis=0) == 0))
+            # Case where the nearest pixel to prediction is the nearest_neighbors
+            nearest_accuracy += np.sum(np.argmin(distance_pred2points, axis=0) == 0)
+        print('\t * Validation run -- ' )
+        print('\t - Validation accuracy : %0.3f %%' % (correct / total))
+        print('\t - Validation loss : %0.3f' % (loss / total))
+        print('\t - Validation right pointing accuracy : %0.3f' % (0))
+        print('\t - Validation nearest accuracy : %0.3f' % (nearest_accuracy / total))
 
 
 def plot_statistics(statistics, name, show=False):
@@ -294,12 +314,10 @@ if __name__ == '__main__':
     # Define Datasets
     train_data = NNPixelDataset(flags.data + '/train_instances.pkl', transform)
     test_data = NNPixelDataset(flags.data + '/test_instances.pkl', transform)
-    validation_data = NNPixelDataset(flags.data + '/validation_instances.pkl', transform)
 
     # Define dataloaders
     trainloader = DataLoader(train_data, batch_size=flags.batch_size, shuffle=flags.shuffle)
     testloader = DataLoader(test_data, batch_size=flags.batch_size, shuffle=flags.shuffle)
-    validationLoader = DataLoader(validation_data, batch_size=flags.batch_size, shuffle=flags.shuffle)
     print(' - Done with loading the data - ')
 
 
@@ -358,10 +376,19 @@ if __name__ == '__main__':
                               scheduler=scheduler,
                               testing_size=flags.batch_size,
                               name=path_name,
-                              checkpoint_type=flags.checkpoint_type)
+                              checkpoint_type=flags.checkpoint_type,
+                              input_type=flags.input_type)
 
     plot_statistics(traing_statistics, path_name)
 
+    # free some memory
+    del train_data
+    del trainloader
+    del test_data
+    del testloader
+
     # Validation run
-    validation(model, validationLoader, criterion)
+    validation_data = NNPixelDataset(flags.data + '/validation_instances.pkl', transform)
+    validationLoader = DataLoader(validation_data, batch_size=flags.batch_size, shuffle=flags.shuffle)
+    validation(model, validationLoader, criterion, flags.input_type)
     print(' - Done with Training - ')

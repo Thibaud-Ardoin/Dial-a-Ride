@@ -189,6 +189,37 @@ class CoCNN1(nn.Module):
         x = self.fc2(x)
         return x
 
+class CoCNNNoPool1(nn.Module):
+    """ Neural network definition:
+        Add as entry the vehicles positions  as coordonates
+        The output will then be a 1hot vector to target the right coordonate.
+    """
+    def __init__(self):
+        super(CoCNNNoPool1, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32,
+                               kernel_size=3, stride=1)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32,
+                               kernel_size=3, stride=1)
+        self.fc1 = nn.Linear(in_features=67716, out_features=128)
+        self.fc2 = nn.Linear(in_features=128, out_features=2)
+
+
+    def forward(self, map, coord):
+        x = map
+        x = F.relu(self.conv1(x))
+        # x = F.avg_pool2d(x, 2, 2)
+        x = F.relu(self.conv2(x))
+        # x = F.avg_pool2d(x, 2, 2)
+        x = x.view(x.size(0), -1)
+        flat_coord = coord.float().view(coord.size(0), -1)
+
+        # print(flat_coord.size())
+        # print(x.size())
+
+        x = F.relu(self.fc1(torch.cat((x, flat_coord), 1)))
+        x = self.fc2(x)
+        return x
+
 class FC1(nn.Module):
     """ Neural network definition
     """
