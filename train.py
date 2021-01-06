@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from utils import get_device
 from generator import PixelInstance
-from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, NoPoolCNN1, CoCNNNoPool1
+from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, FC2, NoPoolCNN1, CoCNNNoPool1
 
 
 def parse_args(args):
@@ -96,7 +96,7 @@ def parse_args(args):
 # Epoch wise testing process
 #######
 
-def testing(model, testloader, criterion, testing_size, input_type):
+def testing(model, testloader, criterion, testing_size, input_type, device):
     loss = 0
     correct = 0
     pointing_accuracy = 0
@@ -321,6 +321,8 @@ class Trainer():
         try :
             if self.flags.model=='FC1':
                 self.model = globals()[self.flags.model](50, 128).to(self.device)
+            elif self.flags.model=='FC2':
+                self.model = globals()[self.flags.model](50).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
