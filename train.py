@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from utils import get_device
 from generator import PixelInstance
-from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, FC2, SeqFC1, NoPoolCNN1, CoCNNNoPool1
+from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, FC2, SeqFC1, NoPoolCNN1, CoCNNNoPool1, UpCNN1
 
 
 def parse_args(args):
@@ -328,6 +328,8 @@ class Trainer():
                 self.model = globals()[self.flags.model](50).to(self.device)
             elif self.flags.model=='SeqFC1':
                 self.model = globals()[self.flags.model](4).to(self.device)
+            elif self.flags.model=='UpCNN1':
+                self.model = globals()[self.flags.model](2).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
