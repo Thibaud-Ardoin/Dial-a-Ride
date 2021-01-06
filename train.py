@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from utils import get_device
 from generator import PixelInstance
-from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, FC2, NoPoolCNN1, CoCNNNoPool1
+from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, FC2, SeqFC1, NoPoolCNN1, CoCNNNoPool1
 
 
 def parse_args(args):
@@ -115,6 +115,8 @@ def testing(model, testloader, criterion, testing_size, input_type, device):
                 outputs = model(inputs)
             elif input_type=='map+coord':
                 outputs = model(inputs, anonym_neighbors)
+            elif input_type=='coord':
+                outputs = model(anonym_neighbors)
 
             loss += criterion(outputs, labels.float())
             total += labels.size(0)
@@ -155,27 +157,26 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         total = 0
 
         for data in tqdm(trainloader):
-            if input_type=='map':
                 # data pixels and labels to GPU if available
-                inputs, neighbors = data[0].to(device, non_blocking=True), data[1].to(device, non_blocking=True)
-                labels = neighbors[:,0]
-                # set the parameter gradients to zero
-                optimizer.zero_grad()
+            inputs, neighbors = data[0].to(device, non_blocking=True), data[1].to(device, non_blocking=True)
+            labels = neighbors[:,0]
+            # set the parameter gradients to zero
+            optimizer.zero_grad()
+
+            if input_type=='map':
                 outputs = model(inputs)
-                loss = criterion(outputs, labels.float())
-                # propagate the loss backward
 
             elif input_type=='map+coord':
-                inputs, neighbors = data[0].to(device, non_blocking=True), data[1].to(device, non_blocking=True)
-                labels = neighbors[:,0]
-
                 shuffled_indexes = torch.randperm(neighbors.shape[1])
                 anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
-
-                optimizer.zero_grad()
                 outputs = model(inputs, anonym_neighbors)
 
-                loss = criterion(outputs, labels.float())
+            elif input_type=='coord':
+                shuffled_indexes = torch.randperm(neighbors.shape[1])
+                anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
+                outputs = model(anonym_neighbors)
+
+            loss = criterion(outputs, labels.float())
 
             loss.backward()
             # update the gradients
@@ -202,7 +203,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         training_statistics['test_nearest_acc'].append(test_statistics['nearest_acc'])
         training_statistics['test_point_acc'].append(test_statistics['point_acc'])
         training_statistics['train_loss'].append(running_loss)
-        plot_statistics(training_statistics, name, path_name)
+        plot_statistics(training_statistics, path_name, name)
 
         #
         if test_statistics['accuracy'] > max_test_accuracy :
@@ -239,6 +240,8 @@ def validation(model, validationLoader, criterion, input_type, device):
                 outputs = model(inputs)
             elif input_type=='map+coord':
                 outputs = model(inputs, anonym_neighbors)
+            elif input_type=='coord':
+                outputs = model(anonym_neighbors)
 
             loss += criterion(outputs, labels.float())
             total += labels.size(0)
@@ -253,13 +256,13 @@ def validation(model, validationLoader, criterion, input_type, device):
             # Case where the nearest pixel to prediction is the nearest_neighbors
             nearest_accuracy += np.sum(np.argmin(distance_pred2points, axis=0) == 0)
         print('\t * Validation run -- ' )
-        print('\t - Validation accuracy : %0.3f %%' % (correct / total))
+        print('\t - Validation accuracy : %0.3f %%' % (100 * correct / total))
         print('\t - Validation loss : %0.3f' % (loss / total))
         print('\t - Validation right pointing accuracy : %0.3f' % (0))
         print('\t - Validation nearest accuracy : %0.3f' % (nearest_accuracy / total))
 
 
-def plot_statistics(statistics, name, show=False, path_name):
+def plot_statistics(statistics, path_name, name, show=False):
     # Create plot of the statiscs, saved in folder
     colors = ['tab:green', 'tab:red', 'tab:orange', 'tab:blue', 'tab:purple']
     fig, (axis) = plt.subplots(1, len(statistics), figsize=(20, 10))
@@ -323,6 +326,8 @@ class Trainer():
                 self.model = globals()[self.flags.model](50, 128).to(self.device)
             elif self.flags.model=='FC2':
                 self.model = globals()[self.flags.model](50).to(self.device)
+            elif self.flags.model=='SeqFC1':
+                self.model = globals()[self.flags.model](4).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
@@ -388,16 +393,14 @@ class Trainer():
         del test_data
         del testloader
 
-        plot_statistics(traing_statistics, self.path_name)
 
-
-        def evaluation(self):
-            ''' Evaluation process of the Trainer
-            '''
-            validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform)
-            validationLoader = DataLoader(validation_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
-            validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device)
-            print(' - Done with Training - ')
+    def evaluation(self):
+        ''' Evaluation process of the Trainer
+        '''
+        validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform)
+        validationLoader = DataLoader(validation_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
+        validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device)
+        print(' - Done with Training - ')
 
 
 
@@ -413,4 +416,4 @@ if __name__ == '__main__':
     trainer.run()
 
     # Start evaluation
-    trainer.evaluate()
+    trainer.evaluation()
