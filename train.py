@@ -202,7 +202,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         training_statistics['test_nearest_acc'].append(test_statistics['nearest_acc'])
         training_statistics['test_point_acc'].append(test_statistics['point_acc'])
         training_statistics['train_loss'].append(running_loss)
-        plot_statistics(training_statistics, name, path_name)
+        plot_statistics(training_statistics, path_name, name)
 
         #
         if test_statistics['accuracy'] > max_test_accuracy :
@@ -259,7 +259,7 @@ def validation(model, validationLoader, criterion, input_type, device):
         print('\t - Validation nearest accuracy : %0.3f' % (nearest_accuracy / total))
 
 
-def plot_statistics(statistics, name, show=False, path_name):
+def plot_statistics(statistics, path_name, name, show=False):
     # Create plot of the statiscs, saved in folder
     colors = ['tab:green', 'tab:red', 'tab:orange', 'tab:blue', 'tab:purple']
     fig, (axis) = plt.subplots(1, len(statistics), figsize=(20, 10))
