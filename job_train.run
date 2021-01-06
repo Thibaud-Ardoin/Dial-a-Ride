@@ -20,4 +20,4 @@ echo "fidis $HOSTNAME"
 
 source venv1/bin/activate
 
-python3 ~/Dial-a-Ride/train.py --data ~/Dial-a-Ride/data/instances/split3_1nn_100k_n2_s50 --epoch 2000 --model CoCNNNoPool1 --scheduler plateau --patience 100 --lr 0.001 --checkpoint_dir '~/data/experiments/testing05-13-02/' --criterion l1 --input_type map+coord
+python3 ~/Dial-a-Ride/train.py --data ~/Dial-a-Ride/data/instances/split3_1nn_100k_n2_s50 --epoch 2000 --model CoCNNNoPool1 --scheduler plateau --patience 100 --lr 0.001 --checkpoint_dir './data/experiments/testing05-13-02' --criterion l1 --input_type map+coord

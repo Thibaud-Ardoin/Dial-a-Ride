@@ -350,7 +350,7 @@ class Trainer():
 
         # Loading model from dir
         if self.flags.checkpoint_dir :
-            self.model.load_state_dict(torch.load(self.flags.checkpoint_dir + '/best_model.pt'))
+            self.model.load_state_dict(torch.load(self.flags.checkpoint_dir + '/best_model.pt'), strict=False)
                 #'./data/experiments/' + self.flags.checkpoint_dir + '/best_model.pt'))
 
     def run(self):
