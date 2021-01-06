@@ -139,7 +139,7 @@ def testing(model, testloader, criterion, testing_size, input_type, device):
 # Training function
 ######
 
-def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device):
+def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device, path_name):
     print(' - Start Training - ')
     max_test_accuracy = 0
     training_statistics = {
@@ -202,7 +202,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         training_statistics['test_nearest_acc'].append(test_statistics['nearest_acc'])
         training_statistics['test_point_acc'].append(test_statistics['point_acc'])
         training_statistics['train_loss'].append(running_loss)
-        plot_statistics(training_statistics, name)
+        plot_statistics(training_statistics, name, path_name)
 
         #
         if test_statistics['accuracy'] > max_test_accuracy :
@@ -259,7 +259,7 @@ def validation(model, validationLoader, criterion, input_type, device):
         print('\t - Validation nearest accuracy : %0.3f' % (nearest_accuracy / total))
 
 
-def plot_statistics(statistics, name, show=False):
+def plot_statistics(statistics, name, show=False, path_name):
     # Create plot of the statiscs, saved in folder
     colors = ['tab:green', 'tab:red', 'tab:orange', 'tab:blue', 'tab:purple']
     fig, (axis) = plt.subplots(1, len(statistics), figsize=(20, 10))
@@ -379,7 +379,8 @@ class Trainer():
                                   name=self.path_name,
                                   checkpoint_type=self.flags.checkpoint_type,
                                   input_type=self.flags.input_type,
-                                  device=self.device)
+                                  device=self.device,
+                                  path_name=self.path_name)
 
         # free some memory
         del train_data
