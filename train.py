@@ -307,7 +307,8 @@ if __name__ == '__main__':
     device = get_device()
     transform = transforms.Compose(
         [transforms.ToPILImage(),
-         transforms.ToTensor()
+         transforms.ToTensor(),
+         transforms.Normalize(mean=[0.5], std=[0.5])
     ])
 
 
@@ -374,7 +375,7 @@ if __name__ == '__main__':
                               criterion=criterion,
                               optimizer=optimizer,
                               scheduler=scheduler,
-                              testing_size=flags.batch_size,
+                              testing_size=flags.batch_size*4,
                               name=path_name,
                               checkpoint_type=flags.checkpoint_type,
                               input_type=flags.input_type)

@@ -136,8 +136,8 @@ if __name__ == '__main__':
     # Params :
     save_type = 'pickle'
     size_of_images = 50
-    number_of_pixel_per_image = 1
-    size_of_data = 25000
+    number_of_pixel_per_image = 2
+    size_of_data = 100000
     unique_nn = True
     instances_name = 'split3_{0}nn_{1}k_n{2}_s{3}'.format(int(unique_nn), size_of_data//1000, number_of_pixel_per_image, size_of_images)
 
