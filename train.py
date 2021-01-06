@@ -139,7 +139,7 @@ def testing(model, testloader, criterion, testing_size, input_type):
 # Training function
 ######
 
-def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type):
+def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device):
     print(' - Start Training - ')
     max_test_accuracy = 0
     training_statistics = {
@@ -184,11 +184,13 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
             running_loss += loss.item()
 
         scheduler.step(running_loss)
+
+        # Start Testings
+        test_statistics = testing(model, testloader, criterion, testing_size, input_type, device)
+
         # Print results for epoch
         print('\t * [Epoch %d] loss: %.3f' %
                       (epoch + 1, running_loss / total))
-        # print('\t * Scheduler, the current learning rate is: ', scheduler.get_lr())
-        test_statistics = testing(model, testloader, criterion, testing_size, input_type)
         print('\t * Testing accuracy : %0.3f %%' % (test_statistics['accuracy']))
         print('\t * Testing loss : %0.3f' % (test_statistics['loss']))
         print('\t * Testing right pointing accuracy : %0.3f' % (test_statistics['point_acc']))
@@ -217,7 +219,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
 # Final validation step
 ######
 
-def validation(model, validationLoader, criterion, input_type):
+def validation(model, validationLoader, criterion, input_type, device):
     print(' - Start Validation provcess - ')
     loss = 0
     correct = 0
@@ -290,106 +292,121 @@ def save_model(model, path_name, checkpoint, epoch):
     print(' - Done with saving ! - ')
 
 
-if __name__ == '__main__':
-    flags = parse_args(sys.argv[1:])
+class Trainer():
 
-    # Create saving experient dir
-    path_name = './data/experiments/' + flags.alias + time.strftime("%d-%H-%M")
-    if not os.path.exists(path_name):
-        os.makedirs(path_name)
-    else :
-        print(' ! OverWriting ! ')
+    def __init__(self, flags):
+        ''' Inintialisation of the trainner:
+                Entends to load all the correct set up, ready to train
+        '''
+        self.flags = flags
 
-    # Save parameters
-    with open(path_name + '/parameters.json', 'w') as f:
-        json.dump(vars(flags), f)
-
-    device = get_device()
-    transform = transforms.Compose(
-        [transforms.ToPILImage(),
-         transforms.ToTensor(),
-         transforms.Normalize(mean=[0.5], std=[0.5])
-    ])
-
-
-    # Define Datasets
-    train_data = NNPixelDataset(flags.data + '/train_instances.pkl', transform)
-    test_data = NNPixelDataset(flags.data + '/test_instances.pkl', transform)
-
-    # Define dataloaders
-    trainloader = DataLoader(train_data, batch_size=flags.batch_size, shuffle=flags.shuffle)
-    testloader = DataLoader(test_data, batch_size=flags.batch_size, shuffle=flags.shuffle)
-    print(' - Done with loading the data - ')
-
-
-    # Define NN
-    try :
-        if flags.model=='FC1':
-            model = locals()[flags.model](50, 128).to(device)
+        # Create saving experient dir
+        self.path_name = './data/experiments/' + self.flags.alias + time.strftime("%d-%H-%M")
+        if not os.path.exists(self.path_name):
+            os.makedirs(self.path_name)
         else :
-            model = locals()[flags.model]().to(device)
-    except:
-        raise "The model as input has not been found !"
-    # if flags.model == 'CNN2':
-    #     model = CNN2().to(device)
-    # elif flags.model == 'CNN1':
-    #     model = CNN1().to(device)
-    # elif flags.model == 'CNN3':
-    #     model = CNN3().to(device)
-    # elif flags.model == 'Skip_CNN1':
-    #     model = Skip_CNN1().to(device)
-    # else:
-    #     raise "Not found model"
+            print(' ! OverWriting ! ')
 
-    print(' - Network: ', model)
+        # Save parameters
+        with open(self.path_name + '/parameters.json', 'w') as f:
+            json.dump(vars(self.flags), f)
 
-    # loss
-    if flags.criterion == 'MSE':
-        criterion = nn.MSELoss()
-    elif flags.criterion == 'l1':
-        criterion = nn.L1Loss()
-    else :
-        raise "Not found criterion"
+        self.device = get_device()
+        self.transform = transforms.Compose(
+            [transforms.ToPILImage(),
+             transforms.ToTensor()
+        ])
 
-    # optimizer
-    if flags.optimizer == 'Adam':
-         optimizer = optim.Adam(model.parameters(), lr=flags.lr)
-    else :
-        raise "Not found optimizer"
+        # Define NN
+        try :
+            if self.flags.model=='FC1':
+                self.model = globals()[self.flags.model](50, 128).to(self.device)
+            else :
+                self.model = globals()[self.flags.model]().to(self.device)
+        except:
+            raise "The model as input has not been found !"
 
-    # Scheduler
-    if flags.scheduler == 'plateau' :
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', patience=flags.patience, factor=flags.gamma)
-    elif flags.scheduler == 'step':
-        scheduler = MultiStepLR(optimizer, milestones=flags.milestones, gamma=flags.gamma)
+        print(' - Network: ', self.model)
 
-    # Loading model from dir
-    if flags.checkpoint_dir :
-        model.load_state_dict(torch.load('./data/experiments/' + flags.checkpoint_dir + '/best_model.pt'))
+        # loss
+        if self.flags.criterion == 'MSE':
+            self.criterion = nn.MSELoss()
+        elif self.flags.criterion == 'l1':
+            self.criterion = nn.L1Loss()
+        else :
+            raise "Not found criterion"
 
-    # Start training and testing
-    traing_statistics = train(model=model,
-                              trainloader=trainloader,
-                              testloader=testloader,
-                              number_epochs=flags.epochs,
-                              criterion=criterion,
-                              optimizer=optimizer,
-                              scheduler=scheduler,
-                              testing_size=flags.batch_size*4,
-                              name=path_name,
-                              checkpoint_type=flags.checkpoint_type,
-                              input_type=flags.input_type)
+        # optimizer
+        if self.flags.optimizer == 'Adam':
+             self.optimizer = optim.Adam(self.model.parameters(), lr=self.flags.lr)
+        else :
+            raise "Not found optimizer"
 
-    plot_statistics(traing_statistics, path_name)
+        # Scheduler
+        if self.flags.scheduler == 'plateau' :
+            self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', patience=self.flags.patience, factor=self.flags.gamma)
+        elif self.flags.scheduler == 'step':
+            self.scheduler = MultiStepLR(self.optimizer, milestones=self.flags.milestones, gamma=self.flags.gamma)
 
-    # free some memory
-    del train_data
-    del trainloader
-    del test_data
-    del testloader
+        # Loading model from dir
+        if self.flags.checkpoint_dir :
+            self.model.load_state_dict(torch.load(self.flags.checkpoint_dir + '/best_model.pt'))
+                #'./data/experiments/' + self.flags.checkpoint_dir + '/best_model.pt'))
 
-    # Validation run
-    validation_data = NNPixelDataset(flags.data + '/validation_instances.pkl', transform)
-    validationLoader = DataLoader(validation_data, batch_size=flags.batch_size, shuffle=flags.shuffle)
-    validation(model, validationLoader, criterion, flags.input_type)
-    print(' - Done with Training - ')
+    def run(self):
+        ''' Loading the data and starting the training '''
+
+        # Define Datasets
+        train_data = NNPixelDataset(self.flags.data + '/train_instances.pkl', self.transform)
+        test_data = NNPixelDataset(self.flags.data + '/test_instances.pkl', self.transform)
+
+        # Define dataloaders
+        trainloader = DataLoader(train_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
+        testloader = DataLoader(test_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
+        print(' - Done with loading the data - ')
+
+        # Start training and testing
+        traing_statistics = train(model=self.model,
+                                  trainloader=trainloader,
+                                  testloader=testloader,
+                                  number_epochs=self.flags.epochs,
+                                  criterion=self.criterion,
+                                  optimizer=self.optimizer,
+                                  scheduler=self.scheduler,
+                                  testing_size=self.flags.batch_size,
+                                  name=self.path_name,
+                                  checkpoint_type=self.flags.checkpoint_type,
+                                  input_type=self.flags.input_type,
+                                  device=self.device)
+
+        # free some memory
+        del train_data
+        del trainloader
+        del test_data
+        del testloader
+
+        plot_statistics(traing_statistics, self.path_name)
+
+
+        def evaluation(self):
+            ''' Evaluation process of the Trainer
+            '''
+            validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform)
+            validationLoader = DataLoader(validation_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
+            validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device)
+            print(' - Done with Training - ')
+
+
+if __name__ == '__main__':
+
+    # Get params
+    parameters = parse_args(sys.argv[1:])
+
+    # Get the trainer object
+    trainer = Trainer(parameters)
+
+    # Start a train
+    trainer.run()
+
+    # Start evaluation
+    trainer.evaluate()
