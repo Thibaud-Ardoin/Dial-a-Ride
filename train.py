@@ -12,11 +12,13 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
 import torch.optim as optim
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from utils import get_device
+from utils import get_device, label2heatmap
 from generator import PixelInstance
-from models import NNPixelDataset, DataLoader, CNN1, CNN2, CNN3, SkipCNN1, CoCNN1, FC1, FC2, SeqFC1, NoPoolCNN1, CoCNNNoPool1, UpCNN1
+from models import NNPixelDataset
+from models import UpAE, CNN1, CNN2, CNN3, UpCNN1, SeqFC1, NoPoolCNN1, SkipCNN1, CoCNN1, FC1, FC2
 
 
 def parse_args(args):
@@ -50,11 +52,11 @@ def parse_args(args):
         help='Should the data be shuffled when used in the data loader ?')
 
     parser.add_argument(
-        '--optimizer', type=str, default='Adam', choices=['Adam'],
+        '--optimizer', type=str, default='Adam', choices=['Adam', 'SGD'],
         help='optimizer used for the training process')
 
     parser.add_argument(
-        '--criterion', type=str, default='MSE', choices=['MSE', 'l1'],
+        '--criterion', type=str, default='MSE', choices=['MSE', 'l1', 'crossentropy'],
         help='How should the loss be calculated')
 
     parser.add_argument(
@@ -90,13 +92,17 @@ def parse_args(args):
         '--input_type', type=str, default='map',
         help='Type of the data input in the model')
 
+    parser.add_argument(
+        '--output_type', type=str, default='coord',
+        help='Type of the data output in the model')
+
     return parser.parse_known_args(args)[0]
 
 #######
 # Epoch wise testing process
 #######
 
-def testing(model, testloader, criterion, testing_size, input_type, device):
+def testing(model, testloader, criterion, testing_size, input_type, device, output_type):
     loss = 0
     correct = 0
     pointing_accuracy = 0
@@ -118,18 +124,32 @@ def testing(model, testloader, criterion, testing_size, input_type, device):
             elif input_type=='coord':
                 outputs = model(anonym_neighbors)
 
-            loss += criterion(outputs, labels.float())
-            total += labels.size(0)
-            rounded = torch.round(outputs)
-            rx, ry = rounded.reshape(2, labels.size(0))
-            lx, ly = labels.reshape(2, labels.size(0))
-            correct += ((rx == lx) & (ry == ly)).sum().item()
+            if output_type=='map':
+                labels = label2heatmap(labels, 50).to(device)
+                labels = torch.argmax(labels, 1)
+            else :
+                labels = labels.float()
 
-            distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1), neighbors.cpu()[0]))
-            # Case where the model aims perfectly to one pixel
-            pointing_accuracy += (np.sum(np.min(distance_pred2points, axis=0) == 0))
-            # Case where the nearest pixel to prediction is the nearest_neighbors
-            nearest_accuracy += np.sum(np.argmin(distance_pred2points, axis=0) == 0)
+            loss += criterion(outputs, labels)
+            total += labels.size(0)
+
+            if output_type=='coord':
+                rounded = torch.round(outputs)
+                rx, ry = rounded.reshape(2, labels.size(0))
+                lx, ly = labels.reshape(2, labels.size(0))
+                correct += ((rx == lx) & (ry == ly)).sum().item()
+
+                distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1), neighbors.cpu()[0]))
+                # Case where the model aims perfectly to one pixel
+                pointing_accuracy += (np.sum(np.min(distance_pred2points, axis=0) == 0))
+                # Case where the nearest pixel to prediction is the nearest_neighbors
+                nearest_accuracy += np.sum(np.argmin(distance_pred2points, axis=0) == 0)
+
+            elif output_type=='map':
+                predictions = torch.argmax(outputs, 1)
+                correct += (predictions == labels).float().sum()
+                nearest_accuracy += 0
+                pointing_accuracy += 0
 
             if (i >= testing_size): break
     return {'loss': loss / total,
@@ -141,7 +161,7 @@ def testing(model, testloader, criterion, testing_size, input_type, device):
 # Training function
 ######
 
-def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device, path_name):
+def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device, path_name, output_type):
     print(' - Start Training - ')
     max_test_accuracy = 0
     training_statistics = {
@@ -176,7 +196,13 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
                 anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
                 outputs = model(anonym_neighbors)
 
-            loss = criterion(outputs, labels.float())
+            if output_type=='map':
+                labels = label2heatmap(labels, 50).to(device)
+                labels = torch.argmax(labels, 1)
+            else :
+                labels = labels.float()
+
+            loss = criterion(outputs, labels)
 
             loss.backward()
             # update the gradients
@@ -187,7 +213,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         scheduler.step(running_loss)
 
         # Start Testings
-        test_statistics = testing(model, testloader, criterion, testing_size, input_type, device)
+        test_statistics = testing(model, testloader, criterion, testing_size, input_type, device, output_type)
 
         # Print results for epoch
         print('\t * [Epoch %d] loss: %.3f' %
@@ -220,7 +246,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
 # Final validation step
 ######
 
-def validation(model, validationLoader, criterion, input_type, device):
+def validation(model, validationLoader, criterion, input_type, device, output_type):
     print(' - Start Validation provcess - ')
     loss = 0
     correct = 0
@@ -243,18 +269,33 @@ def validation(model, validationLoader, criterion, input_type, device):
             elif input_type=='coord':
                 outputs = model(anonym_neighbors)
 
-            loss += criterion(outputs, labels.float())
-            total += labels.size(0)
-            rounded = torch.round(outputs)
-            rx, ry = rounded.reshape(2, labels.size(0))
-            lx, ly = labels.reshape(2, labels.size(0))
-            correct += ((rx == lx) & (ry == ly)).sum().item()
+            if output_type=='map':
+                labels = label2heatmap(labels, 50).to(device)
+                labels = torch.argmax(labels, 1)
+            else :
+                labels = labels.float()
 
-            distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1), neighbors.cpu()[0]))
-            # Case where the model aims perfectly to one pixel
-            # pointing_accuracy += (np.sum(np.min(distance_pred2points, axis=0) == 0))
-            # Case where the nearest pixel to prediction is the nearest_neighbors
-            nearest_accuracy += np.sum(np.argmin(distance_pred2points, axis=0) == 0)
+            loss += criterion(outputs, labels)
+            total += labels.size(0)
+
+            if output_type=='coord':
+                rounded = torch.round(outputs)
+                rx, ry = rounded.reshape(2, labels.size(0))
+                lx, ly = labels.reshape(2, labels.size(0))
+                correct += ((rx == lx) & (ry == ly)).sum().item()
+
+                distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1), neighbors.cpu()[0]))
+                # Case where the model aims perfectly to one pixel
+                pointing_accuracy += (np.sum(np.min(distance_pred2points, axis=0) == 0))
+                # Case where the nearest pixel to prediction is the nearest_neighbors
+                nearest_accuracy += np.sum(np.argmin(distance_pred2points, axis=0) == 0)
+
+            elif output_type=='map':
+                predictions = torch.argmax(outputs, 1)
+                correct += (predictions == labels).float().sum()
+                nearest_accuracy += 0
+                pointing_accuracy += 0
+
         print('\t * Validation run -- ' )
         print('\t - Validation accuracy : %0.3f %%' % (100 * correct / total))
         print('\t - Validation loss : %0.3f' % (loss / total))
@@ -330,6 +371,8 @@ class Trainer():
                 self.model = globals()[self.flags.model](4).to(self.device)
             elif self.flags.model=='UpCNN1':
                 self.model = globals()[self.flags.model](2).to(self.device)
+            elif self.flags.model=='UpAE':
+                self.model = globals()[self.flags.model](50, 2).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
@@ -342,12 +385,16 @@ class Trainer():
             self.criterion = nn.MSELoss()
         elif self.flags.criterion == 'l1':
             self.criterion = nn.L1Loss()
+        elif self.flags.criterion == 'crossentropy':
+            self.criterion = nn.CrossEntropyLoss()
         else :
             raise "Not found criterion"
 
         # optimizer
         if self.flags.optimizer == 'Adam':
-             self.optimizer = optim.Adam(self.model.parameters(), lr=self.flags.lr)
+            self.optimizer = optim.Adam(self.model.parameters(), lr=self.flags.lr)
+        elif self.flags.optimizer == 'SGD':
+            self.optimizer = optim.SGD(self.model.parameters(), lr=self.flags.lr, momentum=0.95)
         else :
             raise "Not found optimizer"
 
@@ -387,7 +434,8 @@ class Trainer():
                                   checkpoint_type=self.flags.checkpoint_type,
                                   input_type=self.flags.input_type,
                                   device=self.device,
-                                  path_name=self.path_name)
+                                  path_name=self.path_name,
+                                  output_type=self.flags.output_type)
 
         # free some memory
         del train_data
@@ -401,7 +449,7 @@ class Trainer():
         '''
         validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform)
         validationLoader = DataLoader(validation_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
-        validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device)
+        validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device, self.flags.output_type)
         print(' - Done with Training - ')
 
 
