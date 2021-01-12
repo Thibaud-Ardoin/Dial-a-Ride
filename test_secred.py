@@ -17,7 +17,7 @@ def cfg():
     epochs= 2000
     model = 'UpAE'
     scheduler = 'plateau'
-    data = '/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_100k_n2_s100'
+    data = '/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_500k_n2_s50_m0'
     patience = 10
     lr = 0.001
     criterion = 'crossentropy'
@@ -32,7 +32,7 @@ def cfg():
     gamma = 0.1
     checkpoint_dir = ''
     layers = 256
-    channels = 2
+    channels = 1
 
 @ex.capture
 def get_trainer(parameters):

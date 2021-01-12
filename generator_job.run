@@ -24,7 +24,7 @@ python3 ~/Dial-a-Ride/generator.py \
 --save_type pickle \
 --size_of_images 50 \
 --number_of_pixel_per_image 2 \
---size_of_data 100000 \
+--size_of_data 500000 \
 --unique_nn True \
 --moving_car True \
 --codding 2channels

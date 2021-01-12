@@ -358,6 +358,10 @@ class Trainer():
         self.population = int(d[1:])
         self.image_size = int(e[1:])
         self.moving_car = int(f[1:])
+	if self.moving_car:
+	    self.flags.channels = 2
+	else:
+	    self.flags.channels = 1
 
         # Create saving experient dir
         self.path_name = './data/experiments/' + self.flags.alias + time.strftime("%d-%H-%M")
