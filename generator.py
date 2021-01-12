@@ -103,10 +103,11 @@ if __name__ == '__main__':
 
     # Params :
 
-    instances_name = 'split3_{0}nn_{1}k_n{2}_s{3}'.format(int(parameters.unique_nn),
+    instances_name = 'split3_{0}nn_{1}k_n{2}_s{3}_m{4}'.format(int(parameters.unique_nn),
                                                           parameters.size_of_data//1000,
                                                           parameters.number_of_pixel_per_image,
-                                                          parameters.size_of_images)
+                                                          parameters.size_of_images,
+                                                          int(parameters.moving_car))
 
     if os.path.isdir('./data/instances/' + instances_name) :
         raise "Folder is already in place"
