@@ -159,7 +159,7 @@ class UpAE(nn.Module):
         self.pixel_shuffle = nn.PixelShuffle(upscale_factor)
         self._initialize_weights()
 
-        self.fc1 = nn.Linear(in_features=10000, out_features=layer_size)
+        self.fc1 = nn.Linear(in_features=(upscale_factor*size)**2, out_features=layer_size)
         self.fc2 = nn.Linear(in_features=layer_size, out_features=size**2)
 
     def forward(self, input_image):

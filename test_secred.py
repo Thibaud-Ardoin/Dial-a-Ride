@@ -17,7 +17,7 @@ def cfg():
     epochs= 1
     model = 'UpAE'
     scheduler = 'plateau'
-    data = './data/instances/split3_1nn_0k_n2_s50'
+    data = './data/instances/split3_1nn_0k_n2_s100_m1'
     patience = 100
     lr = 0.001
     criterion = 'crossentropy'

@@ -110,7 +110,7 @@ def parse_args(args):
 # Epoch wise testing process
 #######
 
-def testing(model, testloader, criterion, testing_size, input_type, device, output_type):
+def testing(model, testloader, criterion, testing_size, input_type, device, output_type, image_size):
     loss = 0
     correct = 0
     pointing_accuracy = 0
@@ -133,7 +133,7 @@ def testing(model, testloader, criterion, testing_size, input_type, device, outp
                 outputs = model(anonym_neighbors)
 
             if output_type=='map':
-                labels = label2heatmap(labels, 50).to(device)
+                labels = label2heatmap(labels, image_size).to(device)
                 labels = torch.argmax(labels, 1)
             else :
                 labels = labels.float()
@@ -169,7 +169,7 @@ def testing(model, testloader, criterion, testing_size, input_type, device, outp
 # Training function
 ######
 
-def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device, path_name, output_type):
+def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device, path_name, output_type, image_size):
     print(' - Start Training - ')
     max_test_accuracy = 0
     training_statistics = {
@@ -205,7 +205,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
                 outputs = model(anonym_neighbors)
 
             if output_type=='map':
-                labels = label2heatmap(labels, 50).to(device)
+                labels = label2heatmap(labels, image_size).to(device)
                 labels = torch.argmax(labels, 1)
             else :
                 labels = labels.float()
@@ -221,7 +221,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         scheduler.step(running_loss)
 
         # Start Testings
-        test_statistics = testing(model, testloader, criterion, testing_size, input_type, device, output_type)
+        test_statistics = testing(model, testloader, criterion, testing_size, input_type, device, output_type, image_size)
 
         # Print results for epoch
         print('\t * [Epoch %d] loss: %.3f' %
@@ -254,7 +254,7 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
 # Final validation step
 ######
 
-def validation(model, validationLoader, criterion, input_type, device, output_type):
+def validation(model, validationLoader, criterion, input_type, device, output_type, image_size):
     print(' - Start Validation provcess - ')
     loss = 0
     correct = 0
@@ -278,7 +278,7 @@ def validation(model, validationLoader, criterion, input_type, device, output_ty
                 outputs = model(anonym_neighbors)
 
             if output_type=='map':
-                labels = label2heatmap(labels, 50).to(device)
+                labels = label2heatmap(labels, image_size).to(device)
                 labels = torch.argmax(labels, 1)
             else :
                 labels = labels.float()
@@ -352,6 +352,13 @@ class Trainer():
         '''
         self.flags = flags
 
+        a, b, c, d, e, f = self.flags.data.split('_')
+        self.unique_nn = int(b[0])
+        self.data_number = int(c[:-1])
+        self.population = int(d[1:])
+        self.image_size = int(e[1:])
+        self.moving_car = int(f[1:])
+
         # Create saving experient dir
         self.path_name = './data/experiments/' + self.flags.alias + time.strftime("%d-%H-%M")
         if not os.path.exists(self.path_name):
@@ -372,15 +379,15 @@ class Trainer():
         # Define NN
         try :
             if self.flags.model=='FC1':
-                self.model = globals()[self.flags.model](50, 128).to(self.device)
+                self.model = globals()[self.flags.model](self.image_size, self.flags.layers).to(self.device)
             elif self.flags.model=='FC2':
-                self.model = globals()[self.flags.model](50).to(self.device)
+                self.model = globals()[self.flags.model](self.image_size).to(self.device)
             elif self.flags.model=='SeqFC1':
                 self.model = globals()[self.flags.model](4).to(self.device)
             elif self.flags.model=='UpCNN1':
                 self.model = globals()[self.flags.model](2).to(self.device)
             elif self.flags.model=='UpAE':
-                self.model = globals()[self.flags.model](50, 2, self.flags.layers, self.flags.channels).to(self.device)
+                self.model = globals()[self.flags.model](self.image_size, 2, self.flags.layers, self.flags.channels).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
@@ -443,7 +450,8 @@ class Trainer():
                                   input_type=self.flags.input_type,
                                   device=self.device,
                                   path_name=self.path_name,
-                                  output_type=self.flags.output_type)
+                                  output_type=self.flags.output_type,
+                                  image_size=self.image_size)
 
         # free some memory
         del train_data
@@ -457,7 +465,7 @@ class Trainer():
         '''
         validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform, channels=self.flags.channels)
         validationLoader = DataLoader(validation_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
-        validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device, self.flags.output_type)
+        validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device, self.flags.output_type, self.image_size)
         print(' - Done with Training - ')
 
 
