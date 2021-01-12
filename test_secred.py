@@ -1,5 +1,5 @@
 from sacred import cli_option, Experiment
-from sacred.observers import FileStorageObserver
+from sacred.observers import FileStorageObserver, TinyDbObserver, MongoObserver
 
 from utils import objdict
 from train import Trainer
@@ -9,6 +9,7 @@ from generator import PixelInstance
 ex = Experiment("svm")
 
 ex.observers.append(FileStorageObserver("my_runs"))
+# ex.observers.append(MongoObserver(db_name='experiments_db'))
 
 
 @ex.config  # Configuration is defined through local variables.
@@ -16,7 +17,7 @@ def cfg():
     epochs= 1
     model = 'UpAE'
     scheduler = 'plateau'
-    data = './data/instances/split3_1nn_25k_n2_s50'
+    data = './data/instances/split3_1nn_0k_n1_s50'
     patience = 100
     lr = 0.001
     criterion = 'crossentropy'
@@ -30,24 +31,7 @@ def cfg():
     milestones = [50]
     gamma = 0.1
     checkpoint_dir = ''
-    # parameters = objdict({
-    #     'epoch': 1,
-    #     'model': 'UpCNN1',
-    #     'scheduler': 'plateau',
-    #     'data': './data/instances/split3_1nn_25k_n2_s50',
-    #     'patience': 100,
-    #     'lr': 0.001,
-    #     'criterion': 'l1',
-    #     'input_type': 'map',
-    #     'alias': 'Test',
-    #     'batch_size': 128,
-    #     'shuffle': True,
-    #     'optimizer': 'Adam',
-    #     'checkpoint_type': 'best',
-    #     'milestones': [50],
-    #     'gamma': 0.1,
-    #     'checkpoint_dir = ''
-    # })
+    layers = 256
 
 @ex.capture
 def get_trainer(parameters):
