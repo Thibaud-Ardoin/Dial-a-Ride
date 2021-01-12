@@ -13,15 +13,15 @@ ex.observers.append(FileStorageObserver("my_runs"))
 
 @ex.config  # Configuration is defined through local variables.
 def cfg():
-    epochs= 1
-    model = 'UpAE'
+    epochs= 2000
+    model = 'UpCNN1'
     scheduler = 'plateau'
-    data = './data/instances/split3_1nn_25k_n2_s50'
-    patience = 100
+    data = '/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_500k_n2_s50'
+    patience = 50
     lr = 0.001
-    criterion = 'crossentropy'
+    criterion = 'l1'
     input_type = 'map'
-    output_type = 'map'
+    output_type = 'coord'
     alias = 'Test'
     batch_size = 128
     shuffle = True
@@ -30,24 +30,6 @@ def cfg():
     milestones = [50]
     gamma = 0.1
     checkpoint_dir = ''
-    # parameters = objdict({
-    #     'epoch': 1,
-    #     'model': 'UpCNN1',
-    #     'scheduler': 'plateau',
-    #     'data': './data/instances/split3_1nn_25k_n2_s50',
-    #     'patience': 100,
-    #     'lr': 0.001,
-    #     'criterion': 'l1',
-    #     'input_type': 'map',
-    #     'alias': 'Test',
-    #     'batch_size': 128,
-    #     'shuffle': True,
-    #     'optimizer': 'Adam',
-    #     'checkpoint_type': 'best',
-    #     'milestones': [50],
-    #     'gamma': 0.1,
-    #     'checkpoint_dir = ''
-    # })
 
 @ex.capture
 def get_trainer(parameters):
