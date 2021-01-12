@@ -9,6 +9,22 @@ import os
 
 import pickle
 
+def parse_args(args):
+    parser = argparse.ArgumentParser(
+        description="Generator.",
+        epilog="python train.py --param X")
+
+    # required input parameters
+    parser.add_argument(
+        '--save_type', type=str,  default='pickle')
+    parser.add_argument(
+        '--size_of_images', type=int,  default=50)
+    parser.add_argument(
+        '--number_of_pixel_per_image', type=int,  default=2)
+    parser.add_argument(
+        '--size_of_data', type=int,  default=500000)
+    parser.add_argument(
+        '--unique_nn', type=bool,  default=True
 
 class PixelInstance():
     """ 2 Dimentional insance of the NN problem
@@ -133,14 +149,15 @@ class Generator:
 
 
 if __name__ == '__main__':
-    # Params :
-    save_type = 'pickle'
-    size_of_images = 50
-    number_of_pixel_per_image = 1
-    size_of_data = 100
-    unique_nn = True
-    instances_name = 'split3_{0}nn_{1}k_n{2}_s{3}'.format(int(unique_nn), size_of_data//1000, number_of_pixel_per_image, size_of_images)
+    parameters = parse_args(sys.argv[1:])
 
+    # Params :
+    save_type = parameters.save_type
+    size_of_images = parameters.size_of_images
+    number_of_pixel_per_image = parameters.number_of_pixel_per_image
+    size_of_data = parameters.size_of_data
+    unique_nn = parameters.unique_nn
+    instances_name = 'split3_{0}nn_{1}k_n{2}_s{3}'.format(int(unique_nn), size_of_data//1000, number_of_pixel_per_image, size_of_images)
 
     if os.path.isdir('./data/instances/' + instances_name) :
         raise "Folder is already in place"
