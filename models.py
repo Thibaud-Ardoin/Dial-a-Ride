@@ -148,7 +148,7 @@ class UpCNN1(nn.Module):
 
 
 class UpAE(nn.Module):
-    def __init__(self, size, upscale_factor):
+    def __init__(self, size, upscale_factor, layer_size):
         super(UpAE, self).__init__()
         self.relu = nn.ReLU()
         self.conv1 = nn.Conv2d(1, 64, (5, 5), (1, 1), (2, 2))
@@ -158,8 +158,8 @@ class UpAE(nn.Module):
         self.pixel_shuffle = nn.PixelShuffle(upscale_factor)
         self._initialize_weights()
 
-        self.fc1 = nn.Linear(in_features=10000, out_features=128)
-        self.fc2 = nn.Linear(in_features=128, out_features=size**2)
+        self.fc1 = nn.Linear(in_features=10000, out_features=layer_size)
+        self.fc2 = nn.Linear(in_features=layer_size, out_features=size**2)
 
     def forward(self, input_image):
         x = self.relu(self.conv1(input_image))

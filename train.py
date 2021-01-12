@@ -96,6 +96,10 @@ def parse_args(args):
         '--output_type', type=str, default='coord',
         help='Type of the data output in the model')
 
+    parser.add_argument(
+        '--layers', type=int, default=128,
+        help='If needed, this value gives the size of hidden layers')
+
     return parser.parse_known_args(args)[0]
 
 #######
@@ -372,7 +376,7 @@ class Trainer():
             elif self.flags.model=='UpCNN1':
                 self.model = globals()[self.flags.model](2).to(self.device)
             elif self.flags.model=='UpAE':
-                self.model = globals()[self.flags.model](50, 2).to(self.device)
+                self.model = globals()[self.flags.model](50, 2, self.flags.layers).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
