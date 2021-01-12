@@ -3,7 +3,7 @@ from sacred.observers import FileStorageObserver, TinyDbObserver, MongoObserver
 
 from utils import objdict
 from train import Trainer
-from generator import PixelInstance
+from instances import PixelInstance
 
 
 ex = Experiment("svm")
@@ -17,7 +17,7 @@ def cfg():
     epochs= 1
     model = 'UpAE'
     scheduler = 'plateau'
-    data = './data/instances/split3_1nn_0k_n1_s50'
+    data = './data/instances/split3_1nn_0k_n2_s50'
     patience = 100
     lr = 0.001
     criterion = 'crossentropy'
@@ -26,12 +26,13 @@ def cfg():
     alias = 'Test'
     batch_size = 128
     shuffle = True
-    optimizer = 'SGD'
+    optimizer = 'Adam'
     checkpoint_type = 'best'
     milestones = [50]
     gamma = 0.1
     checkpoint_dir = ''
     layers = 256
+    channels = 2
 
 @ex.capture
 def get_trainer(parameters):
