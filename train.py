@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from utils import get_device, label2heatmap
-from generator import PixelInstance
+from instances import PixelInstance
 from models import NNPixelDataset
 from models import UpAE, CNN1, CNN2, CNN3, UpCNN1, SeqFC1, NoPoolCNN1, SkipCNN1, CoCNN1, FC1, FC2
 
@@ -99,6 +99,10 @@ def parse_args(args):
     parser.add_argument(
         '--layers', type=int, default=128,
         help='If needed, this value gives the size of hidden layers')
+
+    parser.add_argument(
+        '--channels', type=int, default=2,
+        help='Indicates the number of input channels, comming from the dataset')
 
     return parser.parse_known_args(args)[0]
 
@@ -376,7 +380,7 @@ class Trainer():
             elif self.flags.model=='UpCNN1':
                 self.model = globals()[self.flags.model](2).to(self.device)
             elif self.flags.model=='UpAE':
-                self.model = globals()[self.flags.model](50, 2, self.flags.layers).to(self.device)
+                self.model = globals()[self.flags.model](50, 2, self.flags.layers, self.flags.channels).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
@@ -417,8 +421,8 @@ class Trainer():
         ''' Loading the data and starting the training '''
 
         # Define Datasets
-        train_data = NNPixelDataset(self.flags.data + '/train_instances.pkl', self.transform)
-        test_data = NNPixelDataset(self.flags.data + '/test_instances.pkl', self.transform)
+        train_data = NNPixelDataset(self.flags.data + '/train_instances.pkl', self.transform, channels=self.flags.channels)
+        test_data = NNPixelDataset(self.flags.data + '/test_instances.pkl', self.transform, channels=self.flags.channels)
 
         # Define dataloaders
         trainloader = DataLoader(train_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
@@ -451,7 +455,7 @@ class Trainer():
     def evaluation(self):
         ''' Evaluation process of the Trainer
         '''
-        validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform)
+        validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform, channels=self.flags.channels)
         validationLoader = DataLoader(validation_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
         validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device, self.flags.output_type)
         print(' - Done with Training - ')

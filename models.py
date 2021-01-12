@@ -13,17 +13,18 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 import torch.optim as optim
 
-from generator import PixelInstance
+from instances import PixelInstance
 from utils import get_device
 
 
 class NNPixelDataset(Dataset):
     """ Customed Dataset class for our Instances data
     """
-    def __init__(self, data_path, transforms):
+    def __init__(self, data_path, transforms, channels):
         filehandler = open(data_path, 'rb')
         self.data = pickle.load(filehandler)
         filehandler.close()
+        self.channels = channels
 
         self.transforms = transforms
 
@@ -36,7 +37,7 @@ class NNPixelDataset(Dataset):
         """ Returns a couple (image, neares 1hot)"""
         instance = self.data[idx]
 
-        image = np.asarray(instance.image).astype(np.uint8).reshape(instance.size, instance.size, 1)
+        image = np.asarray(instance.image).astype(np.uint8).reshape(instance.size, instance.size, self.channels)
         image = self.transforms(image)
 
         return (image, torch.tensor(instance.neighbor_list))
@@ -148,10 +149,10 @@ class UpCNN1(nn.Module):
 
 
 class UpAE(nn.Module):
-    def __init__(self, size, upscale_factor, layer_size):
+    def __init__(self, size, upscale_factor, layer_size, channels):
         super(UpAE, self).__init__()
         self.relu = nn.ReLU()
-        self.conv1 = nn.Conv2d(1, 64, (5, 5), (1, 1), (2, 2))
+        self.conv1 = nn.Conv2d(channels, 64, (5, 5), (1, 1), (2, 2))
         self.conv2 = nn.Conv2d(64, 64, (3, 3), (1, 1), (1, 1))
         self.conv3 = nn.Conv2d(64, 32, (3, 3), (1, 1), (1, 1))
         self.conv4 = nn.Conv2d(32, upscale_factor ** 2, (3, 3), (1, 1), (1, 1))

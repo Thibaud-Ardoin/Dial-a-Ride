@@ -3,7 +3,7 @@ from sacred.observers import FileStorageObserver, TinyDbObserver, MongoObserver
 
 from utils import objdict
 from train import Trainer
-from generator import PixelInstance
+from instances import PixelInstance
 
 
 ex = Experiment("svm")
@@ -32,6 +32,7 @@ def cfg():
     gamma = 0.1
     checkpoint_dir = ''
     layers = 256
+    channels = 2
 
 @ex.capture
 def get_trainer(parameters):
