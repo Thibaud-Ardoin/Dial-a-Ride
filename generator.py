@@ -6,6 +6,8 @@ import random
 import time
 import matplotlib.pyplot as plt
 import os
+import sys
+import argparse
 
 import pickle
 
@@ -24,7 +26,9 @@ def parse_args(args):
     parser.add_argument(
         '--size_of_data', type=int,  default=500000)
     parser.add_argument(
-        '--unique_nn', type=bool,  default=True
+        '--unique_nn', type=bool,  default=True)
+
+    return parser.parse_known_args(args)[0]
 
 class PixelInstance():
     """ 2 Dimentional insance of the NN problem

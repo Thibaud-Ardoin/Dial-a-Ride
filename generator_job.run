@@ -20,4 +20,9 @@ echo "fidis $HOSTNAME"
 
 source venv1/bin/activate
 
-python3 ~/Dial-a-Ride/generator.py 
+python3 ~/Dial-a-Ride/generator.py \
+--save_type pickle \
+--size_of_images 50 \
+--number_of_pixel_per_image 20 \
+--size_of_data 100000 \
+--unique_nn True

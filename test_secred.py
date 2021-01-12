@@ -15,18 +15,18 @@ ex.observers.append(FileStorageObserver("my_runs"))
 @ex.config  # Configuration is defined through local variables.
 def cfg():
     epochs= 2000
-    model = 'UpCNN1'
+    model = 'UpAE'
     scheduler = 'plateau'
-    data = '/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_500k_n2_s50'
-    patience = 50
+    data = '/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_100k_n2_s100'
+    patience = 10
     lr = 0.001
-    criterion = 'l1'
+    criterion = 'crossentropy'
     input_type = 'map'
-    output_type = 'coord'
-    alias = 'Test'
+    output_type = 'map'
+    alias = 'AE'
     batch_size = 128
     shuffle = True
-    optimizer = 'SGD'
+    optimizer = 'Adam'
     checkpoint_type = 'best'
     milestones = [50]
     gamma = 0.1
