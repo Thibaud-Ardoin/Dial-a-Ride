@@ -14,7 +14,7 @@ import torchvision.transforms as transforms
 import torch.optim as optim
 
 from instances import PixelInstance
-from utils import get_device
+from utils import get_device, visualize
 
 
 class NNPixelDataset(Dataset):
@@ -37,8 +37,18 @@ class NNPixelDataset(Dataset):
         """ Returns a couple (image, neares 1hot)"""
         instance = self.data[idx]
 
-        image = np.asarray(instance.image).astype(np.uint8).reshape(instance.size, instance.size, self.channels)
+        # visualize(instance.image, txt='From instance data directly')
+
+        if self.channels==1:
+            image = np.asarray(instance.image).reshape(instance.size, instance.size) #
+        else :
+            image = np.asarray(instance.image).reshape(instance.size, instance.size, self.channels)
+
+        # visualize(image, txt='From Pixel dataset before transforms')
+        image = image.astype(np.uint8)
         image = self.transforms(image)
+
+        # visualize(image, txt='From Pixel dataset output')
 
         return (image, torch.tensor(instance.neighbor_list))
 

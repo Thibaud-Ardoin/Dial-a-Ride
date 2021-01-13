@@ -15,7 +15,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from utils import get_device, label2heatmap
+from utils import get_device, label2heatmap, visualize
 from instances import PixelInstance
 from models import NNPixelDataset
 from models import UpAE, CNN1, CNN2, CNN3, UpCNN1, SeqFC1, NoPoolCNN1, SkipCNN1, CoCNN1, FC1, FC2
@@ -205,8 +205,16 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
                 outputs = model(anonym_neighbors)
 
             if output_type=='map':
+                # visualize(inputs[0], txt='Input of the network !')
+                # visualize(labels[0], txt='simple coordonates from dataset labels')
                 labels = label2heatmap(labels, image_size).to(device)
+                # visualize(labels[0].reshape([image_size, image_size]),
+                #           txt='label comming from label2heatmap, .reshaped[image_size, img_size]')
+                # visualize(labels[0],
+                #           txt='label comming from label2heatmap, not reshaped')
                 labels = torch.argmax(labels, 1)
+                # visualize(labels[0],
+                #           txt='label after argmax axis=1')
             else :
                 labels = labels.float()
 
@@ -363,6 +371,8 @@ class Trainer():
         else:
             self.flags.channels = 1
 
+        print('Number of channels ?:' self.flags.channels)
+
         # Create saving experient dir
         self.path_name = './data/experiments/' + self.flags.alias + time.strftime("%d-%H-%M")
         if not os.path.exists(self.path_name):
@@ -395,7 +405,7 @@ class Trainer():
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
-            raise "The model as input has not been found !"
+            raise "The model name has not been found !"
 
         print(' - Network: ', self.model)
 

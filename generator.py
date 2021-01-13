@@ -24,13 +24,13 @@ def parse_args(args):
     parser.add_argument(
         '--size_of_images', type=int,  default=50)
     parser.add_argument(
-        '--number_of_pixel_per_image', type=int,  default=2)
+        '--image_pop', type=int,  default=2)
     parser.add_argument(
         '--size_of_data', type=int,  default=500000)
     parser.add_argument(
-        '--unique_nn', type=bool,  default=True)
+        '--unique_nn', action='store_true', default=False)
     parser.add_argument(
-        '--moving_car', type=bool, default=True)
+        '--moving_car', action='store_true', default=False)
     parser.add_argument(
         '--codding', type=str, default='2channels')
     return parser.parse_known_args(args)[0]
@@ -43,8 +43,8 @@ class Generator:
     def __init__(self, size, population, moving_car, codding='2channels'):
         self.size = size
         self.population = population
-        self.moving_car = True
-        self.codding = '2channels'
+        self.moving_car = moving_car
+        self.codding = codding
 
 
     def get_pixel_instance(self):
@@ -102,20 +102,19 @@ if __name__ == '__main__':
     parameters = parse_args(sys.argv[1:])
 
     # Params :
-
     instances_name = 'split3_{0}nn_{1}k_n{2}_s{3}_m{4}'.format(int(parameters.unique_nn),
                                                           parameters.size_of_data//1000,
-                                                          parameters.number_of_pixel_per_image,
+                                                          parameters.image_pop,
                                                           parameters.size_of_images,
                                                           int(parameters.moving_car))
-
+    print('\t \t -* Saved as: ', instances_name)
     if os.path.isdir('./data/instances/' + instances_name) :
         raise "Folder is already in place"
     else :
         os.mkdir('./data/instances/' + instances_name)
 
     generator = Generator(size=parameters.size_of_images,
-                          population=parameters.number_of_pixel_per_image,
+                          population=parameters.image_pop,
                           moving_car=parameters.moving_car,
                           codding=parameters.codding)
 
