@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from utils import get_device, label2heatmap
-from generator import PixelInstance
+from instances import PixelInstance
 from models import NNPixelDataset
 from models import UpAE, CNN1, CNN2, CNN3, UpCNN1, SeqFC1, NoPoolCNN1, SkipCNN1, CoCNN1, FC1, FC2
 
@@ -28,6 +28,18 @@ class Tester():
                 Entends to load all the correct set up, ready to train
         '''
         self.flags = flags
+
+
+        a, b, c, d, e, f = self.flags.data.split('_')
+        self.unique_nn = int(b[0])
+        self.data_number = int(c[:-1])
+        self.population = int(d[1:])
+        self.image_size = int(e[1:])
+        self.moving_car = int(f[1:])
+        if self.moving_car:
+            self.channels = 2
+        else:
+            self.channels = 1
 
         self.device = get_device()
         self.transform = transforms.Compose(
@@ -46,7 +58,7 @@ class Tester():
             elif self.flags.model=='UpCNN1':
                 self.model = globals()[self.flags.model](2).to(self.device)
             elif self.flags.model=='UpAE':
-                self.model = globals()[self.flags.model](50, 2).to(self.device)
+                self.model = globals()[self.flags.model](self.image_size, 2, self.flags.layers, self.channels).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:

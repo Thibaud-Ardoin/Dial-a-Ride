@@ -12,7 +12,7 @@ import pickle
 class PixelInstance():
     """ 2 Dimentional insance of the NN problem
     """
-    def __init__(self, size, population, moving_car, codding='2channels', verbose=False):
+    def __init__(self, size, population, moving_car, codding='', verbose=False):
 
         # Ground definition
         self.size = size
@@ -63,15 +63,17 @@ class PixelInstance():
             for point in self.points :
                 self.image[point[0], point[1]] = 1
 
-        # Calculate the nearest neighbors
+        # List of the distances, ordered as self.points is (Creation order)
         self.distance_list = list(map(lambda x: np.linalg.norm(self.center - x), self.points))
+        # List of points ordered by the distance (smallest distance first)
         self.neighbor_list = [x for _,x in sorted(zip(self.distance_list,self.points), key=lambda x: x[0])]
 
         nn_count = sum(1 for dist in self.distance_list if dist == np.min(self.distance_list))
+        # List of the points  at smalles distance
         self.nearest_neighbors = [self.neighbor_list[i] for i in range(nn_count)]
 
         if self.verbose:
-            print('Random generationo  concluded')
+            print('Random generation  concluded')
 
 
     def reveal(self):
@@ -80,15 +82,19 @@ class PixelInstance():
 
         to_show = self.image
         if self.codding == '2channels':
-            print('need to concat coretly')
             to_show = np.append(self.image, [self.image[0]], axis=0)
+            to_show = np.stack((to_show[:,:,0], to_show[:,:,0], to_show[:,:,1]), axis=2)
+            to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1], 1] = 0.5
             # to_show = np.transpose(to_show, (1, 2, 0))
-
+        else :
+            to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1]] = 0.5
         plt.imshow(to_show)
         plt.show()
 
 
 if __name__ == '__main__':
-    instance = PixelInstance(size=50, population=5, moving_car=True, codding='2channels', verbose=True)
-    instance.random_generation()
-    instance.reveal()
+    while 1 :
+        instance = PixelInstance(size=50, population=5, moving_car=True, codding='2channels', verbose=True)
+        instance.random_generation()
+        print(instance.random_point())
+        instance.reveal()

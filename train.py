@@ -100,10 +100,6 @@ def parse_args(args):
         '--layers', type=int, default=128,
         help='If needed, this value gives the size of hidden layers')
 
-    parser.add_argument(
-        '--channels', type=int, default=2,
-        help='Indicates the number of input channels, comming from the dataset')
-
     return parser.parse_known_args(args)[0]
 
 #######
@@ -367,18 +363,17 @@ class Trainer():
         self.image_size = int(e[1:])
         self.moving_car = int(f[1:])
         if self.moving_car:
-            self.flags.channels = 2
+            self.channels = 2
         else:
-            self.flags.channels = 1
-
-        print('Number of channels ?:' self.flags.channels)
-
+            self.channels = 1
         # Create saving experient dir
         self.path_name = './data/experiments/' + self.flags.alias + time.strftime("%d-%H-%M")
+        print(' ** Saving train path: ', self.path_name)
         if not os.path.exists(self.path_name):
             os.makedirs(self.path_name)
         else :
-            print(' ! OverWriting ! ')
+            print(' Already such a path.. adding random seed')
+            self.path_name = self.path_name + '#' + np.randint(100, 1000)
 
         # Save parameters
         with open(self.path_name + '/parameters.json', 'w') as f:
@@ -401,7 +396,7 @@ class Trainer():
             elif self.flags.model=='UpCNN1':
                 self.model = globals()[self.flags.model](2).to(self.device)
             elif self.flags.model=='UpAE':
-                self.model = globals()[self.flags.model](self.image_size, 2, self.flags.layers, self.flags.channels).to(self.device)
+                self.model = globals()[self.flags.model](self.image_size, 2, self.flags.layers, self.channels).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
@@ -438,12 +433,16 @@ class Trainer():
             self.model.load_state_dict(torch.load(self.flags.checkpoint_dir + '/best_model.pt'), strict=False)
                 #'./data/experiments/' + self.flags.checkpoint_dir + '/best_model.pt'))
 
+        print(' *// What is this train about //* ')
+        for item in vars(self):
+            print(item, ':', vars(self)[item])
+
     def run(self):
         ''' Loading the data and starting the training '''
 
         # Define Datasets
-        train_data = NNPixelDataset(self.flags.data + '/train_instances.pkl', self.transform, channels=self.flags.channels)
-        test_data = NNPixelDataset(self.flags.data + '/test_instances.pkl', self.transform, channels=self.flags.channels)
+        train_data = NNPixelDataset(self.flags.data + '/train_instances.pkl', self.transform, channels=self.channels)
+        test_data = NNPixelDataset(self.flags.data + '/test_instances.pkl', self.transform, channels=self.channels)
 
         # Define dataloaders
         trainloader = DataLoader(train_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
@@ -477,7 +476,7 @@ class Trainer():
     def evaluation(self):
         ''' Evaluation process of the Trainer
         '''
-        validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform, channels=self.flags.channels)
+        validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform, channels=self.channels)
         validationLoader = DataLoader(validation_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
         validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device, self.flags.output_type, self.image_size)
         print(' - Done with Training - ')

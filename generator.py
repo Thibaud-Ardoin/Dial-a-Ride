@@ -40,7 +40,7 @@ class Generator:
     """ Object used to generate the needed data
         For example 2D pixel image for input NN problem
     """
-    def __init__(self, size, population, moving_car, codding='2channels'):
+    def __init__(self, size, population, moving_car, codding=''):
         self.size = size
         self.population = population
         self.moving_car = moving_car

@@ -8,7 +8,8 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 
-from generator import Generator, PixelInstance
+from generator import Generator
+from instances import PixelInstance
 from models import CNN1, CNN2, CNN3, NNPixelDataset, SkipCNN1, UpAE
 from utils import get_device, objdict, label2heatmap
 from tester import Tester
@@ -32,7 +33,7 @@ def parse_args(args):
 
 
 def test_example(tester, generator, size, population, number, output_type, verbose=False, show_fail=False):
-    instances = [generator.get_pixel_instance(size=size, population=population) for i in range(number)]
+    instances = [generator.get_pixel_instance() for i in range(number)]
 
     all_images = []
     sharp_accuracy = []
@@ -136,13 +137,36 @@ if __name__ == '__main__':
 
     flags = parse_args(sys.argv[1:])
 
+    # config = objdict({ #Test11-13-30
+    #       "alias": "Test",
+    #       "batch_size": 128,
+    #       "checkpoint_dir": "",
+    #       "checkpoint_type": "best",
+    #       "criterion": "crossentropy",
+    #       "data": "/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_500k_n2_s50_m0",
+    #       "epochs": 2000,
+    #       "gamma": 0.1,
+    #       "input_type": "map",
+    #       "lr": 0.001,
+    #       "milestones": [
+    #         50
+    #       ],
+    #       "model": "UpAE",
+    #       "optimizer": "Adam",
+    #       "output_type": "map",
+    #       "patience": 50,
+    #       "scheduler": "plateau",
+    #       "seed": 836569618,
+    #       "shuffle": True,
+    #       "layers": 128
+    # })
     config = objdict({
           "alias": "Test",
           "batch_size": 128,
           "checkpoint_dir": "",
           "checkpoint_type": "best",
           "criterion": "crossentropy",
-          "data": "/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_500k_n2_s50",
+          "data": "/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_500k_n2_s50_m0",
           "epochs": 2000,
           "gamma": 0.1,
           "input_type": "map",
@@ -156,12 +180,13 @@ if __name__ == '__main__':
           "patience": 50,
           "scheduler": "plateau",
           "seed": 836569618,
-          "shuffle": True
+          "shuffle": True,
+          "layers": 256
     })
     device = get_device()
 
-    tester = Tester(config, saved_model='./data/experiments/distant/Test11-13-30/best_model.pt')
+    tester = Tester(config, saved_model='./data/experiments/distant/re_AE13-19-54/best_model.pt')
 
-    generator = Generator()
+    generator = Generator(size=50, population=2, moving_car=False)
 
-    test_example(tester, generator, size=50, population=2, number=1000, output_type=config.output_type, verbose=False, show_fail=False)
+    test_example(tester, generator, size=50, population=2, number=1000, output_type=config.output_type, verbose=False, show_fail=True)
