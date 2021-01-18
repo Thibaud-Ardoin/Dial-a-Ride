@@ -20,23 +20,19 @@ echo "fidis $HOSTNAME"
 
 source venv1/bin/activate
 
-python3 ~/Dial-a-Ride/test_secred.py \
---epochs 2000 \
---model 'UpAE' \
---scheduler 'plateau' \
---data '/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_500k_n2_s50_m0' \
---patience 10 \
---lr 0.001  \
---criterion 'crossentropy' \
---input_type 'map' \
---output_type 'map' \
---alias 'AE' \
---batch_size 128 \
---shuffle True \
---optimizer 'Adam' \
---checkpoint_type 'best' \
---milestones [50] \
---gamma 0.1 \
---checkpoint_dir '' \
---layers 256 \
---channels 1
+python3.7 run_sacred.py with 'epochs=5' \
+'alias="test_sacred2"' \
+'model="UpAE"' \
+'data="/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_500k_n2_s50_m0"' \
+'patience=10' \
+'lr=0.001'  \
+'criterion="crossentropy"' \
+'input_type="map"' \
+'output_type="map"' \
+'alias="AE"' \
+'batch_size=128' \
+'optimizer="Adam"' \
+'checkpoint_type="best"' \
+'gamma=0.1' \
+'layers=256' \
+'channels=1'

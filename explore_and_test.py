@@ -99,7 +99,8 @@ def test_example(tester, generator, size, population, number, output_type, verbo
                 n=2
                 pred_im = prediction_image.cpu().numpy()
                 print('- Prediction argmax: ', np.unravel_index(pred_im.argmax(), pred_im.shape))
-                normalized = (pred_im - pred_im.mean() ) / pred_im.max() - pred_im.min()
+                normalized = (pred_im - pred_im.min() ) / (pred_im.max() - pred_im.min())
+                print('minmax : ', normalized.max(), normalized.min())
                 m = torch.nn.Softmax()
                 soft_prediction = m(prediction_image).cpu()
                 f = plt.figure()
@@ -189,4 +190,4 @@ if __name__ == '__main__':
 
     generator = Generator(size=50, population=2, moving_car=False)
 
-    test_example(tester, generator, size=50, population=2, number=1000, output_type=config.output_type, verbose=False, show_fail=True)
+    test_example(tester, generator, size=50, population=2, number=1000, output_type=config.output_type, verbose=True, show_fail=True)

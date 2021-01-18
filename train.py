@@ -165,7 +165,7 @@ def testing(model, testloader, criterion, testing_size, input_type, device, outp
 # Training function
 ######
 
-def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device, path_name, output_type, image_size):
+def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device, path_name, output_type, image_size, sacred):
     print(' - Start Training - ')
     max_test_accuracy = 0
     training_statistics = {
@@ -236,12 +236,12 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         print('\t * Testing nearest accuracy : %0.3f' % (test_statistics['nearest_acc']))
 
         # Compile results
-        training_statistics['test_accuracy'].append(test_statistics['accuracy'])
-        training_statistics['test_loss'].append(test_statistics['loss'])
+        training_statistics['test_accuracy'].append(test_statistics['accuracy'].cpu().item())
+        training_statistics['test_loss'].append(test_statistics['loss'].cpu().item())
         training_statistics['test_nearest_acc'].append(test_statistics['nearest_acc'])
         training_statistics['test_point_acc'].append(test_statistics['point_acc'])
         training_statistics['train_loss'].append(running_loss)
-        plot_statistics(training_statistics, path_name, name)
+        plot_statistics(training_statistics, path_name, name, sacred)
 
         #
         if test_statistics['accuracy'] > max_test_accuracy :
@@ -315,12 +315,16 @@ def validation(model, validationLoader, criterion, input_type, device, output_ty
         print('\t - Validation nearest accuracy : %0.3f' % (nearest_accuracy / total))
 
 
-def plot_statistics(statistics, path_name, name, show=False):
+def plot_statistics(statistics, path_name, name, sacred, show=False):
     # Create plot of the statiscs, saved in folder
     colors = ['tab:green', 'tab:red', 'tab:orange', 'tab:blue', 'tab:purple']
     fig, (axis) = plt.subplots(1, len(statistics), figsize=(20, 10))
     fig.suptitle(' - Training: ' + name)
     for i, key in enumerate(statistics):
+        # Sacred (The one thing to keep here)
+        if sacred :
+            sacred.log_scalar(key, statistics[key][-1], len(statistics[key]))
+
         axis[i].plot(statistics[key], colors[i])
         axis[i].set_title(' Plot of ' + key)
     if show :
@@ -330,14 +334,15 @@ def plot_statistics(statistics, path_name, name, show=False):
     plt.close(fig)
 
     # Save the statistics as CSV file
-    try:
-        with open(path_name + '/statistics.csv', 'w') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=statistics.keys())
-            writer.writeheader()
-            # for key in statistics
-            writer.writerow(statistics)
-    except IOError:
-        print("I/O error")
+    if not sacred:
+        try:
+            with open(path_name + '/statistics.csv', 'w') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=statistics.keys())
+                writer.writeheader()
+                # for key in statistics
+                writer.writerow(statistics)
+        except IOError:
+            print("I/O error")
 
 
 def save_model(model, path_name, checkpoint, epoch):
@@ -350,11 +355,12 @@ def save_model(model, path_name, checkpoint, epoch):
 
 class Trainer():
 
-    def __init__(self, flags):
+    def __init__(self, flags, sacred=None):
         ''' Inintialisation of the trainner:
                 Entends to load all the correct set up, ready to train
         '''
         self.flags = flags
+        self.sacred = sacred
 
         a, b, c, d, e, f = self.flags.data.split('_')
         self.unique_nn = int(b[0])
@@ -366,18 +372,25 @@ class Trainer():
             self.channels = 2
         else:
             self.channels = 1
+
         # Create saving experient dir
-        self.path_name = './data/experiments/' + self.flags.alias + time.strftime("%d-%H-%M")
-        print(' ** Saving train path: ', self.path_name)
-        if not os.path.exists(self.path_name):
-            os.makedirs(self.path_name)
+        if self.sacred :
+            self.path_name = '/'.join([self.sacred.experiment_info['base_dir'], self.flags.file_dir, str(self.sacred._id)])
         else :
-            print(' Already such a path.. adding random seed')
-            self.path_name = self.path_name + '#' + np.randint(100, 1000)
+            self.path_name = './data/experiments/' + self.flags.alias + time.strftime("%d-%H-%M")
+            print(' ** Saving train path: ', self.path_name)
+            if not os.path.exists(self.path_name):
+                os.makedirs(self.path_name)
+            else :
+                print(' Already such a path.. adding random seed')
+                self.path_name = self.path_name + '#' + np.randint(100, 1000)
 
         # Save parameters
-        with open(self.path_name + '/parameters.json', 'w') as f:
-            json.dump(vars(self.flags), f)
+        if self.sacred :
+            pass
+        else :
+            with open(self.path_name + '/parameters.json', 'w') as f:
+                json.dump(vars(self.flags), f)
 
         self.device = get_device()
         self.transform = transforms.Compose(
@@ -464,7 +477,8 @@ class Trainer():
                                   device=self.device,
                                   path_name=self.path_name,
                                   output_type=self.flags.output_type,
-                                  image_size=self.image_size)
+                                  image_size=self.image_size,
+                                  sacred=self.sacred)
 
         # free some memory
         del train_data
