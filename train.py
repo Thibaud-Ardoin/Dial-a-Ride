@@ -409,7 +409,10 @@ class Trainer():
             elif self.flags.model=='UpCNN1':
                 self.model = globals()[self.flags.model](2).to(self.device)
             elif self.flags.model=='UpAE':
-                self.model = globals()[self.flags.model](self.image_size, 2, self.flags.layers, self.channels).to(self.device)
+                self.model = globals()[self.flags.model](self.image_size,
+                                                         self.flags.upscale_factor,
+                                                         self.flags.layers,
+                                                         self.channels).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:

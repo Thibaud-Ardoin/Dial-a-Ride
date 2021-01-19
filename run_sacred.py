@@ -6,12 +6,13 @@ import argparse
 from utils import objdict
 from train import Trainer
 from instances import PixelInstance
+import models
 
 
 ex = Experiment("svm")
 
 ex.observers.append(FileStorageObserver("experiments_obs"))
-ex.observers.append(MongoObserver(db_name='experiments_db'))
+# ex.observers.append(MongoObserver(db_name='mongodb://127.0.0.1:27017/database') #'experiments_db'))
 
 # def get_args(args):
 #     parser = argparse.ArgumentParser(
@@ -89,7 +90,8 @@ ex.add_config(
     checkpoint_dir = '',
     layers = 256,
     channels = 1,
-    file_dir = 'experiments_obs'
+    file_dir = 'experiments_obs',
+    upscale_factor = 2
 )
 
 
@@ -97,13 +99,6 @@ ex.add_config(
 def run(_run):
     # Get params
     parameters = objdict(_run.config)
-
-    # print('Run elements: ', vars(_run))
-    print('Spoot the one directory:: ', '/'.join([_run.experiment_info['base_dir'], 'experiments_obs', str(_run._id)]))
-    print('_output_file: ', _run._output_file)
-    print('id: ', _run._id)
-
-    # print('Thhe dir ? : ', _run.observers.experiments.base_dir)
 
     # Get the trainer object
     trainer = get_trainer(parameters, sacred=_run)
