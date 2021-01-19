@@ -25,6 +25,6 @@ python3 ~/Dial-a-Ride/generator.py \
 --size_of_images 50 \
 --number_of_pixel_per_image 2 \
 --size_of_data 500000 \
---unique_nn True \
---moving_car True \
---codding 2channels
+--unique_nn \
+--moving_car \
+--out_dir "/scratch/izar/ardoin/"

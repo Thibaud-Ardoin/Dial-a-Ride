@@ -90,7 +90,7 @@ ex.add_config(
     checkpoint_dir = '',
     layers = 256,
     channels = 1,
-    file_dir = 'experiments_obs',
+    file_dir = '/home/ardoin/experiments_obs',
     upscale_factor = 2
 )
 

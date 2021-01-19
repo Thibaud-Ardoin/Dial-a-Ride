@@ -177,6 +177,7 @@ class UpAE(nn.Module):
         x = self.relu(self.conv2(x))
         x = self.relu(self.conv3(x))
         upscaled_image = self.pixel_shuffle(self.conv4(x))
+
         image_vector = upscaled_image.view(upscaled_image.size(0), -1)
         x = self.relu(self.fc1(image_vector))
         reconstruction = self.fc2(x)
@@ -188,6 +189,7 @@ class UpAE(nn.Module):
         nn.init.orthogonal_(self.conv3.weight, nn.init.calculate_gain('relu'))
         nn.init.orthogonal_(self.conv4.weight)
 
+        
 
 class NoPoolCNN1(nn.Module):
     """ Neural network definition

@@ -32,7 +32,7 @@ def parse_args(args):
     parser.add_argument(
         '--moving_car', action='store_true', default=False)
     parser.add_argument(
-        '--codding', type=str, default='2channels')
+        '--out_dir', type=str, default='./data/insances/')
     return parser.parse_known_args(args)[0]
 
 
@@ -40,15 +40,14 @@ class Generator:
     """ Object used to generate the needed data
         For example 2D pixel image for input NN problem
     """
-    def __init__(self, size, population, moving_car, codding=''):
+    def __init__(self, size, population, moving_car):
         self.size = size
         self.population = population
         self.moving_car = moving_car
-        self.codding = codding
 
 
     def get_pixel_instance(self):
-        instance=PixelInstance(self.size, self.population, self.moving_car, codding=self.codding)
+        instance=PixelInstance(self.size, self.population, self.moving_car)
         instance.random_generation()
         return instance
 
@@ -108,21 +107,20 @@ if __name__ == '__main__':
                                                           parameters.size_of_images,
                                                           int(parameters.moving_car))
     print('\t \t -* Saved as: ', instances_name)
-    if os.path.isdir('./data/instances/' + instances_name) :
+    if os.path.isdir(parameters.out_dir + instances_name) :
         raise "Folder is already in place"
     else :
         os.mkdir('./data/instances/' + instances_name)
 
     generator = Generator(size=parameters.size_of_images,
                           population=parameters.image_pop,
-                          moving_car=parameters.moving_car,
-                          codding=parameters.codding)
+                          moving_car=parameters.moving_car)
 
     for name in ['test_instances', 'train_instances', 'validation_instances'] :
         instances = generator.generate_pixel_instances(number=parameters.size_of_data,
                                                        save_type=parameters.save_type,
                                                        unique_nn=parameters.unique_nn)
         generator.save_instances(instances,
-                                 path='./data/instances/' + instances_name,
+                                 path=parameters.out_dir + instances_name,
                                  save_type=parameters.save_type,
                                  name=name)

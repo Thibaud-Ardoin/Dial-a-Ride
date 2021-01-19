@@ -12,13 +12,13 @@ import pickle
 class PixelInstance():
     """ 2 Dimentional insance of the NN problem
     """
-    def __init__(self, size, population, moving_car, codding='', verbose=False):
+    def __init__(self, size, population, moving_car, verbose=False):
 
         # Ground definition
         self.size = size
         self.population = population
         self.verbose = verbose
-        self.codding = codding
+        self.moving_car = moving_car
         if moving_car :
             self.center = self.random_point()
         else :
@@ -51,7 +51,7 @@ class PixelInstance():
                 self.points.append(point)
 
 
-        if self.codding=='2channels':
+        if self.moving_car:
             self.image = np.zeros((self.size, self.size, 2))
             # Set coordonates according to channel_type
             for point in self.points :
@@ -81,7 +81,7 @@ class PixelInstance():
             print(item, ':', vars(self)[item])
 
         to_show = self.image
-        if self.codding == '2channels':
+        if self.moving_car:
             to_show = np.append(self.image, [self.image[0]], axis=0)
             to_show = np.stack((to_show[:,:,0], to_show[:,:,0], to_show[:,:,1]), axis=2)
             to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1], 1] = 0.5
@@ -94,7 +94,7 @@ class PixelInstance():
 
 if __name__ == '__main__':
     while 1 :
-        instance = PixelInstance(size=50, population=5, moving_car=True, codding='2channels', verbose=True)
+        instance = PixelInstance(size=50, population=5, moving_car=True, verbose=True)
         instance.random_generation()
         print(instance.random_point())
         instance.reveal()
