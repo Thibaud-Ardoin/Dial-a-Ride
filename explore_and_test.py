@@ -162,32 +162,35 @@ if __name__ == '__main__':
     #       "layers": 128
     # })
     config = objdict({
-          "alias": "Test",
+          "alias": "AE",
           "batch_size": 128,
+          "channels": 2,
           "checkpoint_dir": "",
           "checkpoint_type": "best",
           "criterion": "crossentropy",
-          "data": "/home/ardoin/Dial-a-Ride/data/instances/split3_1nn_500k_n2_s50_m0",
-          "epochs": 2000,
+          "data": "/scratch/izar/ardoin/split3_1nn_300k_n2_s40_m1",
+          "epochs": 200,
+          "file_dir": "/home/ardoin/experiments_obs",
           "gamma": 0.1,
           "input_type": "map",
-          "lr": 0.001,
+          "layers": 256,
+          "lr": 0.0001,
           "milestones": [
             50
           ],
           "model": "UpAE",
           "optimizer": "Adam",
           "output_type": "map",
-          "patience": 50,
+          "patience": 10,
           "scheduler": "plateau",
-          "seed": 836569618,
+          "seed": 743871277,
           "shuffle": True,
-          "layers": 256
+          "upscale_factor": 2
     })
     device = get_device()
 
-    tester = Tester(config, saved_model='./data/experiments/distant/re_AE13-19-54/best_model.pt')
+    tester = Tester(config, saved_model='./data/experiments/distant/experiments_obs/23/best_model.pt')
 
-    generator = Generator(size=50, population=2, moving_car=False)
+    generator = Generator(size=40, population=2, moving_car=True)
 
-    test_example(tester, generator, size=50, population=2, number=1000, output_type=config.output_type, verbose=True, show_fail=True)
+    test_example(tester, generator, size=50, population=2, number=1000, output_type=config.output_type, verbose=True, show_fail=False)

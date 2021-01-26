@@ -3,3 +3,4 @@ __pycache__/
 my_runs/
 slurm*
 experiments_obs/
+data_processing/

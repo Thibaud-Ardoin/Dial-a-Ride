@@ -110,7 +110,7 @@ if __name__ == '__main__':
     if os.path.isdir(parameters.out_dir + instances_name) :
         raise "Folder is already in place"
     else :
-        os.mkdir('./data/instances/' + instances_name)
+        os.mkdir(parameters.out_dir + instances_name)
 
     generator = Generator(size=parameters.size_of_images,
                           population=parameters.image_pop,
