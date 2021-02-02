@@ -19,6 +19,7 @@ from utils import get_device, label2heatmap, visualize
 from instances import PixelInstance
 from models import NNPixelDataset
 from models import UpAE, CNN1, CNN2, CNN3, UpCNN1, SeqFC1, NoPoolCNN1, SkipCNN1, CoCNN1, FC1, FC2
+from transformer_model import Trans1
 
 
 def parse_args(args):
@@ -127,10 +128,17 @@ def testing(model, testloader, criterion, testing_size, input_type, device, outp
                 outputs = model(inputs, anonym_neighbors)
             elif input_type=='coord':
                 outputs = model(anonym_neighbors)
+            elif input_type=='flatmap':
+                outputs = model(inputs.to(device).type(torch.LongTensor), torch.tensor([[image_size**2] for _ in range(inputs.shape[0])]).to(device).type(torch.LongTensor))
+
 
             if output_type=='map':
                 labels = label2heatmap(labels, image_size).to(device)
                 labels = torch.argmax(labels, 1)
+            elif output_type=='flatmap':
+                labels = label2heatmap(labels, image_size).to(device)
+                labels = torch.argmax(labels, 1)
+                outputs = torch.squeeze(outputs[:, :, :-1])
             else :
                 labels = labels.float()
 
@@ -150,6 +158,12 @@ def testing(model, testloader, criterion, testing_size, input_type, device, outp
                 nearest_accuracy += np.sum(np.argmin(distance_pred2points, axis=0) == 0)
 
             elif output_type=='map':
+                predictions = torch.argmax(outputs, 1)
+                correct += (predictions == labels).float().sum()
+                nearest_accuracy += 0
+                pointing_accuracy += 0
+
+            elif output_type=='flatmap':
                 predictions = torch.argmax(outputs, 1)
                 correct += (predictions == labels).float().sum()
                 nearest_accuracy += 0
@@ -190,6 +204,9 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
             if input_type=='map':
                 outputs = model(inputs)
 
+            elif input_type=='flatmap':
+                outputs = model(inputs.to(device).type(torch.LongTensor), torch.tensor([[image_size**2] for _ in range(inputs.shape[0])]).to(device).type(torch.LongTensor))
+
             elif input_type=='map+coord':
                 shuffled_indexes = torch.randperm(neighbors.shape[1])
                 anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
@@ -211,6 +228,12 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
                 labels = torch.argmax(labels, 1)
                 # visualize(labels[0],
                 #           txt='label after argmax axis=1')
+
+            elif output_type=='flatmap':
+                labels = label2heatmap(labels, image_size).to(device)
+                labels = torch.argmax(labels, 1)
+                outputs = torch.squeeze(outputs[:, :, :-1]) #Remove inexistant  [-1] for start
+
             else :
                 labels = labels.float()
 
@@ -236,8 +259,8 @@ def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, 
         print('\t * Testing nearest accuracy : %0.3f' % (test_statistics['nearest_acc']))
 
         # Compile results
-        training_statistics['test_accuracy'].append(test_statistics['accuracy'].cpu().item())
-        training_statistics['test_loss'].append(test_statistics['loss'].cpu().item())
+        training_statistics['test_accuracy'].append(test_statistics['accuracy'])
+        training_statistics['test_loss'].append(test_statistics['loss'])
         training_statistics['test_nearest_acc'].append(test_statistics['nearest_acc'])
         training_statistics['test_point_acc'].append(test_statistics['point_acc'])
         training_statistics['train_loss'].append(running_loss)
@@ -280,10 +303,16 @@ def validation(model, validationLoader, criterion, input_type, device, output_ty
                 outputs = model(inputs, anonym_neighbors)
             elif input_type=='coord':
                 outputs = model(anonym_neighbors)
+            elif input_type=='flatmap':
+                outputs = model(inputs.to(device).type(torch.LongTensor), torch.tensor([[image_size**2] for _ in range(inputs.shape[0])]).to(device).type(torch.LongTensor))
 
             if output_type=='map':
                 labels = label2heatmap(labels, image_size).to(device)
                 labels = torch.argmax(labels, 1)
+            elif output_type=='flatmap':
+                labels = label2heatmap(labels, image_size).to(device)
+                labels = torch.argmax(labels, 1)
+                outputs = torch.squeeze(outputs[:, :, :-1])
             else :
                 labels = labels.float()
 
@@ -362,12 +391,13 @@ class Trainer():
         self.flags = flags
         self.sacred = sacred
 
-        a, b, c, d, e, f = self.flags.data.split('_')
+        a, b, c, d, e, f, g = self.flags.data.split('_')
         self.unique_nn = int(b[0])
         self.data_number = int(c[:-1])
         self.population = int(d[1:])
         self.image_size = int(e[1:])
         self.moving_car = int(f[1:])
+        self.indice_list = int(g[1:])
         if self.moving_car:
             self.channels = 2
         else:
@@ -393,10 +423,14 @@ class Trainer():
                 json.dump(vars(self.flags), f)
 
         self.device = get_device()
-        self.transform = transforms.Compose(
-            [transforms.ToPILImage(),
-             transforms.ToTensor()
-        ])
+
+        if self.indice_list:
+            self.transform = transforms.Compose([])
+        else :
+            self.transform = transforms.Compose(
+                [transforms.ToPILImage(),
+                 transforms.ToTensor()
+            ])
 
         # Define NN
         try :
@@ -413,12 +447,17 @@ class Trainer():
                                                          self.flags.upscale_factor,
                                                          self.flags.layers,
                                                          self.channels).to(self.device)
+            elif self.flags.model=='Trans1':
+                self.model = globals()[self.flags.model](src_vocab_size=self.image_size**2+1,
+                                                         trg_vocab_size=self.image_size**2+1,
+                                                         max_length=self.population+1,
+                                                         src_pad_idx=self.image_size,
+                                                         trg_pad_idx=self.image_size,
+                                                         device=self.device).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
         except:
             raise "The model name has not been found !"
-
-        print(' - Network: ', self.model)
 
         # loss
         if self.flags.criterion == 'MSE':
@@ -457,8 +496,8 @@ class Trainer():
         ''' Loading the data and starting the training '''
 
         # Define Datasets
-        train_data = NNPixelDataset(self.flags.data + '/train_instances.pkl', self.transform, channels=self.channels)
-        test_data = NNPixelDataset(self.flags.data + '/test_instances.pkl', self.transform, channels=self.channels)
+        train_data = NNPixelDataset(self.flags.data + '/train_instances.pkl', self.transform, channels=self.channels, isList=self.indice_list)
+        test_data = NNPixelDataset(self.flags.data + '/test_instances.pkl', self.transform, channels=self.channels, isList=self.indice_list)
 
         # Define dataloaders
         trainloader = DataLoader(train_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
@@ -493,7 +532,7 @@ class Trainer():
     def evaluation(self):
         ''' Evaluation process of the Trainer
         '''
-        validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform, channels=self.channels)
+        validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform, channels=self.channels, isList=self.indice_list)
         validationLoader = DataLoader(validation_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
         validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device, self.flags.output_type, self.image_size)
         print(' - Done with Training - ')

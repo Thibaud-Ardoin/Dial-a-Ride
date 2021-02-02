@@ -20,11 +20,12 @@ from utils import get_device, visualize
 class NNPixelDataset(Dataset):
     """ Customed Dataset class for our Instances data
     """
-    def __init__(self, data_path, transforms, channels):
+    def __init__(self, data_path, transforms, channels, isList):
         filehandler = open(data_path, 'rb')
         self.data = pickle.load(filehandler)
         filehandler.close()
         self.channels = channels
+        self.isList = isList
 
         self.transforms = transforms
 
@@ -39,7 +40,9 @@ class NNPixelDataset(Dataset):
 
         # visualize(instance.image, txt='From instance data directly')
 
-        if self.channels==1:
+        if self.isList :
+            image = np.asarray(instance.image)
+        elif self.channels==1:
             image = np.asarray(instance.image).reshape(instance.size, instance.size) #
         else :
             image = np.asarray(instance.image).reshape(instance.size, instance.size, self.channels)
@@ -189,7 +192,7 @@ class UpAE(nn.Module):
         nn.init.orthogonal_(self.conv3.weight, nn.init.calculate_gain('relu'))
         nn.init.orthogonal_(self.conv4.weight)
 
-        
+
 
 class NoPoolCNN1(nn.Module):
     """ Neural network definition

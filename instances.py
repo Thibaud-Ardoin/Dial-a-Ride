@@ -9,17 +9,21 @@ import os
 
 import pickle
 
+from utils import image_coordonates2indices, indice2image_coordonates
+
 class PixelInstance():
     """ 2 Dimentional insance of the NN problem
     """
-    def __init__(self, size, population, moving_car, verbose=False):
+    def __init__(self, size, population, moving_car, transformer, verbose=False):
 
         # Ground definition
         self.size = size
         self.population = population
         self.verbose = verbose
         self.moving_car = moving_car
-        if moving_car :
+        self.transformer = transformer
+
+        if self.moving_car or self.transformer:
             self.center = self.random_point()
         else :
             self.center = ((self.size-1) / 2, (self.size-1) / 2)
@@ -29,6 +33,7 @@ class PixelInstance():
         self.points = None
         self.neighbor_list = None
         self.distance_list = None
+        self.type_vactor = None
 
 
     def random_point(self):
@@ -51,12 +56,18 @@ class PixelInstance():
                 self.points.append(point)
 
 
-        if self.moving_car:
+        if self.moving_car and not self.transformer:
             self.image = np.zeros((self.size, self.size, 2))
             # Set coordonates according to channel_type
             for point in self.points :
                 self.image[point[0], point[1], 0] = 1
             self.image[self.center[0], self.center[1], 1] = 1
+
+        if self.transformer:
+            self.image = [image_coordonates2indices(self.points[i], self.size) for i in range(len(self.points))]
+            self.image.append(image_coordonates2indices(self.center, self.size))
+
+
         else :
             self.image = np.zeros((self.size, self.size))
             # Set image coordonates of the points to 1
@@ -81,7 +92,7 @@ class PixelInstance():
             print(item, ':', vars(self)[item])
 
         to_show = self.image
-        if self.moving_car:
+        if self.moving_car and not self.transformer :
             to_show = np.append(self.image, [self.image[0]], axis=0)
             to_show = np.stack((to_show[:,:,0], to_show[:,:,0], to_show[:,:,1]), axis=2)
             to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1], 1] = 0.5
@@ -94,7 +105,7 @@ class PixelInstance():
 
 if __name__ == '__main__':
     while 1 :
-        instance = PixelInstance(size=50, population=5, moving_car=True, verbose=True)
+        instance = PixelInstance(size=50, population=5, moving_car=True, transformer=True, verbose=True)
         instance.random_generation()
         print(instance.random_point())
         instance.reveal()

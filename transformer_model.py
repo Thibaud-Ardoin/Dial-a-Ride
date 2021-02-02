@@ -4,13 +4,11 @@ following the paper Attention is all you need with a
 few minor differences. I tried to make it as clear as
 possible to understand and also went through the code
 on my youtube channel!
-
-
 """
 
 import torch
 import torch.nn as nn
-
+from utils import get_device
 
 class SelfAttention(nn.Module):
     def __init__(self, embed_size, heads):
@@ -139,7 +137,7 @@ class Encoder(nn.Module):
         N, seq_length = x.shape
         positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
         out = self.dropout(
-            (self.word_embedding(x) + self.position_embedding(positions))
+            (self.word_embedding(x.to(self.device)) + self.position_embedding(positions.to(self.device)))
         )
 
         # In the Encoder the query, key, value are all the same, it's in the
@@ -196,7 +194,7 @@ class Decoder(nn.Module):
     def forward(self, x, enc_out, src_mask, trg_mask):
         N, seq_length = x.shape
         positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
-        x = self.dropout((self.word_embedding(x) + self.position_embedding(positions)))
+        x = self.dropout((self.word_embedding(x.to(self.device)) + self.position_embedding(positions.to(self.device))))
 
         for layer in self.layers:
             x = layer(x, enc_out, enc_out, src_mask, trg_mask)
@@ -206,30 +204,31 @@ class Decoder(nn.Module):
         return out
 
 
-class Transformer(nn.Module):
+class Trans1(nn.Module):
     def __init__(
         self,
         src_vocab_size,
         trg_vocab_size,
-        src_pad_idx,
-        trg_pad_idx,
+        src_pad_idx=0,
+        trg_pad_idx=0,
         embed_size=512,
         num_layers=6,
         forward_expansion=4,
         heads=8,
         dropout=0,
-        device="cpu",
+        device="",
         max_length=100,
     ):
 
-        super(Transformer, self).__init__()
+        super(Trans1, self).__init__()
+        self.device = get_device()
 
         self.encoder = Encoder(
             src_vocab_size,
             embed_size,
             num_layers,
             heads,
-            device,
+            self.device,
             forward_expansion,
             dropout,
             max_length,
@@ -242,13 +241,12 @@ class Transformer(nn.Module):
             heads,
             forward_expansion,
             dropout,
-            device,
+            self.device,
             max_length,
         )
 
         self.src_pad_idx = src_pad_idx
         self.trg_pad_idx = trg_pad_idx
-        self.device = device
 
     def make_src_mask(self, src):
         src_mask = (src != self.src_pad_idx).unsqueeze(1).unsqueeze(2)
@@ -272,7 +270,7 @@ class Transformer(nn.Module):
 
 
 if __name__ == "__main__":
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = get_device()
     print(device)
 
     x = torch.tensor([[1, 5, 6, 4, 3, 9, 5, 2, 0], [1, 8, 7, 3, 4, 5, 6, 7, 2]]).to(
@@ -284,8 +282,10 @@ if __name__ == "__main__":
     trg_pad_idx = 0
     src_vocab_size = 10
     trg_vocab_size = 10
-    model = Transformer(src_vocab_size, trg_vocab_size, src_pad_idx, trg_pad_idx, device=device).to(
+    model = Trans1(src_vocab_size, trg_vocab_size, src_pad_idx, trg_pad_idx, device=device).to(
         device
     )
     out = model(x, trg[:, :-1])
+    print(out)
+    print(out.argmax(-1))
     print(out.shape)

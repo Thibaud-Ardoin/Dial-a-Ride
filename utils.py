@@ -37,6 +37,19 @@ def label2heatmap(labels, size):
     # visualize(maps[0], txt='first elmt of the map of label2heatmap (before torch.flatten)')
     return torch.flatten(maps, start_dim=1)
 
+
+def image_coordonates2indices(coord, image_size):
+    x, y = coord
+    # Row then collon ts. Id = x*image_size + y
+    # Going from 0 to iamge_size^2 -1 = (image_size - 1)*image_size + image_size - 1
+    return x*image_size + y
+
+
+def indice2image_coordonates(indice, image_size):
+    # x = Id // image_size ; y = Id%image_size
+    return indice // image_size, indice%image_size
+
+
 def visualize(image, txt=''):
     if len(image.shape) == 3 and image.shape[0] in [1,2,3]:
         img = image.cpu().numpy()
