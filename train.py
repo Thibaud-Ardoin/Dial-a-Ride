@@ -107,279 +107,21 @@ def parse_args(args):
 # Epoch wise testing process
 #######
 
-def testing(model, testloader, criterion, testing_size, input_type, device, output_type, image_size):
-    loss = 0
-    correct = 0
-    pointing_accuracy = 0
-    nearest_accuracy = 0
-    total = 0
-    model.eval()
-    with torch.no_grad():
-        for i, data in enumerate(testloader):
-            inputs, neighbors = data[0].to(device, non_blocking=True), data[1]
-            labels = neighbors[:,0].to(device, non_blocking=True)
 
-            shuffled_indexes = torch.randperm(neighbors.shape[1])
-            anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
-
-            if input_type=='map':
-                outputs = model(inputs)
-            elif input_type=='map+coord':
-                outputs = model(inputs, anonym_neighbors)
-            elif input_type=='coord':
-                outputs = model(anonym_neighbors)
-            elif input_type=='flatmap':
-                outputs = model(inputs.to(device).type(torch.LongTensor), torch.tensor([[image_size**2] for _ in range(inputs.shape[0])]).to(device).type(torch.LongTensor))
-
-
-            if output_type=='map':
-                labels = label2heatmap(labels, image_size).to(device)
-                labels = torch.argmax(labels, 1)
-            elif output_type=='flatmap':
-                labels = label2heatmap(labels, image_size).to(device)
-                labels = torch.argmax(labels, 1)
-                outputs = torch.squeeze(outputs[:, :, :-1])
-            else :
-                labels = labels.float()
-
-            loss += criterion(outputs, labels)
-            total += labels.size(0)
-
-            if output_type=='coord':
-                rounded = torch.round(outputs)
-                rx, ry = rounded.reshape(2, labels.size(0))
-                lx, ly = labels.reshape(2, labels.size(0))
-                correct += ((rx == lx) & (ry == ly)).sum().item()
-
-                distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1), neighbors.cpu()[0]))
-                # Case where the model aims perfectly to one pixel
-                pointing_accuracy += (np.sum(np.min(distance_pred2points, axis=0) == 0))
-                # Case where the nearest pixel to prediction is the nearest_neighbors
-                nearest_accuracy += np.sum(np.argmin(distance_pred2points, axis=0) == 0)
-
-            elif output_type=='map':
-                predictions = torch.argmax(outputs, 1)
-                correct += (predictions == labels).float().sum()
-                nearest_accuracy += 0
-                pointing_accuracy += 0
-
-            elif output_type=='flatmap':
-                predictions = torch.argmax(outputs, 1)
-                correct += (predictions == labels).float().sum()
-                nearest_accuracy += 0
-                pointing_accuracy += 0
-
-            if (i >= testing_size): break
-    return {'loss': loss / total,
-            'accuracy': 100 * correct / total,
-            'nearest_acc': 100 * nearest_accuracy / total,
-            'point_acc': 100 * pointing_accuracy / total  }
 
 #######
 # Training function
 ######
 
-def train(model, trainloader, testloader,  number_epochs, criterion, optimizer, scheduler, testing_size, name, checkpoint_type, input_type, device, path_name, output_type, image_size, sacred):
-    print(' - Start Training - ')
-    max_test_accuracy = 0
-    training_statistics = {
-        'test_accuracy': [],
-        'train_loss': [],
-        'test_loss': [],
-        'test_nearest_acc':[],
-        'test_point_acc':[]
-    }
-    for epoch in range(number_epochs):
-        model.train()
-        running_loss = 0
-        total = 0
-
-        for data in tqdm(trainloader):
-                # data pixels and labels to GPU if available
-            inputs, neighbors = data[0].to(device, non_blocking=True), data[1].to(device, non_blocking=True)
-            labels = neighbors[:,0]
-            # set the parameter gradients to zero
-            optimizer.zero_grad()
-
-            if input_type=='map':
-                outputs = model(inputs)
-
-            elif input_type=='flatmap':
-                outputs = model(inputs.to(device).type(torch.LongTensor), torch.tensor([[image_size**2] for _ in range(inputs.shape[0])]).to(device).type(torch.LongTensor))
-
-            elif input_type=='map+coord':
-                shuffled_indexes = torch.randperm(neighbors.shape[1])
-                anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
-                outputs = model(inputs, anonym_neighbors)
-
-            elif input_type=='coord':
-                shuffled_indexes = torch.randperm(neighbors.shape[1])
-                anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
-                outputs = model(anonym_neighbors)
-
-            if output_type=='map':
-                # visualize(inputs[0], txt='Input of the network !')
-                # visualize(labels[0], txt='simple coordonates from dataset labels')
-                labels = label2heatmap(labels, image_size).to(device)
-                # visualize(labels[0].reshape([image_size, image_size]),
-                #           txt='label comming from label2heatmap, .reshaped[image_size, img_size]')
-                # visualize(labels[0],
-                #           txt='label comming from label2heatmap, not reshaped')
-                labels = torch.argmax(labels, 1)
-                # visualize(labels[0],
-                #           txt='label after argmax axis=1')
-
-            elif output_type=='flatmap':
-                labels = label2heatmap(labels, image_size).to(device)
-                labels = torch.argmax(labels, 1)
-                outputs = torch.squeeze(outputs[:, :, :-1]) #Remove inexistant  [-1] for start
-
-            else :
-                labels = labels.float()
-
-            loss = criterion(outputs, labels)
-
-            loss.backward()
-            # update the gradients
-            optimizer.step()
-            total += labels.size(0)
-            running_loss += loss.item()
-
-        scheduler.step(running_loss)
-
-        # Start Testings
-        test_statistics = testing(model, testloader, criterion, testing_size, input_type, device, output_type, image_size)
-
-        # Print results for epoch
-        print('\t * [Epoch %d] loss: %.3f' %
-                      (epoch + 1, running_loss / total))
-        print('\t * Testing accuracy : %0.3f %%' % (test_statistics['accuracy']))
-        print('\t * Testing loss : %0.3f' % (test_statistics['loss']))
-        print('\t * Testing right pointing accuracy : %0.3f' % (test_statistics['point_acc']))
-        print('\t * Testing nearest accuracy : %0.3f' % (test_statistics['nearest_acc']))
-
-        # Compile results
-        training_statistics['test_accuracy'].append(test_statistics['accuracy'])
-        training_statistics['test_loss'].append(test_statistics['loss'])
-        training_statistics['test_nearest_acc'].append(test_statistics['nearest_acc'])
-        training_statistics['test_point_acc'].append(test_statistics['point_acc'])
-        training_statistics['train_loss'].append(running_loss)
-        plot_statistics(training_statistics, path_name, name, sacred)
-
-        #
-        if test_statistics['accuracy'] > max_test_accuracy :
-            max_test_accuracy = test_statistics['accuracy']
-            if checkpoint_type == 'best':
-                save_model(model, path_name=name, checkpoint=checkpoint_type, epoch=epoch)
-        elif checkpoint_type == 'all':
-            save_model(model, path_name=name, checkpoint=checkpoint_type, epoch=epoch)
-
-    print(' - Done Training - ')
-    return training_statistics
 
 ######
 # Final validation step
 ######
 
-def validation(model, validationLoader, criterion, input_type, device, output_type, image_size):
-    print(' - Start Validation provcess - ')
-    loss = 0
-    correct = 0
-    total = 0
-    pointing_accuracy = 0
-    nearest_accuracy = 0
-    model.eval()
-    with torch.no_grad():
-        for data in tqdm(validationLoader):
-            inputs, neighbors = data[0].to(device, non_blocking=True), data[1]
-            labels = neighbors[:,0].to(device, non_blocking=True)
-
-            shuffled_indexes = torch.randperm(neighbors.shape[1])
-            anonym_neighbors = neighbors[:,shuffled_indexes].to(device)
-
-            if input_type=='map':
-                outputs = model(inputs)
-            elif input_type=='map+coord':
-                outputs = model(inputs, anonym_neighbors)
-            elif input_type=='coord':
-                outputs = model(anonym_neighbors)
-            elif input_type=='flatmap':
-                outputs = model(inputs.to(device).type(torch.LongTensor), torch.tensor([[image_size**2] for _ in range(inputs.shape[0])]).to(device).type(torch.LongTensor))
-
-            if output_type=='map':
-                labels = label2heatmap(labels, image_size).to(device)
-                labels = torch.argmax(labels, 1)
-            elif output_type=='flatmap':
-                labels = label2heatmap(labels, image_size).to(device)
-                labels = torch.argmax(labels, 1)
-                outputs = torch.squeeze(outputs[:, :, :-1])
-            else :
-                labels = labels.float()
-
-            loss += criterion(outputs, labels)
-            total += labels.size(0)
-
-            if output_type=='coord':
-                rounded = torch.round(outputs)
-                rx, ry = rounded.reshape(2, labels.size(0))
-                lx, ly = labels.reshape(2, labels.size(0))
-                correct += ((rx == lx) & (ry == ly)).sum().item()
-
-                distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1), neighbors.cpu()[0]))
-                # Case where the model aims perfectly to one pixel
-                pointing_accuracy += (np.sum(np.min(distance_pred2points, axis=0) == 0))
-                # Case where the nearest pixel to prediction is the nearest_neighbors
-                nearest_accuracy += np.sum(np.argmin(distance_pred2points, axis=0) == 0)
-
-            elif output_type=='map':
-                predictions = torch.argmax(outputs, 1)
-                correct += (predictions == labels).float().sum()
-                nearest_accuracy += 0
-                pointing_accuracy += 0
-
-        print('\t * Validation run -- ' )
-        print('\t - Validation accuracy : %0.3f %%' % (100 * correct / total))
-        print('\t - Validation loss : %0.3f' % (loss / total))
-        print('\t - Validation right pointing accuracy : %0.3f' % (0))
-        print('\t - Validation nearest accuracy : %0.3f' % (nearest_accuracy / total))
 
 
-def plot_statistics(statistics, path_name, name, sacred, show=False):
-    # Create plot of the statiscs, saved in folder
-    colors = ['tab:green', 'tab:red', 'tab:orange', 'tab:blue', 'tab:purple']
-    fig, (axis) = plt.subplots(1, len(statistics), figsize=(20, 10))
-    fig.suptitle(' - Training: ' + name)
-    for i, key in enumerate(statistics):
-        # Sacred (The one thing to keep here)
-        if sacred :
-            sacred.log_scalar(key, statistics[key][-1], len(statistics[key]))
-
-        axis[i].plot(statistics[key], colors[i])
-        axis[i].set_title(' Plot of ' + key)
-    if show :
-        fig.show()
-    fig.savefig(path_name + '/result_figure.png')
-    fig.clf()
-    plt.close(fig)
-
-    # Save the statistics as CSV file
-    if not sacred:
-        try:
-            with open(path_name + '/statistics.csv', 'w') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=statistics.keys())
-                writer.writeheader()
-                # for key in statistics
-                writer.writerow(statistics)
-        except IOError:
-            print("I/O error")
 
 
-def save_model(model, path_name, checkpoint, epoch):
-    if checkpoint == 'best':
-        name = 'best_model.pt'
-    else : name = 'model_t=' + time.strftime("%d-%H-%M") + '_e=' + str(epoch) + '.pt'
-    torch.save(model.state_dict(), '/'.join([path_name,name]))
-    print(' - Done with saving ! - ')
 
 
 class Trainer():
@@ -488,9 +230,218 @@ class Trainer():
             self.model.load_state_dict(torch.load(self.flags.checkpoint_dir + '/best_model.pt'), strict=False)
                 #'./data/experiments/' + self.flags.checkpoint_dir + '/best_model.pt'))
 
+        # number of elements passed throgh the model for each epoch
+        self.testing_size = min(self.flags.batch_size * (10000 // self.flags.batch_size), self.data_number)     #About 10k
+        self.training_size = min(self.flags.batch_size * (100000 // self.flags.batch_size), self.data_number)   #About 100k
+
+        self.statistics = {
+            'train_accuracy': [],
+            'train_loss': [],
+            'train_pointing_acc': [],
+            'train_nearest_acc': [],
+            'test_accuracy': [],
+            'test_loss': [],
+            'test_nearest_acc':[],
+            'test_pointing_acc':[]
+        }
+
         print(' *// What is this train about //* ')
         for item in vars(self):
             print(item, ':', vars(self)[item])
+
+
+
+    def save_model(self, epoch):
+        if self.flags.checkpoint_type == 'best':
+            name = 'best_model.pt'
+        else : name = 'model_t=' + time.strftime("%d-%H-%M") + '_e=' + str(epoch) + '.pt'
+
+        torch.save(self.model.state_dict(), '/'.join([self.path_name,name]))
+        print(' - Done with saving ! - ')
+
+
+    def plot_statistics(self, epoch, verbose=True, show=False):
+        # Print them
+        if verbose:
+            print('\t ->[Epoch %d]<- loss: %.3f' % (epoch + 1, self.statistics['train_loss'][-1]))
+            print('\t * Testing accuracy : %0.3f %%' % (self.statistics['test_accuracy'][-1]))
+            print('\t * Testing loss : %0.3f' % (self.statistics['test_loss'][-1]))
+
+        # Create plot of the statiscs, saved in folder
+        colors = [plt.cm.tab20(0),plt.cm.tab20(1),plt.cm.tab20c(2),
+                  plt.cm.tab20c(3), plt.cm.tab20c(4),
+                  plt.cm.tab20c(5),plt.cm.tab20c(6),plt.cm.tab20c(7)]
+        fig, (axis) = plt.subplots(1, len(self.statistics), figsize=(20, 10))
+        fig.suptitle(' - Training: ' + self.path_name)
+        for i, key in enumerate(self.statistics):
+            # Sacred (The one thing to keep here)
+            if self.sacred :
+                self.sacred.log_scalar(key, self.statistics[key][-1], len(self.statistics[key]))
+            axis[i].set_title(' Plot of ' + key)
+        if show :
+            fig.show()
+        fig.savefig(self.path_name + '/result_figure.png')
+        fig.clf()
+        plt.close(fig)
+
+        # Save the statistics as CSV file
+        if not self.sacred:
+            try:
+                with open(self.path_name + '/statistics.csv', 'w') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=statistics.keys())
+                    writer.writeheader()
+                    # for key in statistics
+                    writer.writerow(self.statistics)
+            except IOError:
+                print("I/O error")
+
+
+    def forward_data(self, data):
+        inputs, neighbors = data[0].to(self.device, non_blocking=True), data[1].to(self.device, non_blocking=True)
+        labels = neighbors[:,0]
+        shuffled_indexes = torch.randperm(neighbors.shape[1])
+        anonym_neighbors = neighbors[:,shuffled_indexes].to(self.device)
+
+        if self.flags.input_type=='map':
+            outputs = self.model(inputs)
+        elif self.flags.input_type=='flatmap':
+            outputs = self.model(inputs.to(self.device).type(torch.LongTensor),
+                            torch.tensor([[self.image_size**2] for _ in range(inputs.shape[0])]).to(self.device).type(torch.LongTensor))
+        elif self.flags.input_type=='map+coord':
+            outputs = self.model(inputs, anonym_neighbors)
+        elif self.flags.input_type=='coord':
+            outputs = self.model(anonym_neighbors)
+
+        if self.flags.output_type=='map':
+            labels = label2heatmap(labels, self.image_size).to(self.device)
+            labels = torch.argmax(labels, 1)
+        elif self.flags.output_type=='flatmap':
+            labels = label2heatmap(labels, self.image_size).to(self.device)
+            labels = torch.argmax(labels, 1)
+            outputs = torch.squeeze(outputs[:, :, :-1]) #Remove inexistant  [-1] for start
+        else :
+            labels = labels.float()
+
+        return outputs, labels
+
+    def compile_stats(self, labels, outputs, loss, data):
+        if self.flags.output_type=='coord':
+            rounded = torch.round(outputs)
+            rx, ry = rounded.reshape(2, labels.size(0))
+            lx, ly = labels.reshape(2, labels.size(0))
+            correct = ((rx == lx) & (ry == ly)).sum().item()
+
+            distance_pred2points = list(map(lambda x: np.linalg.norm(rounded.cpu() - x, axis=1),
+                                            data[1].to(self.device, non_blocking=True).cpu()[0]))
+            # Case where the model aims perfectly to one pixel
+            pointing_accuracy = (np.sum(np.min(distance_pred2points, axis=0) == 0))
+            # Case where the nearest pixel to prediction is the nearest_neighbors
+            nearest_accuracy = np.sum(np.argmin(distance_pred2points, axis=0) == 0)
+
+        elif self.flags.output_type in ['map', 'flatmap']:
+            predictions = torch.argmax(outputs, 1)
+            correct = (predictions == labels).float().sum()
+            # TODO : better metrics then 0 would be welcome !!
+            nearest_accuracy = 0
+            pointing_accuracy = 0
+
+        return correct, nearest_accuracy, pointing_accuracy
+
+
+    def testing(self, testloader):
+        loss = 0
+        total = 0
+        correct = nearest_accuracy = pointing_accuracy = 0
+        self.model.eval()
+        with torch.no_grad():
+            for i, data in enumerate(testloader):
+
+                outputs, labels = self.forward_data(data)
+                loss += self.criterion(outputs, labels)
+                total += labels.size(0)
+
+                c, n, p = self.compile_stats(labels, outputs, loss, data)
+                correct += c ;  pointing_accuracy += p ; nearest_accuracy += n
+
+                if (i >= self.testing_size): break
+
+        self.statistics['test_accuracy'].append(100*(correct / total).cpu().item())
+        self.statistics['test_loss'].append((loss / total).cpu().item())
+        self.statistics['test_nearest_acc'].append(100*(nearest_accuracy / total))
+        self.statistics['test_pointing_acc'].append(100*(pointing_accuracy / total))
+
+
+    def train(self, trainloader, testloader):
+        print(' - Start Training - ')
+        max_test_accuracy = 0
+
+        for epoch in range(self.flags.epochs):
+            running_loss = 0
+            total = 0
+            correct = nearest_accuracy = pointing_accuracy = 0
+
+            self.model.train()
+            for i, data in enumerate(trainloader):
+                # set the parameter gradients to zero
+                self.optimizer.zero_grad()
+
+                outputs, labels = self.forward_data(data)
+                loss = self.criterion(outputs, labels)
+
+                loss.backward()
+                # update the gradients
+                self.optimizer.step()
+                total += labels.size(0)
+                running_loss += loss.item()
+
+                # Compile statistics
+                c, n, p = self.compile_stats(labels, outputs, loss, data)
+                correct += c ;  pointing_accuracy += p ; nearest_accuracy += n
+
+                if (i >= self.training_size): break
+
+            # Compile results
+            self.statistics['train_loss'].append(running_loss / total)
+            self.statistics['train_accuracy'].append(100*(correct / total).cpu().item())
+            self.statistics['train_pointing_acc'].append(100*(pointing_accuracy / total))
+            self.statistics['train_nearest_acc'].append(100*(nearest_accuracy / total))
+
+            # Start Testings
+            self.testing(testloader)
+
+            # Stats tratment and update
+            self.plot_statistics(epoch)
+            self.scheduler.step(running_loss)
+
+            if self.statistics['test_accuracy'][-1] == np.max(self.statistics['test_accuracy']) :
+                if self.flags.checkpoint_type == 'best':
+                    self.save_model(epoch=epoch)
+            elif self.flags.checkpoint_type == 'all':
+                self.save_model(epoch=epoch)
+
+        print(' - Done Training - ')
+
+    def validation(self, validationLoader):
+        print(' - Start Validation provcess - ')
+        loss = 0
+        total = 0
+        correct = pointing_accuracy = nearest_accuracy = 0
+        self.model.eval()
+        with torch.no_grad():
+            for data in tqdm(validationLoader):
+                outputs, labels = self.forward_data(data)
+                loss += self.criterion(outputs, labels)
+                total += labels.size(0)
+
+                c, n, p = self.compile_stats(labels, outputs, loss, data)
+                correct += c ;  pointing_accuracy += p ; nearest_accuracy += n
+
+            print('\t * Validation run -- ' )
+            print('\t - Validation accuracy : %0.3f %%' % (100 * correct / total))
+            print('\t - Validation loss : %0.3f' % (loss / total))
+            print('\t - Validation right pointing accuracy : %0.3f' % (100 *pointing_accuracy / total))
+            print('\t - Validation nearest accuracy : %0.3f' % (100 * nearest_accuracy / total))
+
 
     def run(self):
         ''' Loading the data and starting the training '''
@@ -505,22 +456,8 @@ class Trainer():
         print(' - Done with loading the data - ')
 
         # Start training and testing
-        traing_statistics = train(model=self.model,
-                                  trainloader=trainloader,
-                                  testloader=testloader,
-                                  number_epochs=self.flags.epochs,
-                                  criterion=self.criterion,
-                                  optimizer=self.optimizer,
-                                  scheduler=self.scheduler,
-                                  testing_size=self.flags.batch_size,
-                                  name=self.path_name,
-                                  checkpoint_type=self.flags.checkpoint_type,
-                                  input_type=self.flags.input_type,
-                                  device=self.device,
-                                  path_name=self.path_name,
-                                  output_type=self.flags.output_type,
-                                  image_size=self.image_size,
-                                  sacred=self.sacred)
+        self.train(trainloader=trainloader,
+                   testloader=testloader)
 
         # free some memory
         del train_data
@@ -534,7 +471,11 @@ class Trainer():
         '''
         validation_data = NNPixelDataset(self.flags.data + '/validation_instances.pkl', self.transform, channels=self.channels, isList=self.indice_list)
         validationLoader = DataLoader(validation_data, batch_size=self.flags.batch_size, shuffle=self.flags.shuffle)
-        validation(self.model, validationLoader, self.criterion, self.flags.input_type, self.device, self.flags.output_type, self.image_size)
+        self.validation(validationLoader)
+
+        del validation_data
+        del validationLoader
+
         print(' - Done with Training - ')
 
 

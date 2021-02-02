@@ -19,7 +19,7 @@ def get_trainer(parameters, sacred):
     return Trainer(parameters, sacred)
 
 ex.add_config(
-    epochs= 2000,
+    epochs= 1,
     model = 'Trans1',
     scheduler = 'plateau',
     data = './data/instances/split3_1nn_10k_n2_s50_m1_t1',

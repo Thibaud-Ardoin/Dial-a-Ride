@@ -1,2 +1,2 @@
 # Dial-a-Ride
-Solutions to the DaR problem with CNN and more
+Solutions to the DaR problem with CNN, transformers, AE, Sequential and SVG and more
