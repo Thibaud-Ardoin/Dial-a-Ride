@@ -15,7 +15,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from utils import get_device, label2heatmap, visualize
+from utils import get_device, label2heatmap, visualize, indice_map2image, indice2image_coordonates, indices2image
 from instances import PixelInstance
 from models import NNPixelDataset
 from models import UpAE, CNN1, CNN2, CNN3, UpCNN1, SeqFC1, NoPoolCNN1, SkipCNN1, CoCNN1, FC1, FC2
@@ -195,6 +195,7 @@ class Trainer():
                                                          max_length=self.population+1,
                                                          src_pad_idx=self.image_size,
                                                          trg_pad_idx=self.image_size,
+                                                         dropout=self.flags.dropout,
                                                          device=self.device).to(self.device)
             else :
                 self.model = globals()[self.flags.model]().to(self.device)
@@ -277,6 +278,7 @@ class Trainer():
             # Sacred (The one thing to keep here)
             if self.sacred :
                 self.sacred.log_scalar(key, self.statistics[key][-1], len(self.statistics[key]))
+            axis[i].plot(self.statistics[key], color=colors[i])
             axis[i].set_title(' Plot of ' + key)
         if show :
             fig.show()
@@ -347,8 +349,32 @@ class Trainer():
 
         return correct, nearest_accuracy, pointing_accuracy
 
+    def save_visuals(self, epoch, data, outputs, labels):
+        ''' Saving some examples of input -> output to see how the model behave '''
+        print(' - Saving some examples - ')
+        number_i = min(self.flags.batch_size, 10)
+        # print('\t \t + epoch::', epoch)
+        # print('\t \t + data:', data[0].shape, data[0][:number_i])
+        # print('\t \t + outputs:', outputs.shape, outputs[:number_i])
+        # print('\t \t + labels:', labels.shape, labels[:number_i])
+        plt.figure()
+        fig, axis = plt.subplots(3, number_i, figsize=(50, 25)) #3 rows for input, output, processed
+        fig.tight_layout()
+        fig.suptitle(' - examples of network - ')
+        for i in range(min(self.flags.batch_size, number_i)):
+            input_map = indices2image(data[0][i], self.image_size)
+            axis[0, i].imshow(input_map)
+            im = indice_map2image(outputs[i], self.image_size).cpu().numpy()
+            normalized = (im - im.min() ) / (im.max() - im.min())
+            axis[1, i].imshow(normalized)
+            img_name = self.path_name + '/' + str(i) + 'type_' + '.png'
+        plt.savefig(img_name)
+        plt.close()
+        if self.sacred :
+            self.sacred.add_artifact(img_name, content_type='image')
 
-    def testing(self, testloader):
+
+    def testing(self, testloader, epoch):
         loss = 0
         total = 0
         correct = nearest_accuracy = pointing_accuracy = 0
@@ -364,7 +390,7 @@ class Trainer():
                 correct += c ;  pointing_accuracy += p ; nearest_accuracy += n
 
                 if (i >= self.testing_size): break
-
+        self.save_visuals(epoch, data, outputs, labels)
         self.statistics['test_accuracy'].append(100*(correct / total).cpu().item())
         self.statistics['test_loss'].append((loss / total).cpu().item())
         self.statistics['test_nearest_acc'].append(100*(nearest_accuracy / total))
@@ -407,7 +433,7 @@ class Trainer():
             self.statistics['train_nearest_acc'].append(100*(nearest_accuracy / total))
 
             # Start Testings
-            self.testing(testloader)
+            self.testing(testloader, epoch)
 
             # Stats tratment and update
             self.plot_statistics(epoch)

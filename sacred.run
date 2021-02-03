@@ -35,4 +35,5 @@ python3.7 run_sacred.py with 'epochs=5' \
 'checkpoint_type="best"' \
 'gamma=0.1' \
 'layers=256' \
-'channels=1'
+'channels=1' \
+'dropout=0.1'

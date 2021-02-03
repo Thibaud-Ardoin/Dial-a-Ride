@@ -28,6 +28,7 @@ class objdict(dict):
         else:
             raise AttributeError("No such attribute: " + name)
 
+
 def label2heatmap(labels, size):
     maps = torch.zeros((len(labels), size, size,)).type(torch.LongTensor)
 
@@ -36,6 +37,15 @@ def label2heatmap(labels, size):
         # maps[i] = maps[i].view(maps[i].size(0), -1)
     # visualize(maps[0], txt='first elmt of the map of label2heatmap (before torch.flatten)')
     return torch.flatten(maps, start_dim=1)
+
+
+def indices2image(indice_list, image_size):
+    indice_map = torch.zeros(image_size**2)
+    for i, indice in enumerate(indice_list):
+        indice_map[indice.item()] = 1.
+        if i==(len(indice_list) - 1):
+            indice_map[indice.item()] = 0.5
+    return indice_map2image(indice_map, image_size)
 
 
 def image_coordonates2indices(coord, image_size):
@@ -48,6 +58,11 @@ def image_coordonates2indices(coord, image_size):
 def indice2image_coordonates(indice, image_size):
     # x = Id // image_size ; y = Id%image_size
     return indice // image_size, indice%image_size
+
+
+def indice_map2image(indice_map, image_size):
+    # x = Id // image_size ; y = Id%image_size
+    return torch.reshape(indice_map, (image_size, image_size))
 
 
 def visualize(image, txt=''):

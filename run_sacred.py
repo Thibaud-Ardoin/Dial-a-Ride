@@ -39,7 +39,8 @@ ex.add_config(
     layers = 256,
     channels = 1,
     file_dir = '/experiments_obs/',
-    upscale_factor = 2
+    upscale_factor = 2,
+    dropout = 0.1
 )
 
 
