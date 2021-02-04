@@ -67,7 +67,6 @@ class PixelInstance():
             self.image = [image_coordonates2indices(self.points[i], self.size) for i in range(len(self.points))]
             self.image.append(image_coordonates2indices(self.center, self.size))
 
-
         else :
             self.image = np.zeros((self.size, self.size))
             # Set image coordonates of the points to 1

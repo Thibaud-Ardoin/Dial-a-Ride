@@ -349,7 +349,7 @@ class Trainer():
 
         return correct, nearest_accuracy, pointing_accuracy
 
-    def save_visuals(self, epoch, data, outputs, labels):
+    def save_visuals(self, epoch, data, outputs, labels, txt='test'):
         ''' Saving some examples of input -> output to see how the model behave '''
         print(' - Saving some examples - ')
         number_i = min(self.flags.batch_size, 10)

@@ -19,7 +19,7 @@ def get_trainer(parameters, sacred):
     return Trainer(parameters, sacred)
 
 ex.add_config(
-    epochs= 1,
+    epochs= 10,
     model = 'Trans1',
     scheduler = 'plateau',
     data = './data/instances/split3_1nn_10k_n2_s50_m1_t1',
@@ -29,7 +29,7 @@ ex.add_config(
     input_type = 'flatmap',
     output_type = 'flatmap',
     alias = 'test_transformer',
-    batch_size = 128,
+    batch_size = 256,
     shuffle = True,
     optimizer = 'Adam',
     checkpoint_type = 'best',

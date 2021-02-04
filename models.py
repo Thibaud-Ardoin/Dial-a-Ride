@@ -48,8 +48,9 @@ class NNPixelDataset(Dataset):
             image = np.asarray(instance.image).reshape(instance.size, instance.size, self.channels)
 
         # visualize(image, txt='From Pixel dataset before transforms')
-        image = image.astype(np.uint8)
-        image = self.transforms(image)
+        image = image.astype(np.int64)
+        if not self.isList :
+            image = self.transforms(image)
 
         # visualize(image, txt='From Pixel dataset output')
 
