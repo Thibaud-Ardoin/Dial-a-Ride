@@ -104,7 +104,7 @@ class PixelInstance():
 
 if __name__ == '__main__':
     while 1 :
-        instance = PixelInstance(size=50, population=5, moving_car=True, transformer=True, verbose=True)
+        instance = PixelInstance(size=50, population=10, drivers=2, moving_car=True, transformer=True, verbose=True)
         instance.random_generation()
         print(instance.random_point())
         instance.reveal()

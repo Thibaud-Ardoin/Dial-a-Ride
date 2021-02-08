@@ -358,15 +358,15 @@ class Trainer():
         # print('\t \t + outputs:', outputs.shape, outputs[:number_i])
         # print('\t \t + labels:', labels.shape, labels[:number_i])
         plt.figure()
-        fig, axis = plt.subplots(2, number_i, figsize=(50, 25)) #3 rows for input, output, processed
+        fig, axis = plt.subplots(number_i, 2, figsize=(10, 50)) #3 rows for input, output, processed
         fig.tight_layout()
         fig.suptitle(' - examples of network - ')
         for i in range(min(self.flags.batch_size, number_i)):
             input_map = indices2image(data[0][i], self.image_size)
-            axis[0, i].imshow(input_map)
+            axis[i, 0].imshow(input_map)
             im = indice_map2image(outputs[i], self.image_size).cpu().numpy()
             normalized = (im - im.min() ) / (im.max() - im.min())
-            axis[1, i].imshow(normalized)
+            axis[i, 1].imshow(normalized)
         img_name = self.path_name + '/example_epoch' + str(epoch) + '.png'
         plt.savefig(img_name)
         plt.close()
