@@ -47,6 +47,12 @@ def indices2image(indice_list, image_size):
             indice_map[indice.item()] = 0.5
     return indice_map2image(indice_map, image_size)
 
+def instance2world(indice_list, type_vector, image_size):
+    indice_map = torch.zeros(image_size**2)
+    for i, indice in enumerate(indice_list):
+        indice_map[indice] = type_vector[i]
+    return indice_map2image(indice_map, image_size)
+
 
 def image_coordonates2indices(coord, image_size):
     x, y = coord
@@ -63,6 +69,9 @@ def indice2image_coordonates(indice, image_size):
 def indice_map2image(indice_map, image_size):
     # x = Id // image_size ; y = Id%image_size
     return torch.reshape(indice_map, (image_size, image_size))
+
+def distance(pos1, pos2):
+    return np.linalg.norm(np.array(pos1) - np.array(pos2)) 
 
 
 def visualize(image, txt=''):

@@ -22,7 +22,7 @@ ex.add_config(
     epochs= 10,
     model = 'Trans1',
     scheduler = 'plateau',
-    data = './data/instances/split3_1nn_10k_n2_s50_m1_t1',
+    data = './data/instances/split3_0nn_30k_n2_s50_m1_t1_d2',
     patience = 10,
     lr = 0.001,
     criterion = 'crossentropy',

@@ -54,7 +54,7 @@ class NNPixelDataset(Dataset):
 
         # visualize(image, txt='From Pixel dataset output')
 
-        return (image, torch.tensor(instance.neighbor_list))
+        return (image, torch.tensor(instance.caracteristics))
 
 
 class CNN1(nn.Module):

@@ -300,16 +300,20 @@ class Trainer():
 
 
     def forward_data(self, data):
-        inputs, neighbors = data[0].to(self.device, non_blocking=True), data[1].to(self.device, non_blocking=True)
-        labels = neighbors[:,0]
-        shuffled_indexes = torch.randperm(neighbors.shape[1])
-        anonym_neighbors = neighbors[:,shuffled_indexes].to(self.device)
+        inputs, caracteristics = data[0].to(self.device, non_blocking=True), data[1].to(self.device, non_blocking=True)
+        # labels = neighbors[:,0]
+        # shuffled_indexes = torch.randperm(neighbors.shape[1])
+        # anonym_neighbors = neighbors[:,shuffled_indexes].to(self.device)
 
         if self.flags.input_type=='map':
             outputs = self.model(inputs)
+
         elif self.flags.input_type=='flatmap':
+            target = torch.tensor([[self.image_size**2] for _ in range(inputs.shape[0])]).to(self.device).type(torch.LongTensor)
             outputs = self.model(inputs.to(self.device).type(torch.LongTensor),
-                            torch.tensor([[self.image_size**2] for _ in range(inputs.shape[0])]).to(self.device).type(torch.LongTensor))
+                            target,
+                            caracteristics)
+
         elif self.flags.input_type=='map+coord':
             outputs = self.model(inputs, anonym_neighbors)
         elif self.flags.input_type=='coord':

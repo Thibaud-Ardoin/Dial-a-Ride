@@ -14,7 +14,7 @@ from utils import image_coordonates2indices, indice2image_coordonates
 class PixelInstance():
     """ 2 Dimentional insance of the NN problem
     """
-    def __init__(self, size, population, moving_car, transformer, verbose=False):
+    def __init__(self, size, population, drivers, moving_car, transformer, verbose=False):
 
         # Ground definition
         self.size = size
@@ -22,22 +22,34 @@ class PixelInstance():
         self.verbose = verbose
         self.moving_car = moving_car
         self.transformer = transformer
-
-        if self.moving_car or self.transformer:
-            self.center = self.random_point()
-        else :
-            self.center = ((self.size-1) / 2, (self.size-1) / 2)
+        self.drivers = drivers
 
         # 2nd grade attributes
+        self.points = []
+        self.centers = []
+        self.caracteristics = None
         self.image = None
-        self.points = None
-        self.neighbor_list = None
-        self.distance_list = None
+        self.neighbors_lists = None
+        self.distances_lists = None
         self.type_vactor = None
 
+        if self.moving_car or self.transformer:
+            for _ in range(self.drivers) :
+                self.centers.append(self.random_point())
+        else :
+            self.centers = [((self.size-1) / 2, (self.size-1) / 2)]
+
+    def equal(self, x, y):
+        return x[0] == y[0] and x[1] == y[1]
 
     def random_point(self):
-        return np.random.randint(0, self.size, (2))
+        # Distinct selection
+        done = False
+        while not done:
+            pt = np.random.randint(0, self.size, (2))
+            if not np.sum([self.equal(pt, self.points[i]) for i in range(len(self.points))] + [self.equal(pt, self.centers[i]) for i in range(len(self.centers))]) :
+                done = True
+        return pt
 
 
     def random_generation(self, seed=None):
@@ -49,12 +61,8 @@ class PixelInstance():
             np.random.seed(seed)
 
         # Generate Random points (distinct) on the image
-        self.points = [self.random_point()]
-        while len(self.points) < self.population :
-            point = self.random_point()
-            if not np.sum([(point==self.points[i]).all() for i in range(len(self.points))]) :
-                self.points.append(point)
-
+        for _ in range(self.population):
+            self.points.append(self.random_point())
 
         if self.moving_car and not self.transformer:
             self.image = np.zeros((self.size, self.size, 2))
@@ -65,7 +73,10 @@ class PixelInstance():
 
         if self.transformer:
             self.image = [image_coordonates2indices(self.points[i], self.size) for i in range(len(self.points))]
-            self.image.append(image_coordonates2indices(self.center, self.size))
+            self.image = self.image + [image_coordonates2indices(self.centers[i], self.size) for i in range(self.drivers)]
+
+            # -1 as marker for targets and i for drivers. 0 beeing for neutral space
+            self.caracteristics = [-1 for _ in range(self.population)] + [i+1 for i in range(self.drivers)]
 
         else :
             self.image = np.zeros((self.size, self.size))
@@ -74,13 +85,13 @@ class PixelInstance():
                 self.image[point[0], point[1]] = 1
 
         # List of the distances, ordered as self.points is (Creation order)
-        self.distance_list = list(map(lambda x: np.linalg.norm(self.center - x), self.points))
+        self.distances_lists = [list(map(lambda x: np.linalg.norm(self.centers[i] - x), self.points)) for i in range(self.drivers)]
         # List of points ordered by the distance (smallest distance first)
-        self.neighbor_list = [x for _,x in sorted(zip(self.distance_list,self.points), key=lambda x: x[0])]
+        self.neighbors_lists = [[x for _,x in sorted(zip(self.distances_lists[i],self.points), key=lambda x: x[0])] for i in range(self.drivers)]
 
-        nn_count = sum(1 for dist in self.distance_list if dist == np.min(self.distance_list))
+        # nn_count = sum(1 for dist in self.distance_list if dist == np.min(self.distance_list))
         # List of the points  at smalles distance
-        self.nearest_neighbors = [self.neighbor_list[i] for i in range(nn_count)]
+        # self.nearest_neighbors = [self.neighbor_list[i] for i in range(nn_count)]
 
         if self.verbose:
             print('Random generation  concluded')
@@ -94,10 +105,10 @@ class PixelInstance():
         if self.moving_car and not self.transformer :
             to_show = np.append(self.image, [self.image[0]], axis=0)
             to_show = np.stack((to_show[:,:,0], to_show[:,:,0], to_show[:,:,1]), axis=2)
-            to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1], 1] = 0.5
+            # to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1], 1] = 0.5
             # to_show = np.transpose(to_show, (1, 2, 0))
-        else :
-            to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1]] = 0.5
+        # else :
+            # to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1]] = 0.5
         plt.imshow(to_show)
         plt.show()
 

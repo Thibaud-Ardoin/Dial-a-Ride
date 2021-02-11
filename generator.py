@@ -32,6 +32,8 @@ def parse_args(args):
     parser.add_argument(
         '--moving_car', action='store_true', default=False)
     parser.add_argument(
+        '--drivers', type=int, default=2)
+    parser.add_argument(
         '--transformer_readdy', action='store_true', default=False)
     parser.add_argument(
         '--out_dir', type=str, default='./data/insances/')
@@ -42,15 +44,21 @@ class Generator:
     """ Object used to generate the needed data
         For example 2D pixel image for input NN problem
     """
-    def __init__(self, size, population, moving_car, transformer_readdy):
+    def __init__(self, size, population, moving_car, transformer_readdy, drivers):
         self.size = size
         self.population = population
         self.moving_car = moving_car
         self.transformer = transformer_readdy
+        self.drivers = drivers
 
 
     def get_pixel_instance(self):
-        instance=PixelInstance(self.size, self.population, self.moving_car, self.transformer)
+        instance=PixelInstance(size=self.size,
+                               population=self.population,
+                               drivers=self.drivers,
+                               moving_car=self.moving_car,
+                               transformer=self.transformer,
+                               verbose=False)
         instance.random_generation()
         return instance
 
@@ -104,12 +112,13 @@ if __name__ == '__main__':
     parameters = parse_args(sys.argv[1:])
 
     # Params :
-    instances_name = 'split3_{0}nn_{1}k_n{2}_s{3}_m{4}_t{5}'.format(int(parameters.unique_nn),
+    instances_name = 'split3_{0}nn_{1}k_n{2}_s{3}_m{4}_t{5}_d{6}'.format(int(parameters.unique_nn),
                                                           parameters.size_of_data//1000,
                                                           parameters.image_pop,
                                                           parameters.size_of_images,
                                                           int(parameters.moving_car),
-                                                          int(parameters.transformer_readdy))
+                                                          int(parameters.transformer_readdy),
+                                                          int(parameters.drivers))
     print('\t \t -* Saved as: ', instances_name)
     if os.path.isdir(parameters.out_dir + instances_name) :
         raise "Folder is already in place"
@@ -119,7 +128,8 @@ if __name__ == '__main__':
     generator = Generator(size=parameters.size_of_images,
                           population=parameters.image_pop,
                           moving_car=parameters.moving_car,
-                          transformer_readdy=parameters.transformer_readdy)
+                          transformer_readdy=parameters.transformer_readdy,
+                          drivers=parameters.drivers)
 
     for name in ['test_instances', 'train_instances', 'validation_instances'] :
         instances = generator.generate_pixel_instances(number=parameters.size_of_data,
