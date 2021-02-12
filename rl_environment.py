@@ -25,11 +25,10 @@ class DarEnv(gym.Env):
         self.reward_range = (- self.max_reward, self.max_reward)
         self.current_episode = 0
         self.success_episode = []
+        self.cumulative_reward = 0
 
 
     def reward(self, distance):
-        print('Distance: ', distance)
-        print('size, 1/distance', 'reward', self.size, (1 / distance), 1.5 * self.size * (1 / distance))
         return int(1.5 * self.size * (1 / distance))
 
 
@@ -41,7 +40,7 @@ class DarEnv(gym.Env):
                                                 transformer=True,
                                                 verbose=True)
         self.instance.random_generation()
-        print('Instance image : ', self.instance.image)
+        print('* Reset - Instance image : ', self.instance.image)
         self.targets = self.instance.points.copy()
         self.drivers = self.instance.centers.copy()
 
@@ -49,6 +48,7 @@ class DarEnv(gym.Env):
         # distance is -1 if wrong aiming. 0 if there is no start of game yet and x if aimed corectly
         self.distance = 0
         self.current_step = 0
+        self.cumulative_reward = 0
         self.world = utils.instance2world(self.instance.image, self.instance.caracteristics, self.size)
         return self._next_observation()
 
@@ -63,9 +63,9 @@ class DarEnv(gym.Env):
 
     def _next_observation(self):
         obs = self.world
-        addition_info = np.zeros(self.size)
-        addition_info[0] = self.current_player
-        obs = np.append(obs, np.array([addition_info]), axis=0)
+        # addition_info = np.zeros(self.size)
+        # addition_info[0] = self.current_player
+        # obs = np.append(obs, np.array([addition_info]), axis=0)
         return obs
 
 
@@ -101,6 +101,8 @@ class DarEnv(gym.Env):
             self.current_player = ((self.current_player + 1 - 1) % (self.driver_population) ) + 1
         # End of simulation
 
+        self.cumulative_reward += reward
+
         if not len(self.targets) :
             done = True
         if self.current_step >= self.max_step:
@@ -108,6 +110,7 @@ class DarEnv(gym.Env):
 
         if done:
             self.current_episode += 1
+            print('End of episode, total reward :', self.cumulative_reward)
 
         obs = self._next_observation()
 
