@@ -19,14 +19,19 @@ import utils
 
 IMAGE_SIZE = 4
 
-BATCH_SIZE = 128
+BATCH_SIZE = 256
 GAMMA = 0.999
-EPS_START = 0.9
+EPS_START = 1 #0.9
 EPS_END = 0.05
-EPS_DECAY = 200
+EPS_DECAY = 5000
 TARGET_UPDATE = 10
 
-num_episodes = 500
+num_episodes = 5000
+
+
+episode_durations = []
+train_info = {'reward': [],
+              'eps': []}
 
 
 env = DarEnv(size=IMAGE_SIZE, target_population=2, driver_population=1)
@@ -69,6 +74,25 @@ class ReplayMemory(object):
 class DQN(nn.Module):
     def __init__(self, size, upscale_factor, layer_size, channels):
         super(DQN, self).__init__()
+        self.relu = nn.ReLU()
+        self.fc1 = nn.Linear(in_features=size**2, out_features=layer_size)
+        self.fc2 = nn.Linear(in_features=layer_size, out_features=size**2)
+
+    def forward(self, input_image):
+        image_vector = input_image.view(input_image.size(0), -1)
+        x = self.relu(self.fc1(image_vector))
+        reconstruction = self.fc2(x)
+        return reconstruction
+
+    def _initialize_weights(self):
+        nn.init.orthogonal_(self.conv1.weight, nn.init.calculate_gain('relu'))
+        nn.init.orthogonal_(self.conv2.weight, nn.init.calculate_gain('relu'))
+        nn.init.orthogonal_(self.conv3.weight, nn.init.calculate_gain('relu'))
+        nn.init.orthogonal_(self.conv4.weight)
+
+class DQN3(nn.Module):
+    def __init__(self, size, upscale_factor, layer_size, channels):
+        super(DQN3, self).__init__()
         self.relu = nn.ReLU()
         self.conv1 = nn.Conv2d(channels, 64, (5, 5), (1, 1), (2, 2))
         self.conv2 = nn.Conv2d(64, 64, (3, 3), (1, 1), (1, 1))
@@ -165,6 +189,7 @@ env.reset()
 plt.figure()
 # plt.imshow(get_screen().cpu().squeeze(0).permute(1, 2, 0).numpy(),
 #            interpolation='none')
+plt.imshow(env.world)
 env.render()
 plt.title('Example extracted screen')
 plt.show()
@@ -178,6 +203,7 @@ plt.show()
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
+print('Sizie of the action space: ', n_actions)
 
 policy_net = DQN(size=IMAGE_SIZE, upscale_factor=2, layer_size=128, channels=1).to(device)
 target_net = DQN(size=IMAGE_SIZE, upscale_factor=2, layer_size=128, channels=1).to(device)
@@ -201,6 +227,12 @@ def select_action(observation):
     eps_threshold = EPS_END + (EPS_START - EPS_END) * \
         math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
+    # if steps_done > 1000 :
+    #     eps_threshold = 0.1
+    # else :
+    #     eps_threshold = 0.9
+    train_info['eps'].append(eps_threshold)
+    # print('CHOICE -- eps_threshold', eps_threshold, 'sample', sample)
     if sample > eps_threshold:
         with torch.no_grad():
             # t.max(1) will return largest column value of each row.
@@ -214,10 +246,32 @@ def select_action(observation):
         return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
 
 
-episode_durations = []
 
 
 def plot_durations():
+    #Plot epsylon ect
+    plt.figure(3)
+    plt.clf()
+    plt.title('Training...')
+    plt.xlabel('Episode')
+    plt.ylabel('Epylon')
+    info = torch.tensor(train_info['eps'], dtype=torch.float)
+    plt.plot(info.numpy())
+
+    #Plot epsylon ect
+    plt.figure(4)
+    plt.clf()
+    plt.title('Training...')
+    plt.xlabel('Episode')
+    plt.ylabel('Reward')
+    info = torch.tensor(train_info['reward'], dtype=torch.float)
+
+    plt.plot(info.numpy())
+    if len(info) >= 100:
+        means = info.unfold(0, 100, 1).mean(1).view(-1)
+        means = torch.cat((torch.zeros(99), means))
+        plt.plot(means)
+
     plt.figure(2)
     plt.clf()
     durations_t = torch.tensor(episode_durations, dtype=torch.float)
@@ -294,6 +348,8 @@ for i_episode in range(num_episodes):
         action = select_action(obs)
         next_obs, reward, done, _ = env.step(action.item())
         reward = torch.tensor([reward], device=device)
+
+        train_info['reward'].append(reward)
 
         obs = np.ascontiguousarray(obs.cpu(), dtype=np.float32) / 255
         obs = transforms(torch.from_numpy(obs)).unsqueeze(0).to(device)

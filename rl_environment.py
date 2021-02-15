@@ -54,7 +54,6 @@ class DarEnv(gym.Env):
 
 
     def del_target(self, position):
-        print(self.targets, position)
         filter_fun = lambda x : x[0] == position[0] and x[1] == position[1]
         indices = [i for i in range(len(self.targets)) if filter_fun(self.targets[i])]
         for indice in indices:
@@ -92,7 +91,7 @@ class DarEnv(gym.Env):
         self.current_step += 1
 
         if self.distance == -1:
-            reward = -self.max_reward
+            reward = -int(self.max_reward//2)
             done = False
         elif self.distance > 0:
             reward = self.reward(self.distance)
