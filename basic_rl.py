@@ -84,12 +84,6 @@ class DQN(nn.Module):
         reconstruction = self.fc2(x)
         return reconstruction
 
-    def _initialize_weights(self):
-        nn.init.orthogonal_(self.conv1.weight, nn.init.calculate_gain('relu'))
-        nn.init.orthogonal_(self.conv2.weight, nn.init.calculate_gain('relu'))
-        nn.init.orthogonal_(self.conv3.weight, nn.init.calculate_gain('relu'))
-        nn.init.orthogonal_(self.conv4.weight)
-
 class DQN3(nn.Module):
     def __init__(self, size, upscale_factor, layer_size, channels):
         super(DQN3, self).__init__()
@@ -227,10 +221,10 @@ def select_action(observation):
     eps_threshold = EPS_END + (EPS_START - EPS_END) * \
         math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
-    # if steps_done > 1000 :
-    #     eps_threshold = 0.1
-    # else :
-    #     eps_threshold = 0.9
+    if steps_done > 1000 :
+        eps_threshold = 0.1
+    else :
+        eps_threshold = 0.9
     train_info['eps'].append(eps_threshold)
     # print('CHOICE -- eps_threshold', eps_threshold, 'sample', sample)
     if sample > eps_threshold:

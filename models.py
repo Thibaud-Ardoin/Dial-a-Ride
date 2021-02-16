@@ -57,6 +57,21 @@ class NNPixelDataset(Dataset):
         return (image, torch.tensor(instance.caracteristics))
 
 
+class DQN(nn.Module):
+    def __init__(self, input_size, output_size, layer_size=128):
+        super(DQN, self).__init__()
+        self.relu = nn.ReLU()
+        self.fc1 = nn.Linear(in_features=input_size, out_features=layer_size)
+        self.fc2 = nn.Linear(in_features=layer_size, out_features=output_size)
+
+    def forward(self, input_image):
+        image_vector = input_image.view(input_image.size(0), -1)
+        x = self.relu(self.fc1(image_vector))
+        reconstruction = self.fc2(x)
+        return reconstruction
+
+
+
 class CNN1(nn.Module):
     """ Neural network definition
     """

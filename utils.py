@@ -28,6 +28,9 @@ class objdict(dict):
         else:
             raise AttributeError("No such attribute: " + name)
 
+def heatmap2image_coord(heatmap):
+    coord = np.where(heatmap == heatmap.max())
+    return coord
 
 def label2heatmap(labels, size):
     maps = torch.zeros((len(labels), size, size,)).type(torch.LongTensor)
@@ -71,7 +74,7 @@ def indice_map2image(indice_map, image_size):
     return torch.reshape(indice_map, (image_size, image_size))
 
 def distance(pos1, pos2):
-    return np.linalg.norm(np.array(pos1) - np.array(pos2)) 
+    return np.linalg.norm(np.array(pos1) - np.array(pos2))
 
 
 def visualize(image, txt=''):

@@ -16,7 +16,10 @@ class DarEnv(gym.Env):
         self.max_step = max_step
         self.target_population = target_population
         self.driver_population = driver_population
-        self.action_space = spaces.Discrete(size**2)
+        self.action_space = spaces.Box(low=0,
+            high=3,
+            shape=(size, size),
+            dtype=np.int16)#spaces.Discrete(size**2)
         self.observation_space = spaces.Box(low=0,
             high=3,
             shape=(size, size),
@@ -29,7 +32,8 @@ class DarEnv(gym.Env):
 
 
     def reward(self, distance):
-        return int(1.5 * self.size * (1 / distance))
+        return self.max_reward - distance #Linear distance
+        #int(1.5 * self.size * (1 / distance))
 
 
     def reset(self):
@@ -38,9 +42,9 @@ class DarEnv(gym.Env):
                                                 drivers=self.driver_population,
                                                 moving_car=True,
                                                 transformer=True,
-                                                verbose=True)
+                                                verbose=False)
         self.instance.random_generation()
-        print('* Reset - Instance image : ', self.instance.image)
+        # print('* Reset - Instance image : ', self.instance.image)
         self.targets = self.instance.points.copy()
         self.drivers = self.instance.centers.copy()
 
@@ -71,8 +75,10 @@ class DarEnv(gym.Env):
     def _take_action(self, action):
         """ Action: destination point as an indice of the map vactor. (Ex: 1548 over 2500)
         """
+
         current_pos = np.where(self.world == self.current_player)
-        next_pose = utils.indice2image_coordonates(action, self.size)
+        next_pose = utils.heatmap2image_coord(action)
+        # next_pose = utils.indice2image_coordonates(action, self.size)
 
         if self.world[next_pose] ==  -1:
             self.distance = utils.distance(current_pos, next_pose)
@@ -91,10 +97,10 @@ class DarEnv(gym.Env):
         self.current_step += 1
 
         if self.distance == -1:
-            reward = -int(self.max_reward//2)
+            reward = -1#-int(self.max_reward//2)
             done = False
         elif self.distance > 0:
-            reward = self.reward(self.distance)
+            reward = 1#self.reward(self.distance)
             done = False
             # update drivers turn
             self.current_player = ((self.current_player + 1 - 1) % (self.driver_population) ) + 1
@@ -109,7 +115,7 @@ class DarEnv(gym.Env):
 
         if done:
             self.current_episode += 1
-            print('End of episode, total reward :', self.cumulative_reward)
+            # print('End of episode, total reward :', self.cumulative_reward)
 
         obs = self._next_observation()
 
