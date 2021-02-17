@@ -16,11 +16,11 @@ class DarEnv(gym.Env):
         self.max_step = max_step
         self.target_population = target_population
         self.driver_population = driver_population
-        self.action_space = spaces.Box(low=0,
-            high=3,
+        self.action_space = spaces.Box(low=-1,
+            high=1,
             shape=(size, size),
             dtype=np.int16)#spaces.Discrete(size**2)
-        self.observation_space = spaces.Box(low=0,
+        self.observation_space = spaces.Box(low=-1,
             high=3,
             shape=(size, size),
             dtype=np.int16)

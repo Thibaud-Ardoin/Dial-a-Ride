@@ -16,12 +16,13 @@ from torch.distributions import MultivariateNormal
 
 from rl_environment import DarEnv
 from models import DQN
+import utils
 
 class PPO:
 	"""
 		This is the PPO class we will use as our model in main.py
 	"""
-	def __init__(self, policy_class, env, **hyperparameters):
+	def __init__(self, policy_class, env, device, **hyperparameters):
 		"""
 			Initializes the PPO model, including hyperparameters.
 
@@ -33,6 +34,8 @@ class PPO:
 			Returns:
 				None
 		"""
+		self.device = device
+
 		# Make sure the environment is compatible with our code
 		assert(type(env.observation_space) == gym.spaces.Box)
 		assert(type(env.action_space) == gym.spaces.Box)
@@ -47,8 +50,8 @@ class PPO:
 
 		 # Initialize actor and critic networks
 		 # Input and output of networkk
-		self.actor = policy_class(self.obs_dim**2, self.act_dim**2)                                                   # ALG STEP 1
-		self.critic = policy_class(self.obs_dim**2, 1)
+		self.actor = policy_class(self.obs_dim**2, self.act_dim**2).to(self.device)                                                   # ALG STEP 1
+		self.critic = policy_class(self.obs_dim**2, 1).to(self.device)
 
 		# Initialize optimizers for actor and critic
 		self.actor_optim = Adam(self.actor.parameters(), lr=self.lr)
@@ -142,7 +145,7 @@ class PPO:
 				self.critic_optim.step()
 
 				# Log actor loss
-				self.logger['actor_losses'].append(actor_loss.detach())
+				self.logger['actor_losses'].append(actor_loss.cpu().detach())
 
 			# Print a summary of our training so far
 			self._log_summary()
@@ -219,10 +222,10 @@ class PPO:
 			batch_rews.append(ep_rews)
 
 		# Reshape data as tensors in the shape specified in function description, before returning
-		batch_obs = torch.tensor(batch_obs, dtype=torch.float)
-		batch_acts = torch.tensor(batch_acts, dtype=torch.float)
-		batch_log_probs = torch.tensor(batch_log_probs, dtype=torch.float)
-		batch_rtgs = self.compute_rtgs(batch_rews)                                                              # ALG STEP 4
+		batch_obs = torch.tensor(batch_obs, dtype=torch.float).to(self.device)
+		batch_acts = torch.tensor(batch_acts, dtype=torch.float).to(self.device)
+		batch_log_probs = torch.tensor(batch_log_probs, dtype=torch.float).to(self.device)
+		batch_rtgs = self.compute_rtgs(batch_rews).to(self.device)                      # ALG STEP 4
 
 		# Log the episodic returns and episodic lengths in this batch.
 		self.logger['batch_rews'] = batch_rews
@@ -272,12 +275,12 @@ class PPO:
 				log_prob - the log probability of the selected action in the distribution
 		"""
 		# Query the actor network for a mean action
-		mean = self.actor(obs)
+		mean = self.actor(obs.to(self.device))
 
 		# Create a distribution with the mean action and std from the covariance matrix above.
 		# For more information on how this distribution works, check out Andrew Ng's lecture on it:
 		# https://www.youtube.com/watch?v=JjB58InuTqM
-		dist = MultivariateNormal(mean, self.cov_mat)
+		dist = MultivariateNormal(mean, self.cov_mat.to(self.device))
 
 		# Sample an action from the distribution
 		action = dist.sample()
@@ -286,7 +289,7 @@ class PPO:
 		log_prob = dist.log_prob(action)
 
 		# Return the sampled action and the log probability of that action in our distribution
-		return action.detach().numpy(), log_prob.detach()
+		return action.cpu().detach().numpy(), log_prob.cpu().detach()
 
 	def evaluate(self, batch_obs, batch_acts):
 		"""
@@ -305,14 +308,14 @@ class PPO:
 				log_probs - the log probabilities of the actions taken in batch_acts given batch_obs
 		"""
 		# Query critic network for a value V for each batch_obs. Shape of V should be same as batch_rtgs
-		V = self.critic(batch_obs).squeeze()
+		V = self.critic(batch_obs.to(self.device)).squeeze()
 
 		# Calculate the log probabilities of batch actions using most recent actor network.
 		# This segment of code is similar to that in get_action()
 
-		mean = self.actor(batch_obs)
-		dist = MultivariateNormal(mean, self.cov_mat)
-		log_probs = dist.log_prob(batch_acts)
+		mean = self.actor(batch_obs.to(self.device))
+		dist = MultivariateNormal(mean, self.cov_mat.to(self.device))
+		log_probs = dist.log_prob(batch_acts.to(self.device))
 
 		# Return the value vector V of each observation in the batch
 		# and log probabilities log_probs of each action in the batch
@@ -413,11 +416,12 @@ if __name__ == '__main__':
 	}
 
 	policy_model = DQN #(4, 128)
-	env = DarEnv(size=4, target_population=2, driver_population=1)
-	print(env.action_space)
+	env = DarEnv(size=2, target_population=1, driver_population=1)
+	device = utils.get_device()
 
 	ppo_model = PPO(env=env,
 					policy_class=policy_model,
+					device=device,
 					hyperparameters=hyperparameters)
 
 	ppo_model.learn(total_timesteps=200000000)
