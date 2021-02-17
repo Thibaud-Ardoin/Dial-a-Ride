@@ -9,7 +9,7 @@ import os
 
 import pickle
 
-from utils import image_coordonates2indices, indice2image_coordonates
+from dialRL.utils import image_coordonates2indices, indice2image_coordonates
 
 class PixelInstance():
     """ 2 Dimentional insance of the NN problem

@@ -3,8 +3,8 @@ import numpy as np
 import gym
 from gym import spaces
 
-import instances
-import utils
+from dialRL.dataset import PixelInstance
+from dialRL.utils import instance2world, indice2image_coordonates, distance
 
 class DarEnv(gym.Env):
     """Custom Environment that follows gym interface"""
@@ -16,10 +16,11 @@ class DarEnv(gym.Env):
         self.max_step = max_step
         self.target_population = target_population
         self.driver_population = driver_population
-        self.action_space = spaces.Box(low=-1,
-            high=1,
-            shape=(size, size),
-            dtype=np.int16)#spaces.Discrete(size**2)
+        self.action_space = spaces.Discrete(size**2)
+        # spaces.Box(low=-1,
+        #     high=1,
+        #     shape=(size, size),
+        #     dtype=np.int16)#spaces.Discrete(size**2)
         self.observation_space = spaces.Box(low=-1,
             high=3,
             shape=(size, size),
@@ -29,15 +30,11 @@ class DarEnv(gym.Env):
         self.current_episode = 0
         self.success_episode = []
         self.cumulative_reward = 0
-
-
-    def reward(self, distance):
-        return self.max_reward - distance #Linear distance
-        #int(1.5 * self.size * (1 / distance))
+        self.last_aim = None
 
 
     def reset(self):
-        self.instance = instances.PixelInstance(size=self.size,
+        self.instance = PixelInstance(size=self.size,
                                                 population=self.target_population,
                                                 drivers=self.driver_population,
                                                 moving_car=True,
@@ -53,7 +50,8 @@ class DarEnv(gym.Env):
         self.distance = 0
         self.current_step = 0
         self.cumulative_reward = 0
-        self.world = utils.instance2world(self.instance.image, self.instance.caracteristics, self.size)
+        self.world = instance2world(self.instance.image, self.instance.caracteristics, self.size)
+        self.last_aim = None
         return self._next_observation()
 
 
@@ -77,12 +75,13 @@ class DarEnv(gym.Env):
         """
 
         current_pos = np.where(self.world == self.current_player)
-        indice = np.argmax(action)
-        next_pose = utils.indice2image_coordonates(indice, self.size)
+        # indice = np.argmax(action)
+        next_pose = indice2image_coordonates(action, self.size)
         # next_pose = utils.indice2image_coordonates(action, self.size)
+        self.last_aim = next_pose
 
         if self.world[next_pose] ==  -1:
-            self.distance = utils.distance(current_pos, next_pose)
+            self.distance = distance(current_pos, next_pose)
             # Update world
             self.del_target(next_pose)
             self.world[next_pose] = self.current_player
@@ -93,8 +92,15 @@ class DarEnv(gym.Env):
             # The world stays unchanged
             self.distance = -1
 
+
+    def reward(self, distance):
+        return self.max_reward - distance #Linear distance
+        #int(1.5 * self.size * (1 / distance))
+
+
     def step(self, action):
         # Curently the action is a heatmap ..
+        # NOO now it's an indice in the list of action n*n
 
         self._take_action(action)
         self.current_step += 1
@@ -103,7 +109,7 @@ class DarEnv(gym.Env):
             reward = -1 #-int(self.max_reward//2)
             done = False
         elif self.distance > 0:
-            reward = 1 #self.reward(self.distance)
+            reward = self.reward(self.distance)
             done = False
             # update drivers turn
             self.current_player = ((self.current_player + 1 - 1) % (self.driver_population) ) + 1
@@ -127,26 +133,20 @@ class DarEnv(gym.Env):
 
 
     def render(self):
+        print('\n--------------------- [Step', self.current_step, ']')
+        print('World: ')
+        print(self.world)
+
         if self.distance == -1 :
             print(f'Player {self.current_player} go lost ....')
         else :
             print(f'Player {self.current_player} aimed right')
 
-        print('World: ')
-        print(self.world)
         print('present player: ', self.current_player)
-        print('Targets to go: ', self.targets, '\n')
-
-
-    def render_episode(self, win_or_lose):
-        self.success_episode.append(
-        'Success' if win_or_lose == 'W' else 'Failure')
-        file = open('render/render.txt', 'a')
-        file.write(' — — — — — — — — — — — — — — — — — — — — — -\n')
-        file.write(f'Episode number {self.current_episode}\n')
-        file.write(f'{self.success_episode[-1]} in {self.current_step} steps\n')
-        file.close()
-
+        print('Last aimed to : ', self.last_aim)
+        print('Targets to go: ', self.targets)
+        print('Cumulative reward : ', self.cumulative_reward)
+        print('---------------------\n')
 
 
 if __name__ == '__main__':

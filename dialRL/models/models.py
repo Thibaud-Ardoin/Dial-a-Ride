@@ -13,8 +13,8 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 import torch.optim as optim
 
-from instances import PixelInstance
-from utils import get_device, visualize
+from dialRL.dataset import PixelInstance
+from dialRL.utils import get_device, visualize
 
 
 class NNPixelDataset(Dataset):

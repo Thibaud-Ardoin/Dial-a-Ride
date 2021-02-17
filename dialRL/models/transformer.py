@@ -8,7 +8,8 @@ on my youtube channel!
 
 import torch
 import torch.nn as nn
-from utils import get_device
+
+from dialRL.utils import get_device
 
 class SelfAttention(nn.Module):
     def __init__(self, embed_size, heads):
