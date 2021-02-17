@@ -47,7 +47,7 @@ class PPO:
 
 		 # Initialize actor and critic networks
 		 # Input and output of networkk
-		self.actor = policy_class(self.obs_dim**2, self.act_dim)                                                   # ALG STEP 1
+		self.actor = policy_class(self.obs_dim**2, self.act_dim**2)                                                   # ALG STEP 1
 		self.critic = policy_class(self.obs_dim**2, 1)
 
 		# Initialize optimizers for actor and critic
@@ -55,7 +55,7 @@ class PPO:
 		self.critic_optim = Adam(self.critic.parameters(), lr=self.lr)
 
 		# Initialize the covariance matrix used to query the actor for actions
-		self.cov_var = torch.full(size=(self.act_dim,), fill_value=0.5)
+		self.cov_var = torch.full(size=(self.act_dim**2,), fill_value=0.5)
 		self.cov_mat = torch.diag(self.cov_var)
 
 		# This logger will help us with printing out summaries of each iteration
@@ -309,7 +309,7 @@ class PPO:
 
 		# Calculate the log probabilities of batch actions using most recent actor network.
 		# This segment of code is similar to that in get_action()
-		
+
 		mean = self.actor(batch_obs)
 		dist = MultivariateNormal(mean, self.cov_mat)
 		log_probs = dist.log_prob(batch_acts)

@@ -77,7 +77,8 @@ class DarEnv(gym.Env):
         """
 
         current_pos = np.where(self.world == self.current_player)
-        next_pose = utils.heatmap2image_coord(action)
+        indice = np.argmax(action)
+        next_pose = utils.indice2image_coordonates(indice, self.size)
         # next_pose = utils.indice2image_coordonates(action, self.size)
 
         if self.world[next_pose] ==  -1:
@@ -93,14 +94,16 @@ class DarEnv(gym.Env):
             self.distance = -1
 
     def step(self, action):
+        # Curently the action is a heatmap ..
+
         self._take_action(action)
         self.current_step += 1
 
         if self.distance == -1:
-            reward = -1#-int(self.max_reward//2)
+            reward = -1 #-int(self.max_reward//2)
             done = False
         elif self.distance > 0:
-            reward = 1#self.reward(self.distance)
+            reward = 1 #self.reward(self.distance)
             done = False
             # update drivers turn
             self.current_player = ((self.current_player + 1 - 1) % (self.driver_population) ) + 1

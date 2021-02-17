@@ -4,3 +4,4 @@ my_runs/
 slurm*
 experiments_obs/
 data_processing/
+*.pth
