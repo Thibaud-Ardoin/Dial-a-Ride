@@ -9,7 +9,7 @@ from dialRL.utils import instance2world, indice2image_coordonates, distance
 class DarEnv(gym.Env):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, size, target_population, driver_population, max_step=100):
+    def __init__(self, size, target_population, driver_population, max_step=10):
         super(DarEnv, self).__init__()
 
         self.size = size

@@ -1,8 +1,10 @@
 import os
 import numpy as np
 import imageio
-import matplotlib.pyplot as plt
 import csv
+import matplotlib.pyplot as plt
+
+import tensorflow as tf
 
 from stable_baselines.common.callbacks import BaseCallback, EvalCallback
 
@@ -70,6 +72,8 @@ class MonitorCallback(EvalCallback):
         if self.verbose:
             print('\t ->[Epoch %d]<- mean episodic reward: %.3f' % (self.num_timesteps + 1, self.statistics['reward'][-1]))
             print('\t * Mean duration : %0.3f' % (self.statistics['duration'][-1]))
+            print('\t * Mean std_reward : %0.3f' % (self.statistics['std_reward'][-1]))
+            print('\t * Mean step_reward : %0.3f' % (self.statistics['step_reward'][-1]))
 
         # Create plot of the statiscs, saved in folder
         colors = [plt.cm.tab20(0),plt.cm.tab20(1),plt.cm.tab20c(2),
@@ -121,10 +125,17 @@ class MonitorCallback(EvalCallback):
         if self.sacred :
             self.sacred.add_artifact(img_name, content_type='image')
 
+
+    def norm_image(self, image):
+        return (255 * (image - np.min(image)) / (np.max(image) - np.min(image))).astype(np.uint8)
+
     def save_gif(self, observations, rewards):
-        observations = np.array(observations)[:10]
+        # print(observations)
+        # print(rewards)
+        # length = min(len(observations), 10)
+        # observations = 255 * ((np.array(observations) + 1) / (np.max(observations) + 1)).astype(np.uint8)
         save_name = self.log_dir + '/example' + str(self.num_timesteps) + '.gif'
-        images = observations.astype(np.uint8) #[np.array(img) for i, img in enumerate(images)]
+        images = [self.norm_image(observations[i]) for i in range(len(observations)) if rewards[i] >= 0]  #[np.array(img) for i, img in enumerate(images)]
         imageio.mimsave(save_name, images, fps=1)
 
 
@@ -138,26 +149,26 @@ class MonitorCallback(EvalCallback):
         super(MonitorCallback, self)._on_step()
         if self.num_timesteps % self.check_freq == 0 :
 
-            observations = []
             episode_rewards, episode_lengths = [], []
             for i in range(self.n_eval_episodes):
                 obs = self.env.reset()
-                observations.append(obs.numpy())
                 done, state = False, None
-                episode_rewards.append(0.0)
+                observations = [obs.copy()]
+                episode_reward = [0.0]
                 episode_lengths.append(0)
                 while not done:
                     action, state = self.model.predict(obs, state=state, deterministic=self.deterministic)
                     new_obs, reward, done, _info = self.env.step(action)
 
                     obs = new_obs
-                    observations.append(obs.numpy())
-                    episode_rewards[-1] += reward
+                    observations.append(obs.copy())
+
+                    episode_reward.append(reward)
                     episode_lengths[-1] += 1
                     if self.render:
                         self.env.render()
-
-                self.save_gif(observations, episode_rewards)
+                episode_rewards.append(np.sum(episode_reward))
+                self.save_gif(observations, episode_reward)
 
             self.statistics['reward'].append(np.mean(episode_rewards))
             self.statistics['std_reward'].append(np.std(episode_rewards))
