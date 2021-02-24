@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#SBATCH --chdir /home/ardoin/
+
+#SBATCH --nodes 1
+
+#SBATCH --cpus-per-task 1
+
+#SBATCH --gres=gpu:1
+
+#SBATCH --ntasks 1
+
+#SBATCH --account=vita
+
+#SBATCH --mem 30G
+
+#SBATCH --time 20:00:00
+
+echo "fidis $HOSTNAME"
+
+source venv1/bin/activate
+python3.7 dialRL/run_rl_clearML.py \
+--total_timesteps 10000 \
+--monitor_freq 1000 \
+--epochs 10000 \
+--alias PPO2_MLP \
+--model MlpPolicy \
+--layers [64, 64] \
+--eval_episodes 5 \
+--verbose 1 \
+--nb_target 5 \
+--image_size 4 \
+--nb_drivers 1 \

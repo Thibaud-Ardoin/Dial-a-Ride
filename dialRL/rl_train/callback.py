@@ -3,16 +3,12 @@ import numpy as np
 import imageio
 import csv
 import matplotlib.pyplot as plt
+from moviepy.editor import *
+from matplotlib.image import imsave
+import logging
 
 import tensorflow as tf
-
 from stable_baselines.common.callbacks import BaseCallback, EvalCallback
-
-# from clearml import Task
-#
-# ask = Task.init(
-#     project_name="DaRP", task_name="1st experiment")
-
 
 class MonitorCallback(EvalCallback):
     """
@@ -24,7 +20,7 @@ class MonitorCallback(EvalCallback):
       It must contains the file created by the ``Monitor`` wrapper.
     :param verbose: (int)
     """
-    def __init__(self, eval_env, check_freq: int, log_dir: str, n_eval_episodes=5, render=False, verbose=1):
+    def __init__(self, eval_env, check_freq: int, log_dir: str,sacred=None, n_eval_episodes=5, render=False, verbose=1):
         super(MonitorCallback, self).__init__(verbose=verbose,
                                               eval_env=eval_env,
                                               best_model_save_path=log_dir,
@@ -40,12 +36,15 @@ class MonitorCallback(EvalCallback):
         self.log_dir = log_dir
         self.save_path = os.path.join(log_dir, 'best_model')
         self.best_mean_reward = -np.inf
-        self.sacred = None
+        self.sacred = sacred
         self.statistics = {
             'step_reward': [],
             'reward': [],
             'std_reward': [],
-            'duration': []
+            'duration': [],
+            # 'policy_loss': [],
+            # 'value_loss': [],
+            # 'policy_entropy': []
         }
 
 
@@ -74,6 +73,9 @@ class MonitorCallback(EvalCallback):
             print('\t * Mean duration : %0.3f' % (self.statistics['duration'][-1]))
             print('\t * Mean std_reward : %0.3f' % (self.statistics['std_reward'][-1]))
             print('\t * Mean step_reward : %0.3f' % (self.statistics['step_reward'][-1]))
+            # print('\t ** policy_loss : %0.3f' % (self.statistics['policy_loss'][-1]))
+            # print('\t ** value_loss : %0.3f' % (self.statistics['value_loss'][-1]))
+            # print('\t ** policy_entropy : %0.3f' % (self.statistics['policy_entropy'][-1]))
 
         # Create plot of the statiscs, saved in folder
         colors = [plt.cm.tab20(0),plt.cm.tab20(1),plt.cm.tab20c(2),
@@ -84,7 +86,9 @@ class MonitorCallback(EvalCallback):
         for i, key in enumerate(self.statistics):
             # Sacred (The one thing to keep here)
             if self.sacred :
-                self.sacred.log_scalar(key, self.statistics[key][-1], len(self.statistics[key]))
+                self.sacred.get_logger().report_scalar(title='Train stats',
+                series=key, value=self.statistics[key][-1], iteration=self.num_timesteps)
+                # self.sacred.log_scalar(key, self.statistics[key][-1], len(self.statistics[key]))
             axis[i].plot(self.statistics[key], color=colors[i])
             axis[i].set_title(' Plot of ' + key)
         if show :
@@ -105,7 +109,7 @@ class MonitorCallback(EvalCallback):
                 print("I/O error")
 
 
-    def save_images(self, images, rewards, txt='test'):
+    def save_image_batch(self, images, rewards, txt='test'):
         ''' Saving some examples of input -> output to see how the model behave '''
         print(' - Saving some examples - ')
         number_i = min(len(images), 50)
@@ -125,8 +129,39 @@ class MonitorCallback(EvalCallback):
         if self.sacred :
             self.sacred.add_artifact(img_name, content_type='image')
 
+    def save_example(self, observations, rewards, number):
+        noms = []
+        dir = self.log_dir + '/example/' + str(self.num_timesteps) + '/ex_number' + str(number)
+        if dir is not None:
+            os.makedirs(dir, exist_ok=True)
+        # Save individual images
+        for i, obs in enumerate(observations):
+            save_name = dir + '/' + str(i) + '_r=' + str(rewards[i]) + '.png'  #[np.array(img) for i, img in enumerate(images)
+            image = self.norm_image(obs, scale=50)
+            imsave(save_name, image)
+            noms.append(save_name)
 
-    def norm_image(self, image):
+        # Save the imges as video
+        video_name = dir + 'r=' + str(np.sum(rewards)) + '.mp4'
+        clips = [ImageClip(m).set_duration(2)
+              for m in noms]
+
+        concat_clip = concatenate_videoclips(clips, method="compose")
+        concat_clip.write_videofile(video_name, fps=24, verbose=None, logger=None)
+        if self.sacred :
+            self.sacred.get_logger().report_media('video', 'Res_' + str(number) + '_Rwd=' + str(np.sum(rewards)),
+                                                  iteration=self.num_timesteps // self.check_freq,
+                                                  local_path=video_name)
+
+
+    def norm_image(self, image, type=None, scale=10):
+        image = np.kron(image, np.ones((scale, scale)))
+        if type=='rgb':
+            ret = np.empty((image.shape[0], image.shape[0], 3), dtype=np.uint8)
+            ret[:, :, 0] = image.copy()
+            ret[:, :, 1] = image.copy()
+            ret[:, :, 2] = image.copy()
+            image = ret.copy()
         return (255 * (image - np.min(image)) / (np.max(image) - np.min(image))).astype(np.uint8)
 
     def save_gif(self, observations, rewards):
@@ -137,6 +172,21 @@ class MonitorCallback(EvalCallback):
         save_name = self.log_dir + '/example' + str(self.num_timesteps) + '.gif'
         images = [self.norm_image(observations[i]) for i in range(len(observations)) if rewards[i] >= 0]  #[np.array(img) for i, img in enumerate(images)]
         imageio.mimsave(save_name, images, fps=1)
+        if self.sacred :
+            self.sacred.get_logger().report_media('GIF', 'isgif', iteration=self.num_timesteps, local_path=save_name)
+
+
+    def save_video(self, observations, rewards):
+        save_name = self.log_dir + '/example' + str(self.num_timesteps) + '.mp4'
+        images = [self.norm_image(observations[i], type='rgb') for i in range(len(observations)) if rewards[i] >= 0]  #[np.array(img) for i, img in enumerate(images)
+
+        clips = [ImageClip(m).set_duration(2)
+              for m in images]
+
+        concat_clip = concatenate_videoclips(clips, method="compose").resize(100)
+        concat_clip.write_videofile(save_name, fps=24, verbose=False)
+        if self.sacred :
+            self.sacred.get_logger().report_media('video', 'results', iteration=self.num_timesteps, local_path=save_name)
 
 
     def _on_step(self) -> bool:
@@ -168,12 +218,16 @@ class MonitorCallback(EvalCallback):
                     if self.render:
                         self.env.render()
                 episode_rewards.append(np.sum(episode_reward))
-                self.save_gif(observations, episode_reward)
+                # self.save_gif(observations, episode_reward)
+                self.save_example(observations, episode_reward,number=i)
 
             self.statistics['reward'].append(np.mean(episode_rewards))
             self.statistics['std_reward'].append(np.std(episode_rewards))
             self.statistics['step_reward'].append(np.mean([episode_rewards[i]/episode_lengths[i] for i in range(len(episode_lengths))]))
             self.statistics['duration'].append(np.mean(episode_lengths))
+            # self.statistics['policy_loss'].append(self.model.pg_loss.numpy())
+            # self.statistics['value_loss'].append(self.model.vf_loss.numpy())
+            # self.statistics['policy_entropy'].append(self.model.entropy.numpy())
             self.plot_statistics()
 
             return True
