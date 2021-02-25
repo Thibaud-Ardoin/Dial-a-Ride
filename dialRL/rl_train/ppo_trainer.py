@@ -13,26 +13,16 @@ from stable_baselines.common.callbacks import EvalCallback
 from stable_baselines.common.evaluation import evaluate_policy
 import tensorflow as tf
 from clearml import Task
-import torch
-import torch.nn as nn
-import torchvision.transforms as transforms
-from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
-import torch.optim as optim
-from torch.utils.data import DataLoader
-from tqdm import tqdm
-from collections import namedtuple
-from itertools import count
 
 from dialRL.models import *
 from dialRL.rl_train.environments import DarEnv
-from dialRL.models import DQN
 from dialRL.utils import get_device
 from dialRL.rl_train.callback import MonitorCallback
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
-logging.getLogger('tensorflow').setLevel(logging.FATAL)
-
-tf.enable_eager_execution()
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
+# logging.getLogger('tensorflow').setLevel(logging.FATAL)
+#
+# tf.enable_eager_execution()
 
 
 class PPOTrainer():
@@ -83,8 +73,8 @@ class PPOTrainer():
         #     self.model = LnMlpPolicy(layers=self.layers)
 
         # Loading model from dir
-        if self.checkpoint_dir :
-            self.model.load_state_dict(torch.load(self.checkpoint_dir + '/best_model.pt'), strict=False)
+        # if self.checkpoint_dir :
+        #     self.model.load_state_dict(torch.load(self.checkpoint_dir + '/best_model.pt'), strict=False)
                 #'./data/experiments/' + self.checkpoint_dir + '/best_model.pt'))
 
         # number of elements passed throgh the model for each epoch

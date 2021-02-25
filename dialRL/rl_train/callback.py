@@ -1,11 +1,9 @@
 import os
 import numpy as np
-import imageio
 import csv
 import matplotlib.pyplot as plt
 from moviepy.editor import *
 from matplotlib.image import imsave
-import logging
 
 import tensorflow as tf
 from stable_baselines.common.callbacks import BaseCallback, EvalCallback
@@ -148,10 +146,13 @@ class MonitorCallback(EvalCallback):
 
         concat_clip = concatenate_videoclips(clips, method="compose")
         concat_clip.write_videofile(video_name, fps=24, verbose=None, logger=None)
+
         if self.sacred :
             self.sacred.get_logger().report_media('video', 'Res_' + str(number) + '_Rwd=' + str(np.sum(rewards)),
                                                   iteration=self.num_timesteps // self.check_freq,
                                                   local_path=video_name)
+        del concat_clip
+        del clips
 
 
     def norm_image(self, image, type=None, scale=10):
@@ -171,7 +172,7 @@ class MonitorCallback(EvalCallback):
         # observations = 255 * ((np.array(observations) + 1) / (np.max(observations) + 1)).astype(np.uint8)
         save_name = self.log_dir + '/example' + str(self.num_timesteps) + '.gif'
         images = [self.norm_image(observations[i]) for i in range(len(observations)) if rewards[i] >= 0]  #[np.array(img) for i, img in enumerate(images)]
-        imageio.mimsave(save_name, images, fps=1)
+        # imageio.mimsave(save_name, images, fps=1)
         if self.sacred :
             self.sacred.get_logger().report_media('GIF', 'isgif', iteration=self.num_timesteps, local_path=save_name)
 
@@ -196,7 +197,7 @@ class MonitorCallback(EvalCallback):
         Statistics to save -> save as plot and in database
             -> reward, length, loss, additional metrics (accuraccy, best move ?)
         """
-        super(MonitorCallback, self)._on_step()
+        # super(MonitorCallback, self)._on_step()
         if self.num_timesteps % self.check_freq == 0 :
 
             episode_rewards, episode_lengths = [], []
@@ -229,5 +230,12 @@ class MonitorCallback(EvalCallback):
             # self.statistics['value_loss'].append(self.model.vf_loss.numpy())
             # self.statistics['policy_entropy'].append(self.model.entropy.numpy())
             self.plot_statistics()
+
+            # Save best model
+            if self.statistics['reward'][-1] == np.max(self.statistics['reward']):
+                save_path = self.log_dir + '/best_model'
+                if self.verbose > 0:
+                    print("Saving new best model to {}".format(save_path))
+                self.model.save(save_path)
 
             return True
