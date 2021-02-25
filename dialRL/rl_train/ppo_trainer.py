@@ -35,8 +35,6 @@ class PPOTrainer():
         for key in flags:
             setattr(self, key, flags[key])
 
-        self.sacred = sacred
-
         # Create saving experient dir
         if False :#self.sacred :
             self.path_name = '/'.join([self.sacred.experiment_info['base_dir'], self.file_dir, str(self.sacred._id)])
@@ -53,6 +51,8 @@ class PPOTrainer():
         # Save parameters
         with open(self.path_name + '/parameters.json', 'w') as f:
             json.dump(vars(self), f)
+
+        self.sacred = sacred
 
         self.device = get_device()
 

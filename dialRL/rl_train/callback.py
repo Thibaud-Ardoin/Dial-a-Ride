@@ -4,6 +4,8 @@ import csv
 import matplotlib.pyplot as plt
 from moviepy.editor import *
 from matplotlib.image import imsave
+import matplotlib
+matplotlib.use('Agg')
 
 import tensorflow as tf
 from stable_baselines.common.callbacks import BaseCallback, EvalCallback

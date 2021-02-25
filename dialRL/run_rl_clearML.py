@@ -43,12 +43,12 @@ def get_args(args):
 
     return parser.parse_known_args(args)[0]
 
-def goooo():
+def goooo(task):
     # Get params
     parameters = objdict(vars(get_args(sys.argv[1:])))
 
     # Get the trainer object
-    trainer = PPOTrainer(parameters)
+    trainer = PPOTrainer(parameters, sacred=task)
 
     # Start a train
     trainer.run()
@@ -61,4 +61,4 @@ if __name__ == '__main__':
     numbah = np.random.randint(10000)
     task = Task.init(
         project_name="DaRP", task_name="experiment" + str(numbah))
-    goooo()
+    goooo(task)
