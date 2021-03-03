@@ -6,7 +6,7 @@ from gym import spaces
 from dialRL.dataset import PixelInstance
 from dialRL.utils import instance2world, indice2image_coordonates, distance
 
-class DarEnv(gym.Env):
+class TspEnv(gym.Env):
     """Custom Environment that follows gym interface"""
 
     def __init__(self, size, target_population, driver_population, max_step=10):

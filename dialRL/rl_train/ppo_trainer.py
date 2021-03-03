@@ -19,10 +19,10 @@ from dialRL.rl_train.environments import DarEnv
 from dialRL.utils import get_device
 from dialRL.rl_train.callback import MonitorCallback
 
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
-# logging.getLogger('tensorflow').setLevel(logging.FATAL)
-#
-# tf.enable_eager_execution()
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
+logging.getLogger('tensorflow').setLevel(logging.FATAL)
+
+tf.enable_eager_execution()
 
 
 class PPOTrainer():

@@ -9,89 +9,111 @@ import os
 
 import pickle
 
-from dialRL.utils import image_coordonates2indices, indice2image_coordonates
+from dialRL.utils import image_coordonates2indices, indice2image_coordonates, distance
+
+class Target():
+    def __init__(self, pickup, dropoff, start, end, identity, weight=0):
+        self.pickup = pickup
+        self.dropoff = dropoff
+        self.start = start
+        self.end = end
+        self.weight = weight
+        self.identity = identity
+
+        # State is in [-1, 0, 1] for [wait pick up, in a car, done]
+        self.state = -1
+        self.available = 0
+
+
+class Driver():
+    def __init__(self, position, max_capacity=2, speed=1, verbose=False):
+        self.position = position
+        self.max_capacity = max_capacity
+        self.speed = speed
+        self.distance = 0
+        self.loaded = [] #Target list
+
+    def move(self, new_position):
+        self.distance = distance(new_position, self.position)
+        self.position = new_position
+
+    def capacity(self):
+        c = 0
+        for target in self.loaded:
+            c += target.weight
+        return c
+
+    def load(self, target):
+        if target.weight + self.capacity() > self.max_capacity :
+            return False
+        else :
+            self.loaded.append(target)
+            return True
+
+    def unload(self, target):
+        indice = target.identity
+        for i,t in enumerate(self.loaded):
+            if t.identity == indice:
+                del self.loaded[i]
+                return True
+        return False
+
+
+    def is_in(self, indice):
+        for target in self.loaded:
+            if target.identity == indice:
+                return True
+        return False
+
 
 class DarPInstance():
     """ 2 Dimentional insance of the NN problem
     """
-    def __init__(self, size, population, drivers, moving_car, transformer, verbose=False):
-
+    def __init__(self, size, population, drivers, time_end, verbose=False):
         # Ground definition
         self.size = size
-        self.population = population
+        self.nb_targets = population
+        self.nb_drivers = drivers
         self.verbose = verbose
-        self.moving_car = moving_car
-        self.transformer = transformer
-        self.drivers = drivers
+        self.time_end = time_end
 
         # 2nd grade attributes
-        self.points = []
-        self.centers = []
-        self.caracteristics = None
-        self.image = None
-        self.neighbors_lists = None
-        self.distances_lists = None
-        self.type_vactor = None
+        self.drivers = []
+        self.targets = []
 
-        if self.moving_car or self.transformer:
-            for _ in range(self.drivers) :
-                self.centers.append(self.random_point())
-        else :
-            self.centers = [((self.size-1) / 2, (self.size-1) / 2)]
 
     def equal(self, x, y):
         return x[0] == y[0] and x[1] == y[1]
 
     def random_point(self):
-        # Distinct selection
-        done = False
-        while not done:
-            pt = np.random.randint(0, self.size, (2))
-            if not np.sum([self.equal(pt, self.points[i]) for i in range(len(self.points))] + [self.equal(pt, self.centers[i]) for i in range(len(self.centers))]) :
-                done = True
+        pt = np.random.randint(0, self.size, (2))
         return pt
 
 
     def random_generation(self, seed=None):
         """ Basicly populating the instance
-            Using distance to center
         """
 
         if seed:
             np.random.seed(seed)
 
-        # Generate Random points (distinct) on the image
-        for _ in range(self.population):
-            self.points.append(self.random_point())
+        # Generate Random points for targets and drivers
+        distinct_pts = np.random.choice(self.size**2, size=2*self.nb_targets + self.nb_drivers, replace=False)
+        distincs_coordonates = [indice2image_coordonates(distinct_pts[i], self.size) for i in range(len(distinct_pts))]
 
-        if self.moving_car and not self.transformer:
-            self.image = np.zeros((self.size, self.size, 2))
-            # Set coordonates according to channel_type
-            for point in self.points :
-                self.image[point[0], point[1], 0] = 1
-            self.image[self.center[0], self.center[1], 1] = 1
+        # Populate Drivers
+        for j in range(self.nb_drivers):
+            driver = Driver(distincs_coordonates[j])
+            self.drivers.append(driver)
 
-        if self.transformer:
-            self.image = [image_coordonates2indices(self.points[i], self.size) for i in range(len(self.points))]
-            self.image = self.image + [image_coordonates2indices(self.centers[i], self.size) for i in range(self.drivers)]
-
-            # -1 as marker for targets and i for drivers. 0 beeing for neutral space
-            self.caracteristics = [-1 for _ in range(self.population)] + [i+1 for i in range(self.drivers)]
-
-        else :
-            self.image = np.zeros((self.size, self.size))
-            # Set image coordonates of the points to 1
-            for point in self.points :
-                self.image[point[0], point[1]] = 1
-
-        # List of the distances, ordered as self.points is (Creation order)
-        self.distances_lists = [list(map(lambda x: np.linalg.norm(self.centers[i] - x), self.points)) for i in range(self.drivers)]
-        # List of points ordered by the distance (smallest distance first)
-        self.neighbors_lists = [[x for _,x in sorted(zip(self.distances_lists[i],self.points), key=lambda x: x[0])] for i in range(self.drivers)]
-
-        # nn_count = sum(1 for dist in self.distance_list if dist == np.min(self.distance_list))
-        # List of the points  at smalles distance
-        # self.nearest_neighbors = [self.neighbor_list[i] for i in range(nn_count)]
+        # Populate Targets
+        for j in range(self.nb_targets):
+            pickup = distincs_coordonates[self.nb_drivers + 2*j]
+            dropoff = distincs_coordonates[self.nb_drivers + 2*j + 1]
+            start = 0
+            end = self.time_end
+            target = Target(pickup, dropoff, start, end, j)
+            self.targets.append(target)
 
         if self.verbose:
             print('Random generation  concluded')
@@ -101,21 +123,20 @@ class DarPInstance():
         for item in vars(self):
             print(item, ':', vars(self)[item])
 
-        to_show = self.image
-        if self.moving_car and not self.transformer :
-            to_show = np.append(self.image, [self.image[0]], axis=0)
-            to_show = np.stack((to_show[:,:,0], to_show[:,:,0], to_show[:,:,1]), axis=2)
-            # to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1], 1] = 0.5
-            # to_show = np.transpose(to_show, (1, 2, 0))
-        # else :
-            # to_show[self.nearest_neighbors[0][0], self.nearest_neighbors[0][1]] = 0.5
+        to_show = np.zeros((self.size, self.size))
+        for driver in instance.drivers:
+            to_show[driver.position[0]][driver.position[1]] = 3
+
+        for target in instance.targets:
+            to_show[target.pickup[0]][target.pickup[1]] = 1
+            to_show[target.dropoff[0]][target.dropoff[1]] = 2
+
         plt.imshow(to_show)
         plt.show()
 
 
 if __name__ == '__main__':
     while 1 :
-        instance = DarPInstance(size=50, population=10, drivers=2, moving_car=True, transformer=True, verbose=True)
+        instance = DarPInstance(size=500, population=10, drivers=2,time_end=1400, verbose=True)
         instance.random_generation()
-        print(instance.random_point())
         instance.reveal()

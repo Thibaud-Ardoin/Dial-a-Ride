@@ -38,6 +38,7 @@ def get_args(args):
     parser.add_argument('--nb_target', default=5, type=int)
     parser.add_argument('--image_size', default=4, type=int)
     parser.add_argument('--nb_drivers', default=1, type=int)
+    parser.add_argument('--env', default='DarEnv', type=str)
 
 
 
