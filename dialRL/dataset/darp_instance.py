@@ -112,7 +112,7 @@ class DarPInstance():
             dropoff = distincs_coordonates[self.nb_drivers + 2*j + 1]
             start = 0
             end = self.time_end
-            target = Target(pickup, dropoff, start, end, j)
+            target = Target(pickup, dropoff, start, end, identity=j+self.nb_drivers)
             self.targets.append(target)
 
         if self.verbose:

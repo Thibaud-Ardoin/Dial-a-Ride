@@ -19,9 +19,9 @@ class DarEnv(gym.Env):
         self.driver_population = driver_population
         self.action_space = spaces.Discrete(size**2)
         #spaces.Discrete(size**2)
-        self.observation_space = spaces.Box(low=-1,
-                high=3,
-                shape=(self.size, self.size),
+        self.observation_space = spaces.Box(low=-self.target_population,
+                high=self.target_population + self.driver_population,
+                shape=(self.size+1, self.size+1),
                 dtype=np.int16)
         self.max_reward = int(1.5 * self.size)
         self.reward_range = (- self.max_reward, self.max_reward)
@@ -87,9 +87,14 @@ class DarEnv(gym.Env):
 
     def _next_observation(self):
         obs = self.world
-        # addition_info = np.zeros(self.size)
-        # addition_info[0] = self.current_player
-        # obs = np.append(obs, np.array([addition_info]), axis=0)
+        addition_info = np.zeros(self.size)
+        addition_info[0] = self.current_player
+        for i,t in enumerate(self.drivers[self.current_player - 1].loaded):
+            if 1+i < self.size :
+                addition_info[1+i] = t.identity
+        obs = np.append(obs, np.array([addition_info]), axis=0)
+        addition_info2 =  np.expand_dims(np.zeros(self.size+1), axis=0)
+        obs = np.append(obs, addition_info2.T, axis=1)
         return obs
 
 
@@ -115,7 +120,6 @@ class DarEnv(gym.Env):
 
         else :
             target_indice = int(abs(self.world[next_pose])) - self.driver_population - 1
-            print(target_indice)
             aimed_target = self.targets[target_indice]
 
             # In case we need to pick it up
