@@ -59,11 +59,13 @@ class PPOTrainer():
         # RL elements
         self.env = DarEnv(size=self.image_size,
                           target_population=self.nb_target,
-                          driver_population=self.nb_drivers)
+                          driver_population=self.nb_drivers,
+                          max_step=self.max_step)
 
         self.eval_env = DarEnv(size=self.image_size,
                           target_population=self.nb_target,
-                          driver_population=self.nb_drivers)
+                          driver_population=self.nb_drivers,
+                          max_step=self.max_step)
 
         if self.model=='MlpPolicy':
             self.model = MlpPolicy
