@@ -15,8 +15,8 @@ class DarSeqEnv(DarEnv):
 
         self.dataset=dataset
         if self.dataset :
-            self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size = tabu_parse_info(self.dataset)
             super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=1400, max_step=10)
+            self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size = tabu_parse_info(self.dataset)
 
         else :
             super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=1400, max_step=10)
@@ -227,6 +227,7 @@ class DarSeqEnv(DarEnv):
 
         print('World: ')
         print(self.world)
+        print(np.shape(self.world))
 
         if self.distance < 0 :
             print(f'Player {self.current_player} go lost ....')
@@ -243,8 +244,8 @@ class DarSeqEnv(DarEnv):
 
 if __name__ == '__main__':
     data = './data/instances/cordeau2003/tabu1.txt'
-    # env = DarSeqEnv(size=4, target_population=5, driver_population=1, time_end=1400, max_step=5000, dataset=data)
-    env = DarSeqEnv(size=4, target_population=5, driver_population=2, time_end=1400, max_step=100, dataset=None)
+    env = DarSeqEnv(size=4, target_population=5, driver_population=1, time_end=1400, max_step=5000, dataset=data)
+    # env = DarSeqEnv(size=4, target_population=5, driver_population=2, time_end=1400, max_step=100, dataset=None)
     cumulative_reward = 0
     observation = env.reset()
     for t in range(100):

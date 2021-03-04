@@ -62,12 +62,14 @@ class PPOTrainer():
         self.env = DarSeqEnv(size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
-                          max_step=self.max_step)
+                          max_step=self.max_step,
+                          dataset=self.dataset)
 
         self.eval_env = DarSeqEnv(size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
-                          max_step=self.max_step)
+                          max_step=self.max_step,
+                          dataset=self.dataset)
 
         if self.model=='MlpPolicy':
             self.model = MlpPolicy
