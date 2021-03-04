@@ -191,7 +191,7 @@ class DarEnv(gym.Env):
 
         self.cumulative_reward += reward
 
-        if not len(self.targets) :
+        if self.targets_to_go() == 0 :
             done = True
         if self.current_step >= self.max_step:
             done = True
