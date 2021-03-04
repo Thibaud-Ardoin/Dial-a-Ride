@@ -22,7 +22,9 @@ class DarSeqEnv(DarEnv):
             super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=1400, max_step=10)
             self.extremas = [-self.size, -self.size, self.size, self.size]
             self.depot_position = np.random.randint(0, self.size, (2))
-        print(self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size)
+
+        if False:
+            print(self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size)
 
         self.max_step = max_step
         #self.driver_population*2 + self.target_population
@@ -36,11 +38,11 @@ class DarSeqEnv(DarEnv):
         else :
             self.action_space = spaces.Discrete(self.target_population + 1)
 
-        max_bloc_size = max(2 + self.target_population, 11)
+        self.max_bloc_size = max(3 + self.target_population, 11)
         max_obs_value = max(self.target_population, self.extremas[2], self.extremas[3])
         self.observation_space = spaces.Box(low=-max_obs_value,
                                             high=max_obs_value,
-                                            shape=(max_bloc_size*(1+self.target_population+self.driver_population), ),
+                                            shape=(4 + 11*self.target_population + (3 + 6)*self.driver_population , ), #self.max_bloc_size*(1+self.target_population+self.driver_population)
                                             dtype=np.float)
 
         self.max_reward = int(1.5 * self.size)
@@ -71,7 +73,7 @@ class DarSeqEnv(DarEnv):
         for driver in self.drivers:
             drivers_info.append(driver.get_info_vector())
         drivers_info = np.concatenate(drivers_info)
-        max_bloc_size = max(len(world_info), 2 + self.target_population, 11)
+
         world = np.concatenate([world_info, targets_info, drivers_info])
 
         return world
@@ -119,6 +121,7 @@ class DarSeqEnv(DarEnv):
 
 
     def _next_observation(self):
+        self.world = self.representation()
         obs = self.world
         return obs
 
@@ -222,8 +225,8 @@ class DarSeqEnv(DarEnv):
     def render(self):
         print('\n--------------------- [Step', self.current_step, ']')
 
-        # print('World: ')
-        # print(self.world)
+        print('World: ')
+        print(self.world)
 
         if self.distance < 0 :
             print(f'Player {self.current_player} go lost ....')
@@ -241,10 +244,10 @@ class DarSeqEnv(DarEnv):
 if __name__ == '__main__':
     data = './data/instances/cordeau2003/tabu1.txt'
     # env = DarSeqEnv(size=4, target_population=5, driver_population=1, time_end=1400, max_step=5000, dataset=data)
-    env = DarSeqEnv(size=4, target_population=5, driver_population=2, time_end=1400, max_step=5000, dataset=None)
+    env = DarSeqEnv(size=4, target_population=5, driver_population=2, time_end=1400, max_step=100, dataset=None)
     cumulative_reward = 0
     observation = env.reset()
-    for t in range(5000):
+    for t in range(100):
         env.render()
         action = env.action_space.sample()
         observation, reward, done, info = env.step(action)

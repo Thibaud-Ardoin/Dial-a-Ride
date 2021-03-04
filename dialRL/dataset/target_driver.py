@@ -81,5 +81,6 @@ class Driver():
 
     def get_info_vector(self):
         vector = [self.identity, self.position[0], self.position[1]]
-        countainer = self.loaded + [0.] * (self.max_capacity - len(self.loaded))
+        loaded_target_id = [self.loaded[i].identity for i in range(len(self.loaded))]
+        countainer = loaded_target_id + [0.] * (self.max_capacity - len(self.loaded))
         return vector + countainer

@@ -15,7 +15,7 @@ def get_args(args):
         epilog="python train.py --epochs INT")
     # required input parameters
     parser.add_argument('--epochs', default=10000, type=int)
-    parser.add_argument('--alias', default='RL_ppo2', type=str)
+    parser.add_argument('--alias', default='Test_local', type=str)
     parser.add_argument('--lr', default=0.001, type=float)
     parser.add_argument('--batch_size', default=512, type=int)
     parser.add_argument('--shuffle', default=True, type=bool)

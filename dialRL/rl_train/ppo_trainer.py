@@ -57,12 +57,14 @@ class PPOTrainer():
         self.device = get_device()
 
         # RL elements
-        self.env = globals()[self.env](size=self.image_size,
+
+        ## TODO: Add globals()[self.env]
+        self.env = DarSeqEnv(size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           max_step=self.max_step)
 
-        self.eval_env = globals()[self.env](size=self.image_size,
+        self.eval_env = DarSeqEnv(size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           max_step=self.max_step)
