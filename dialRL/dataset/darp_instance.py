@@ -10,60 +10,8 @@ import os
 import pickle
 
 from dialRL.utils import image_coordonates2indices, indice2image_coordonates, distance
+from dialRL.dataset import tabu_parse, Driver, Target
 
-class Target():
-    def __init__(self, pickup, dropoff, start, end, identity, weight=0):
-        self.pickup = pickup
-        self.dropoff = dropoff
-        self.start = start
-        self.end = end
-        self.weight = weight
-        self.identity = identity
-
-        # State is in [-1, 0, 1] for [wait pick up, in a car, done]
-        self.state = -1
-        self.available = 0
-
-
-class Driver():
-    def __init__(self, position, max_capacity=2, speed=1, verbose=False):
-        self.position = position
-        self.max_capacity = max_capacity
-        self.speed = speed
-        self.distance = 0
-        self.loaded = [] #Target list
-
-    def move(self, new_position):
-        self.distance = distance(new_position, self.position)
-        self.position = new_position
-
-    def capacity(self):
-        c = 0
-        for target in self.loaded:
-            c += target.weight
-        return c
-
-    def load(self, target):
-        if target.weight + self.capacity() > self.max_capacity :
-            return False
-        else :
-            self.loaded.append(target)
-            return True
-
-    def unload(self, target):
-        indice = target.identity
-        for i,t in enumerate(self.loaded):
-            if t.identity == indice:
-                del self.loaded[i]
-                return True
-        return False
-
-
-    def is_in(self, indice):
-        for target in self.loaded:
-            if target.identity == indice:
-                return True
-        return False
 
 
 class DarPInstance():
@@ -80,6 +28,7 @@ class DarPInstance():
         # 2nd grade attributes
         self.drivers = []
         self.targets = []
+        self.depot_position = None
 
 
     def equal(self, x, y):
@@ -103,20 +52,33 @@ class DarPInstance():
 
         # Populate Drivers
         for j in range(self.nb_drivers):
-            driver = Driver(distincs_coordonates[j])
+            driver = Driver(position=distincs_coordonates[j],
+                            identity=j+1)
             self.drivers.append(driver)
 
         # Populate Targets
         for j in range(self.nb_targets):
             pickup = distincs_coordonates[self.nb_drivers + 2*j]
             dropoff = distincs_coordonates[self.nb_drivers + 2*j + 1]
-            start = 0
-            end = self.time_end
+            start = (0, 0)
+            end = (self.time_end, self.time_end)
             target = Target(pickup, dropoff, start, end, identity=j+self.nb_drivers)
             self.targets.append(target)
 
         if self.verbose:
             print('Random generation  concluded')
+
+
+    def dataset_generation(self, data_name):
+        """ Basicly populating the instance
+        """
+        targets, drivers = tabu_parse(data_name)
+        self.depot_position = drivers[0].position
+        self.drivers = drivers
+        self.targets = targets
+
+        if self.verbose:
+            print('Dataset loaded as DARP instance')
 
 
     def reveal(self):
@@ -137,6 +99,6 @@ class DarPInstance():
 
 if __name__ == '__main__':
     while 1 :
-        instance = DarPInstance(size=500, population=10, drivers=2,time_end=1400, verbose=True)
-        instance.random_generation()
+        instance = DarPInstance(size=500, population=10, drivers=2, time_end=1400, verbose=True)
+        instance.dataset_generation('./data/instances/cordeau2003/tabu1.txt')
         instance.reveal()

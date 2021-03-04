@@ -15,7 +15,7 @@ import tensorflow as tf
 from clearml import Task
 
 from dialRL.models import *
-from dialRL.rl_train.environments import DarEnv
+from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device
 from dialRL.rl_train.callback import MonitorCallback
 
@@ -57,12 +57,12 @@ class PPOTrainer():
         self.device = get_device()
 
         # RL elements
-        self.env = DarEnv(size=self.image_size,
+        self.env = globals()[self.env](size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           max_step=self.max_step)
 
-        self.eval_env = DarEnv(size=self.image_size,
+        self.eval_env = globals()[self.env](size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           max_step=self.max_step)
