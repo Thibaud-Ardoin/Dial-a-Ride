@@ -6,7 +6,7 @@ def tabu_parse(file_name):
     drivers = []
     with open(file_name, 'r') as file :
         nb_drivers, number_line, c, e, f = list(map(int, file.readline().split()))
-        print("What is that ? :", c, e, f)
+        # print("What is that ? :", c, e, f)
 
         # Depot
         identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))

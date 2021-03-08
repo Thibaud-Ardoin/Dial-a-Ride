@@ -27,7 +27,7 @@ class MonitorCallback(EvalCallback):
                                               log_path=log_dir,
                                               eval_freq=check_freq,
                                               n_eval_episodes=n_eval_episodes,
-                                              deterministic=True,
+                                              deterministic=False,
                                               render=render)
         self.render = render
         self.verbose = verbose
@@ -37,6 +37,11 @@ class MonitorCallback(EvalCallback):
         self.save_path = os.path.join(log_dir, 'best_model')
         self.best_mean_reward = -np.inf
         self.sacred = sacred
+
+        self.sequence = False
+        if self.env.__class__.__name__ == 'DarSeqEnv':
+            self.sequence = True
+
         self.statistics = {
             'step_reward': [],
             'reward': [],
@@ -50,8 +55,8 @@ class MonitorCallback(EvalCallback):
 
     def _init_callback(self) -> None:
         # Create folder if needed
-        if self.save_path is not None:
-            os.makedirs(self.save_path, exist_ok=True)
+        if self.log_dir is not None:
+            os.makedirs(self.log_dir, exist_ok=True)
 
     def _on_training_start(self) -> None:
         """
@@ -134,12 +139,12 @@ class MonitorCallback(EvalCallback):
         dir = self.log_dir + '/example/' + str(self.num_timesteps) + '/ex_number' + str(number)
         if dir is not None:
             os.makedirs(dir, exist_ok=True)
-        # Save individual images
-        for i, obs in enumerate(observations):
-            save_name = dir + '/' + str(i) + '_r=' + str(rewards[i]) + '.png'  #[np.array(img) for i, img in enumerate(images)
-            image = self.norm_image(obs, scale=50)
-            imsave(save_name, image)
-            noms.append(save_name)
+
+            for i, obs in enumerate(observations):
+                save_name = dir + '/' + str(i) + '_r=' + str(rewards[i]) + '.png'  #[np.array(img) for i, img in enumerate(images)
+                image = self.norm_image(obs, scale=1)
+                imsave(save_name, image)
+                noms.append(save_name)
 
         # Save the imges as video
         video_name = dir + 'r=' + str(np.sum(rewards)) + '.mp4'
@@ -201,21 +206,28 @@ class MonitorCallback(EvalCallback):
         """
         # super(MonitorCallback, self)._on_step()
         if self.num_timesteps % self.check_freq == 0 :
+            print('eval time')
 
             episode_rewards, episode_lengths = [], []
             for i in range(self.n_eval_episodes):
                 obs = self.env.reset()
                 done, state = False, None
-                observations = [obs.copy()]
+                if self.sequence :
+                    observations = [self.env.get_image_representation()]
+                else :
+                    observations = [obs.copy()]
                 episode_reward = [0.0]
                 episode_lengths.append(0)
                 while not done:
-                    action, state = self.model.predict(obs, state=state, deterministic=self.deterministic)
+                    action, state = self.model.predict(obs, state=state, deterministic=False)
                     new_obs, reward, done, _info = self.env.step(action)
 
                     obs = new_obs
-                    observations.append(obs.copy())
 
+                    if self.sequence:
+                        observations.append(self.env.get_image_representation())
+                    else :
+                        observations.append(obs.copy())
                     episode_reward.append(reward)
                     episode_lengths[-1] += 1
                     if self.render:

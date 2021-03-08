@@ -25,9 +25,10 @@ python3.7 dialRL/run_rl_clearML.py \
 --epochs 10000 \
 --alias PPO2_MLP \
 --model MlpPolicy \
---layers [64, 64] \
+--layers 64 64 \
 --eval_episodes 5 \
 --verbose 1 \
 --nb_target 5 \
 --image_size 4 \
 --nb_drivers 1 \
+--dataset ''
