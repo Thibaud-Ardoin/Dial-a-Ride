@@ -6,11 +6,12 @@ import time
 import json
 import numpy as np
 
-from stable_baselines.common.policies import MlpPolicy
+from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 from stable_baselines.common import make_vec_env
 from stable_baselines import PPO2
 from stable_baselines.common.callbacks import EvalCallback
 from stable_baselines.common.evaluation import evaluate_policy
+from stable_baselines.common.vec_env import DummyVecEnv
 import tensorflow as tf
 from clearml import Task
 
@@ -65,14 +66,16 @@ class PPOTrainer():
                           max_step=self.max_step,
                           dataset=self.dataset)
 
-        self.eval_env = DarSeqEnv(size=self.image_size,
+        self.eval_env = DummyVecEnv([lambda : DarSeqEnv(size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           max_step=self.max_step,
-                          dataset=self.dataset)
+                          dataset=self.dataset) for i in range(1)])
 
         if self.model=='MlpPolicy':
             self.model = MlpPolicy
+        elif self.model=='MlpLstmPolicy':
+            self.model = MlpLstmPolicy
         else :
             raise "self.model in PPOTrainer is not found"
         # elif self.model=='LnMlpPolicy':
@@ -94,7 +97,7 @@ class PPOTrainer():
                                   verbose=self.verbose,
                                   sacred=self.sacred)
 
-        self.ppo_model = PPO2(self.model, self.env, verbose=0,
+        self.ppo_model = PPO2(self.model, self.env, verbose=0, nminibatches=1,
                               policy_kwargs={'layers': self.layers})
 
         print(' *// What is this train about //* ')

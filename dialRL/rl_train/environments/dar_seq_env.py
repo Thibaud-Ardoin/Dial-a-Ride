@@ -172,7 +172,6 @@ class DarSeqEnv(DarEnv):
     def _take_action(self, action):
         """ Action: destination point as an indice of the map vactor. (Ex: 1548 over 2500)
         """
-        print(action)
         aiming_driver = self.drivers[self.current_player - 1]
         current_pos = aiming_driver.position
 
@@ -236,7 +235,7 @@ class DarSeqEnv(DarEnv):
         self.current_step += 1
 
         if self.distance < 0:
-            reward = -10 #-int(self.max_reward//2)
+            reward = -1 #-int(self.max_reward//2)
             done = False
         elif self.distance > 0:
             reward = self.reward(self.distance)
@@ -245,7 +244,7 @@ class DarSeqEnv(DarEnv):
             self.current_player = ((self.current_player + 1 - 1) % (self.driver_population) ) + 1
         # End of simulation
         elif self.distance == 0 :
-            reward = -5
+            reward = -1
             done = False
             self.current_player = ((self.current_player + 1 - 1) % (self.driver_population) ) + 1
 
@@ -266,7 +265,7 @@ class DarSeqEnv(DarEnv):
         return obs, reward, done, {}
 
 
-    def render(self):
+    def render(self, mode='classic'):
         print('\n--------------------- [Step', self.current_step, ']')
 
         print('World: ')

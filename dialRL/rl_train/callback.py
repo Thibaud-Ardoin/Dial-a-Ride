@@ -206,8 +206,6 @@ class MonitorCallback(EvalCallback):
         """
         # super(MonitorCallback, self)._on_step()
         if self.num_timesteps % self.check_freq == 0 :
-            print('eval time')
-
             episode_rewards, episode_lengths = [], []
             for i in range(self.n_eval_episodes):
                 obs = self.env.reset()
@@ -234,7 +232,7 @@ class MonitorCallback(EvalCallback):
                         self.env.render()
                 episode_rewards.append(np.sum(episode_reward))
                 # self.save_gif(observations, episode_reward)
-                self.save_example(observations, episode_reward,number=i)
+                # self.save_example(observations, episode_reward,number=i)
 
             self.statistics['reward'].append(np.mean(episode_rewards))
             self.statistics['std_reward'].append(np.std(episode_rewards))
