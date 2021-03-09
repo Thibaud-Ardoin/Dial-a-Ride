@@ -211,7 +211,10 @@ class MonitorCallback(EvalCallback):
                 obs = self.env.reset()
                 done, state = False, None
                 if self.sequence :
-                    observations = [self.env.get_image_representation()]
+                    if self.env.__class__.__name__ == 'DummyVecEnv':
+                        observations = [self.env.env_method('get_image_representation')]
+                    else :
+                        observations = [self.env.get_image_representation()]
                 else :
                     observations = [obs.copy()]
                 episode_reward = [0.0]
@@ -223,7 +226,10 @@ class MonitorCallback(EvalCallback):
                     obs = new_obs
 
                     if self.sequence:
-                        observations.append(self.env.get_image_representation())
+                        if self.env.__class__.__name__ == 'DummyVecEnv':
+                            observations.append(self.env.env_method('get_image_representation'))
+                        else :
+                            observations.append(self.env.get_image_representation())
                     else :
                         observations.append(obs.copy())
                     episode_reward.append(reward)

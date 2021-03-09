@@ -17,11 +17,12 @@ from dialRL.rl_train.environments import DarEnv
 class DarSeqEnv(DarEnv):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, size, target_population, driver_population, dataset=None, test_env=False, time_end=1400, max_step=10):
+    def __init__(self, size, target_population, driver_population, dataset=None, test_env=False, time_end=1400, max_step=10, verbose=0):
 
         self.dataset = dataset
         self.test_env = test_env
         self.max_step = max_step
+        self.verbose = verbose
         if self.dataset :
             if self.test_env :
                 super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=time_end, max_step=self.max_step)
@@ -38,9 +39,6 @@ class DarSeqEnv(DarEnv):
             y = np.random.uniform(-self.size, self.size)
             self.depot_position = np.array((x, y), dtype=np.float16)
 
-        if False:
-            print(self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size)
-
         #self.driver_population*2 + self.target_population
 
         choix_id_target = True
@@ -54,6 +52,7 @@ class DarSeqEnv(DarEnv):
 
         self.max_bloc_size = max(3 + self.target_population, 11)
         max_obs_value = max(self.target_population, self.extremas[2], self.extremas[3])
+        self.obs_shape = 4 + 11*self.target_population + (3 + 6)*self.driver_population
         self.observation_space = spaces.Box(low=-max_obs_value,
                                             high=max_obs_value,
                                             shape=(4 + 11*self.target_population + (3 + 6)*self.driver_population , ), #self.max_bloc_size*(1+self.target_population+self.driver_population)
@@ -63,6 +62,11 @@ class DarSeqEnv(DarEnv):
         self.reward_range = (- self.max_reward, self.max_reward)
         self.time_step = 0
         self.current_episode = 0
+
+        if self.verbose:
+            print(' -- DarP Sequential Environment : -- ')
+            for item in vars(self):
+                print(item, ':', vars(self)[item])
 
 
     def get_info_vector(self):
@@ -76,17 +80,20 @@ class DarSeqEnv(DarEnv):
     def representation(self):
         # Agregate  world infrmations
         world_info = self.get_info_vector()
+        # print('world: ', world_info)
 
         # Agregate targets infrmations
         targets_info = []
         for target in self.targets:
             targets_info.append(target.get_info_vector())
         targets_info = np.concatenate(targets_info)
+        # print('targets_info: ', targets_info)
 
         drivers_info = []
         for driver in self.drivers:
             drivers_info.append(driver.get_info_vector())
         drivers_info = np.concatenate(drivers_info)
+        # print('drivers_info: ', drivers_info)
 
         world = np.concatenate([world_info, targets_info, drivers_info])
 
@@ -262,13 +269,14 @@ class DarSeqEnv(DarEnv):
         self.cumulative_reward += reward
 
         if self.targets_to_go()[2] == self.target_population :
+            # Highh reward for accomplishing the task
+            reward += 100
             done = True
         if self.current_step >= self.max_step:
             done = True
 
         if done:
             self.current_episode += 1
-            reward += 100
             # print('End of episode, total reward :', self.cumulative_reward)
 
         obs = self._next_observation()

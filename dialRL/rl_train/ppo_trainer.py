@@ -64,12 +64,15 @@ class PPOTrainer():
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           max_step=self.max_step,
-                          dataset=self.dataset)
+                          test_env=False,
+                          dataset=self.dataset,
+                          verbose=self.verbose)
 
         self.eval_env = DummyVecEnv([lambda : DarSeqEnv(size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           max_step=self.max_step,
+                          test_env=True,
                           dataset=self.dataset) for i in range(1)])
 
         if self.model=='MlpPolicy':

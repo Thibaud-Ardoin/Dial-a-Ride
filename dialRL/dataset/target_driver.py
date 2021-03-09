@@ -1,6 +1,6 @@
 
 class Target():
-    def __init__(self, pickup, dropoff, start, end, identity, weight=0):
+    def __init__(self, pickup, dropoff, start, end, identity, weight=1):
         self.pickup = pickup
         self.dropoff = dropoff
         self.start = start
