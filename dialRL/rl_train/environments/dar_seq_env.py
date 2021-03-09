@@ -4,9 +4,10 @@ import gym
 from gym import spaces
 import drawSvg as draw
 import tempfile
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.image import imsave
 
 from dialRL.dataset import tabu_parse_info
 from dialRL.dataset import DarPInstance
@@ -16,22 +17,30 @@ from dialRL.rl_train.environments import DarEnv
 class DarSeqEnv(DarEnv):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, size, target_population, driver_population, dataset=None, time_end=1400, max_step=10):
+    def __init__(self, size, target_population, driver_population, dataset=None, test_env=False, time_end=1400, max_step=10):
 
-        self.dataset=dataset
+        self.dataset = dataset
+        self.test_env = test_env
+        self.max_step = max_step
         if self.dataset :
-            super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=1400, max_step=10)
-            self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size = tabu_parse_info(self.dataset)
+            if self.test_env :
+                super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=time_end, max_step=self.max_step)
+                self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size = tabu_parse_info(self.dataset)
+            else :
+                # Get info from dataset, to construct artificial data with those parameters
+                super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=time_end, max_step=self.max_step)
+                self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size = tabu_parse_info(self.dataset)
 
         else :
             super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=1400, max_step=10)
             self.extremas = [-self.size, -self.size, self.size, self.size]
-            self.depot_position = np.random.randint(0, self.size, (2))
+            x = np.random.uniform(-self.size, self.size)
+            y = np.random.uniform(-self.size, self.size)
+            self.depot_position = np.array((x, y), dtype=np.float16)
 
         if False:
             print(self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size)
 
-        self.max_step = max_step
         #self.driver_population*2 + self.target_population
 
         choix_id_target = True
@@ -126,9 +135,11 @@ class DarSeqEnv(DarEnv):
         self.instance = DarPInstance(size=self.size,
                                     population=self.target_population,
                                     drivers=self.driver_population,
+                                    depot_position=self.depot_position,
+                                    extremas=self.extremas,
                                     time_end=self.time_end,
                                     verbose=False)
-        if self.dataset :
+        if self.test_env :
             self.instance.dataset_generation(self.dataset)
         else :
             self.instance.random_generation()
@@ -257,6 +268,7 @@ class DarSeqEnv(DarEnv):
 
         if done:
             self.current_episode += 1
+            reward += 100
             # print('End of episode, total reward :', self.cumulative_reward)
 
         obs = self._next_observation()
@@ -269,7 +281,7 @@ class DarSeqEnv(DarEnv):
         print('\n--------------------- [Step', self.current_step, ']')
 
         print('World: ')
-        print(self.world)
+        # print(self.world)
         print(np.shape(self.world))
 
         if self.distance < 0 :
@@ -287,7 +299,13 @@ class DarSeqEnv(DarEnv):
 
 if __name__ == '__main__':
     data = './data/instances/cordeau2003/tabu1.txt'
-    env = DarSeqEnv(size=4, target_population=5, driver_population=1, time_end=1400, max_step=5000, dataset=data)
+    env = DarSeqEnv(size=4,
+                    target_population=5,
+                    driver_population=1,
+                    time_end=1400,
+                    max_step=5000,
+                    dataset=data,
+                    test_env=False)
     # env = DarSeqEnv(size=4, target_population=5, driver_population=2, time_end=1400, max_step=100, dataset=None)
     cumulative_reward = 0
     observation = env.reset()
@@ -297,6 +315,10 @@ if __name__ == '__main__':
         observation, reward, done, info = env.step(action)
         cumulative_reward += reward
         print('Cumulative reward : ', cumulative_reward, ' (', reward, ')')
+        if False :
+            image = env.get_image_representation()
+            imsave('./data/rl_experiments/test/' + str(env.current_step) + '.png', image)
+
         if done:
             print("\n ** \t Episode finished after {} timesteps".format(t+1))
             env.render()

@@ -8,9 +8,11 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 distance,
                                 get_device,
                                 objdict,
-                                visualize)
+                                visualize,
+                                instance2Image_rep)
 
 __all__ = ['utils',
+           'instance2Image_rep',
            'image_coordonates2indices',
            'indice2image_coordonates',
            'heatmap2image_coord',

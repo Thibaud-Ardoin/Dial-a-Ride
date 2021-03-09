@@ -39,7 +39,7 @@ class MonitorCallback(EvalCallback):
         self.sacred = sacred
 
         self.sequence = False
-        if self.env.__class__.__name__ == 'DarSeqEnv':
+        if self.env.__class__.__name__ in ['DarSeqEnv','DummyVecEnv'] :
             self.sequence = True
 
         self.statistics = {

@@ -2,6 +2,9 @@ from torch.cuda import is_available
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import drawSvg as draw
+import tempfile
+import matplotlib.pyplot as plt
 
 def get_device():
     if is_available():
@@ -75,6 +78,42 @@ def indice_map2image(indice_map, image_size):
 
 def distance(pos1, pos2):
     return np.linalg.norm(np.array(pos1) - np.array(pos2))
+
+def instance2Image_rep(targets, drivers, size):
+    # Return an image gathered from svg data
+
+    d = draw.Drawing(size*2, size*2, origin='center', displayInline=False)
+    for target in targets:
+        # draw two nodes for pickup and delivery + An arrow connecting them
+        if target.state > -1 :
+            d.append(draw.Circle(target.pickup[0],target.pickup[1], 0.2,
+                fill='#8b5962', stroke_width=0.05, stroke='#555455'))
+        else :
+            d.append(draw.Circle(target.pickup[0],target.pickup[1], 0.2,
+                    fill='red', stroke_width=0.05, stroke='black'))
+
+        if target.state > 0 :
+            d.append(draw.Circle(target.dropoff[0],target.dropoff[1], 0.2,
+                fill='#59598b', stroke_width=0.05, stroke='#555455'))
+        else :
+            d.append(draw.Circle(target.dropoff[0],target.dropoff[1], 0.2,
+                    fill='blue', stroke_width=0.05, stroke='black'))
+
+        d.append(draw.Line(target.pickup[0],target.pickup[1],
+                           target.dropoff[0],target.dropoff[1],
+                           stroke='green', stroke_width=0.02, fill='none'))
+
+    for driver in drivers :
+        d.append(draw.Circle(driver.position[0], driver.position[1], 0.3,
+                fill='yellow', stroke_width=0.2, stroke='black'))
+
+    #d.setPixelScale(2)  # Set number of pixels per geometry unit
+    d.setRenderSize(size*50, size*50)
+    fo = tempfile.NamedTemporaryFile()
+    d.savePng(fo.name)
+    array_image = np.array(plt.imread(fo.name))
+    fo.close()
+    return array_image
 
 
 def visualize(image, txt=''):

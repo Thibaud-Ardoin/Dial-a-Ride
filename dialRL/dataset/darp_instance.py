@@ -9,33 +9,40 @@ import os
 
 import pickle
 
-from dialRL.utils import image_coordonates2indices, indice2image_coordonates, distance
-from dialRL.dataset import tabu_parse, Driver, Target
+from dialRL.utils import image_coordonates2indices, indice2image_coordonates, distance, instance2Image_rep
+from dialRL.dataset import tabu_parse, Driver, Target, tabu_parse_info
 
 
 
 class DarPInstance():
     """ 2 Dimentional insance of the NN problem
     """
-    def __init__(self, size, population, drivers, time_end, verbose=False):
+    def __init__(self, size, population, drivers, extremas=None, depot_position=None, time_end=1400, verbose=False):
         # Ground definition
         self.size = size
         self.nb_targets = population
         self.nb_drivers = drivers
         self.verbose = verbose
         self.time_end = time_end
+        self.extremas = extremas
 
         # 2nd grade attributes
         self.drivers = []
         self.targets = []
-        self.depot_position = None
+        self.depot_position = depot_position
 
 
     def equal(self, x, y):
         return x[0] == y[0] and x[1] == y[1]
 
     def random_point(self):
-        pt = np.random.randint(0, self.size, (2))
+        if self.extremas is None :
+            # In case you need only integer points..
+            pt = np.random.randint(0, self.size, (2))
+        else :
+            x = np.random.uniform(self.extremas[0], self.extremas[2])
+            y = np.random.uniform(self.extremas[1], self.extremas[3])
+            pt = np.array((x, y), dtype=np.float16)
         return pt
 
 
@@ -47,19 +54,28 @@ class DarPInstance():
             np.random.seed(seed)
 
         # Generate Random points for targets and drivers
-        distinct_pts = np.random.choice(self.size**2, size=2*self.nb_targets + self.nb_drivers, replace=False)
-        distincs_coordonates = [indice2image_coordonates(distinct_pts[i], self.size) for i in range(len(distinct_pts))]
+        if self.extremas is None :
+            distinct_pts = np.random.choice(self.size**2, size=2*self.nb_targets + self.nb_drivers, replace=False)
+            coordonates = [indice2image_coordonates(distinct_pts[i], self.size) for i in range(len(distinct_pts))]
+        else :
+            coordonates = [self.random_point() for i in range(2*self.nb_targets + self.nb_drivers)]
 
         # Populate Drivers
         for j in range(self.nb_drivers):
-            driver = Driver(position=distincs_coordonates[j],
-                            identity=j+1)
+            if self.depot_position is None :
+                driver = Driver(position=coordonates[j],
+                                identity=j+1)
+            else :
+                driver = Driver(position=self.depot_position,
+                                identity=j+1)
             self.drivers.append(driver)
 
         # Populate Targets
         for j in range(self.nb_targets):
-            pickup = distincs_coordonates[self.nb_drivers + 2*j]
-            dropoff = distincs_coordonates[self.nb_drivers + 2*j + 1]
+            pickup = coordonates[self.nb_drivers + 2*j]
+            dropoff = coordonates[self.nb_drivers + 2*j + 1]
+
+                                                                                                ## TODO: Organize time schedules !!
             start = (0, 0)
             end = (self.time_end, self.time_end)
             target = Target(pickup, dropoff, start, end,
@@ -86,20 +102,35 @@ class DarPInstance():
         for item in vars(self):
             print(item, ':', vars(self)[item])
 
-        to_show = np.zeros((self.size, self.size))
-        for driver in instance.drivers:
-            to_show[driver.position[0]][driver.position[1]] = 3
+        if self.extremas is None:
+            to_show = np.zeros((self.size, self.size))
+            for driver in instance.drivers:
+                to_show[driver.position[0]][driver.position[1]] = 3
 
-        for target in instance.targets:
-            to_show[target.pickup[0]][target.pickup[1]] = 1
-            to_show[target.dropoff[0]][target.dropoff[1]] = 2
+            for target in instance.targets:
+                to_show[target.pickup[0]][target.pickup[1]] = 1
+                to_show[target.dropoff[0]][target.dropoff[1]] = 2
 
-        plt.imshow(to_show)
-        plt.show()
+            plt.imshow(to_show)
+            plt.show()
 
+        else :
+            image = instance2Image_rep(self.targets, self.drivers, self.size)
+            plt.imshow(image)
+            plt.show()
+            exit()
 
 if __name__ == '__main__':
     while 1 :
-        instance = DarPInstance(size=500, population=10, drivers=2, time_end=1400, verbose=True)
-        instance.dataset_generation('./data/instances/cordeau2003/tabu1.txt')
+        data = './data/instances/cordeau2003/tabu1.txt'
+        extremas, target_population, driver_population, time_end, depot_position, size = tabu_parse_info(data)
+        # instance = DarPInstance(size=500, population=10, drivers=2, time_end=1400, verbose=True)
+        instance = DarPInstance(size=size,
+                                population=target_population,
+                                drivers=driver_population,
+                                depot_position=depot_position,
+                                extremas=extremas,
+                                time_end=time_end,
+                                verbose=True)
+        instance.random_generation()
         instance.reveal()
