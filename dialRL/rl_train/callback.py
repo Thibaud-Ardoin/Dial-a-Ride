@@ -142,7 +142,11 @@ class MonitorCallback(EvalCallback):
 
             for i, obs in enumerate(observations):
                 save_name = dir + '/' + str(i) + '_r=' + str(rewards[i]) + '.png'  #[np.array(img) for i, img in enumerate(images)
-                image = self.norm_image(obs, scale=1)
+                if self.env.__class__.__name__ == 'DummyVecEnv':
+                    image = self.norm_image(obs[0], scale=1)
+                else :
+                    image = self.norm_image(obs, scale=1)
+                # print('SHae after image', np.shape(image))
                 imsave(save_name, image)
                 noms.append(save_name)
 
