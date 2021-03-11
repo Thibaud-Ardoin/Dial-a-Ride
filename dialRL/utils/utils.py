@@ -79,6 +79,26 @@ def indice_map2image(indice_map, image_size):
 def distance(pos1, pos2):
     return np.linalg.norm(np.array(pos1) - np.array(pos2))
 
+colors_list = [
+    '#faff18',
+    '#ff18dd',
+    '#a818ff',
+    '#3318ff',
+    '#18aeff',
+    '#18ffce',
+    '#18ff59',
+    '#78ff18',
+    '#ff7a18',
+    '#ff1818',
+    '#ff186c',
+    '#25731b',
+    '#73731b',
+    '#1b7367',
+    '#1b4a73',
+    '#4f1b73',
+    '#1b7351',
+]
+
 def instance2Image_rep(targets, drivers, size):
     # Return an image gathered from svg data
 
@@ -95,20 +115,22 @@ def instance2Image_rep(targets, drivers, size):
         if target.state > 0 :
             d.append(draw.Circle(target.dropoff[0],target.dropoff[1], 0.2,
                 fill='#59598b', stroke_width=0.05, stroke='#555455'))
+            d.append(draw.Line(target.pickup[0],target.pickup[1],
+                               target.dropoff[0],target.dropoff[1],
+                               stroke='#516e4a', stroke_width=0.01, fill='none'))
         else :
             d.append(draw.Circle(target.dropoff[0],target.dropoff[1], 0.2,
                     fill='blue', stroke_width=0.05, stroke='black'))
-
-        d.append(draw.Line(target.pickup[0],target.pickup[1],
-                           target.dropoff[0],target.dropoff[1],
-                           stroke='green', stroke_width=0.02, fill='none'))
+            d.append(draw.Line(target.pickup[0],target.pickup[1],
+                               target.dropoff[0],target.dropoff[1],
+                               stroke='green', stroke_width=0.02, fill='none'))
 
     for driver in drivers :
         d.append(draw.Circle(driver.position[0], driver.position[1], 0.3,
-                fill='yellow', stroke_width=0.2, stroke='black'))
+                fill=colors_list[driver.identity - 1], stroke_width=0.2, stroke='black'))
 
     #d.setPixelScale(2)  # Set number of pixels per geometry unit
-    d.setRenderSize(size*50, size*50)
+    d.setRenderSize(size*40, size*40)
     fo = tempfile.NamedTemporaryFile()
     d.savePng(fo.name)
     array_image = np.array(plt.imread(fo.name))

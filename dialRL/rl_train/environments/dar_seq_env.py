@@ -11,7 +11,7 @@ from matplotlib.image import imsave
 
 from dialRL.dataset import tabu_parse_info
 from dialRL.dataset import DarPInstance
-from dialRL.utils import instance2world, indice2image_coordonates, distance
+from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep
 from dialRL.rl_train.environments import DarEnv
 
 class DarSeqEnv(DarEnv):
@@ -100,42 +100,8 @@ class DarSeqEnv(DarEnv):
         return world
 
     def get_image_representation(self):
-        # Return an image gathered from svg data
-        size=self.size #max(abs(self.extremas[2] - self.extremas[0]), abs(self.extremas[3] - self.extremas[1]))
-
-        d = draw.Drawing(size*2, size*2, origin='center', displayInline=False)
-        for target in self.targets:
-            # draw two nodes for pickup and delivery + An arrow connecting them
-            if target.state > -1 :
-                d.append(draw.Circle(target.pickup[0],target.pickup[1], 0.2,
-                    fill='#8b5962', stroke_width=0.05, stroke='#555455'))
-            else :
-                d.append(draw.Circle(target.pickup[0],target.pickup[1], 0.2,
-                        fill='red', stroke_width=0.05, stroke='black'))
-
-            if target.state > 0 :
-                d.append(draw.Circle(target.dropoff[0],target.dropoff[1], 0.2,
-                    fill='#59598b', stroke_width=0.05, stroke='#555455'))
-            else :
-                d.append(draw.Circle(target.dropoff[0],target.dropoff[1], 0.2,
-                        fill='blue', stroke_width=0.05, stroke='black'))
-
-            d.append(draw.Line(target.pickup[0],target.pickup[1],
-                               target.dropoff[0],target.dropoff[1],
-                               stroke='green', stroke_width=0.02, fill='none'))
-
-        for driver in self.drivers :
-            d.append(draw.Circle(driver.position[0], driver.position[1], 0.3,
-                    fill='yellow', stroke_width=0.2, stroke='black'))
-
-        #d.setPixelScale(2)  # Set number of pixels per geometry unit
-        d.setRenderSize(size*50, size*50)
-        fo = tempfile.NamedTemporaryFile()
-        d.savePng(fo.name)
-        array_image = np.array(plt.imread(fo.name))
-        fo.close()
-        plt.imshow(array_image)
-        return array_image
+        image = instance2Image_rep(self.targets, self.drivers, self.size)
+        return image
 
 
     def reset(self):
@@ -323,7 +289,7 @@ if __name__ == '__main__':
         observation, reward, done, info = env.step(action)
         cumulative_reward += reward
         print('Cumulative reward : ', cumulative_reward, ' (', reward, ')')
-        if False :
+        if True :
             image = env.get_image_representation()
             imsave('./data/rl_experiments/test/' + str(env.current_step) + '.png', image)
 
