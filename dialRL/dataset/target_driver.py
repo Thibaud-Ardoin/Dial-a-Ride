@@ -3,8 +3,8 @@ class Target():
     def __init__(self, pickup, dropoff, start, end, identity, weight=1):
         self.pickup = pickup
         self.dropoff = dropoff
-        self.start = start
-        self.end = end
+        self.start_fork = start
+        self.end_fork = end
         self.weight = weight
         self.identity = identity
 
@@ -24,8 +24,8 @@ class Target():
         vector.append(self.pickup[1])
         vector.append(self.dropoff[0])
         vector.append(self.dropoff[1])
-        vector.append(self.start[0])
-        vector.append(self.start[1])
+        vector.append(self.start_fork[0])
+        vector.append(self.start_fork[1])
         vector.append(self.end[0])
         vector.append(self.end[1])
         vector.append(self.weight)

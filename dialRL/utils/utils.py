@@ -138,6 +138,13 @@ def instance2Image_rep(targets, drivers, size):
     return array_image
 
 
+def GAP_function(cost, best_cost):
+    if best_cost is None :
+        return None
+    plus = cost - best_cost
+    return 100 * plus / best_cost
+
+
 def visualize(image, txt=''):
     if len(image.shape) == 3 and image.shape[0] in [1,2,3]:
         img = image.cpu().numpy()

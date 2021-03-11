@@ -9,9 +9,9 @@ import tempfile
 import matplotlib.pyplot as plt
 from matplotlib.image import imsave
 
-from dialRL.dataset import tabu_parse_info
+from dialRL.dataset import tabu_parse_info, tabu_parse_best
 from dialRL.dataset import DarPInstance
-from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep
+from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep, GAP_function
 from dialRL.rl_train.environments import DarEnv
 
 class DarSeqEnv(DarEnv):
@@ -24,6 +24,7 @@ class DarSeqEnv(DarEnv):
         self.max_step = max_step
         self.verbose = verbose
         if self.dataset :
+            self.best_cost = tabu_parse_best(self.dataset)
             if self.test_env :
                 super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=time_end, max_step=self.max_step)
                 self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size = tabu_parse_info(self.dataset)
@@ -124,6 +125,7 @@ class DarSeqEnv(DarEnv):
         self.current_player = 1
         # distance is -1 if wrong aiming. 0 if there is no start of game yet and x if aimed corectly
         self.distance = 0
+        self.total_distance = 0
         self.current_step = 0
         self.cumulative_reward = 0
         self.world = self.representation()
@@ -224,6 +226,7 @@ class DarSeqEnv(DarEnv):
         elif self.distance > 0:
             reward = self.reward(self.distance)
             done = False
+            self.total_distance += self.distance
             # update drivers turn
             self.current_player = ((self.current_player + 1 - 1) % (self.driver_population) ) + 1
         # End of simulation
@@ -267,7 +270,9 @@ class DarSeqEnv(DarEnv):
         print('Last aimed to : ', self.last_aim)
         print('Targets to go: ', self.targets_to_go())
         print('Cumulative reward : ', self.cumulative_reward)
+        print(' Cumulative distance :', self.total_distance)
         print('Additional  information : ', self.short_log)
+        print('GAP to best known solution: ', GAP_function(self.total_distance, self.best_cost))
         print('---------------------\n')
 
 
@@ -283,18 +288,18 @@ if __name__ == '__main__':
     # env = DarSeqEnv(size=4, target_population=5, driver_population=2, time_end=1400, max_step=100, dataset=None)
     cumulative_reward = 0
     observation = env.reset()
-    for t in range(100):
-        env.render()
+    env.render()
+    for t in range(5000):
         action = env.action_space.sample()
         observation, reward, done, info = env.step(action)
         cumulative_reward += reward
         print('Cumulative reward : ', cumulative_reward, ' (', reward, ')')
-        if True :
+        env.render()
+        if False :
             image = env.get_image_representation()
             imsave('./data/rl_experiments/test/' + str(env.current_step) + '.png', image)
 
         if done:
             print("\n ** \t Episode finished after {} timesteps".format(t+1))
-            env.render()
             break
     env.close()

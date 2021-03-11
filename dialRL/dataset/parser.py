@@ -18,13 +18,13 @@ def tabu_parse(file_name):
             if l < number_line//2 :
                 identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
                 # print(identity, X, Y, we, ty, st, en)
-                t = Target(pickup=(X, Y), dropoff=None, start=(st, en), end=None, identity=int(identity), weight=1)
+                t = Target(pickup=(X, Y), dropoff=None, start_fork=(st, en), end=None, identity=int(identity), weight=1)
                 targets.append(t)
             else :
                 identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
                 re_t = targets[l - number_line//2]
                 re_t.dropoff = (X, Y)
-                re_t.end = (st, en)
+                re_t.end_fork = (st, en)
 
     return targets, drivers
 
@@ -54,6 +54,22 @@ def tabu_parse_info(file_name):
     size = max(abs(extremas[2] - extremas[0]), abs(extremas[3] - extremas[1]))
     return extremas, target_population, driver_population, time_end, depot_position, size
 
+def tabu_parse_best(file_name):
+    file_name_itself = file_name.split('/')[-1]
+    if len(file_name_itself) == 9:
+        nb = int(file_name_itself[4])
+    elif len(file_name_itself) == 10:
+        nb = int(file_name_itself[4:6])
+    else :
+        raise 'Error finding result data from : ' + file_name
+    res_file = '/'.join(file_name.split('/')[:-1]) + '/res/res' + str(nb) + '.txt'
+    print(' -> Going for dataset nb: ', nb, res_file)
+    try :
+        with open(res_file, 'r') as file :
+            best = float(file.readline())
+        return best
+    except:
+        return None
 
 if __name__ == '__main__':
     targets, drivers = parse('./data/instances/cordeau2003/tabu1.txt')
