@@ -75,10 +75,19 @@ class DarPInstance():
             pickup = coordonates[self.nb_drivers + 2*j]
             dropoff = coordonates[self.nb_drivers + 2*j + 1]
 
-                                                                                                ## TODO: Organize time schedules !!
-            start = (0, 0)
-            end = (self.time_end, self.time_end)
-            target = Target(pickup, dropoff, start, end,
+            # Generate 50% of free dropof conditions, and 50% of free pickup time conditions
+            intermediate_margin = 20
+            tp1 = np.random.randint(intermediate_margin, self.time_end - intermediate_margin*2 - 1)
+            tp2 = np.random.randint(tp1 + intermediate_margin, self.time_end - intermediate_margin)
+
+            if j > self.nb_targets // 2 :
+                start_fork = (0, self.time_end)
+                end_fork = (tp1, tp2)
+            else :
+                start_fork = (tp1, tp2)
+                end_fork = (0, self.time_end)
+
+            target = Target(pickup, dropoff, start_fork, end_fork,
                             identity=j + 1)
             self.targets.append(target)
 

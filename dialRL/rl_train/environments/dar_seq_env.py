@@ -124,6 +124,7 @@ class DarSeqEnv(DarEnv):
 
         self.current_player = 1
         # distance is -1 if wrong aiming. 0 if there is no start of game yet and x if aimed corectly
+        self.time_step = 0
         self.distance = 0
         self.total_distance = 0
         self.current_step = 0
@@ -175,7 +176,7 @@ class DarSeqEnv(DarEnv):
                 self.short_log = 'Aimed target already delivered'
 
             elif aimed_target.state == -1:
-                result = aiming_driver.load(aimed_target)
+                result = aiming_driver.load(aimed_target, self.time_step)
                 # Managed to load the target
                 if result :
                     aimed_target.state = 0
@@ -188,7 +189,7 @@ class DarSeqEnv(DarEnv):
                     self.short_log = 'Aimed  right but driver full'
 
             elif aimed_target.state == 0:
-                result = aiming_driver.unload(aimed_target)
+                result = aiming_driver.unload(aimed_target, self.time_step)
                 if result :
                     aimed_target.state = 1
                     aiming_driver.position = aimed_target.dropoff

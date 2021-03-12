@@ -18,6 +18,18 @@ class Target():
     def __str__(self):
         return "Target: " + str(self.pickup) + ' to ' + str(self.dropoff)
 
+    def start_in_time(self, current_time):
+        if self.start_fork[0] <= current_time :
+            if self.start_fork[1] >= current_time:
+                return True
+        return False
+
+    def end_in_time(self, current_time):
+        if self.end_fork[0] <= current_time :
+            if self.end_fork[1] >= current_time:
+                return True
+        return False
+
     def get_info_vector(self):
         vector = [self.identity]
         vector.append(self.pickup[0])
@@ -26,8 +38,8 @@ class Target():
         vector.append(self.dropoff[1])
         vector.append(self.start_fork[0])
         vector.append(self.start_fork[1])
-        vector.append(self.end[0])
-        vector.append(self.end[1])
+        vector.append(self.end_fork[0])
+        vector.append(self.end_fork[1])
         vector.append(self.weight)
         vector.append(self.state)
         return vector
@@ -58,19 +70,25 @@ class Driver():
             c += target.weight
         return c
 
-    def load(self, target):
+    def load(self, target, current_time):
         if target.weight + self.capacity() > self.max_capacity :
             return False
         else :
-            self.loaded.append(target)
-            return True
+            if not target.start_in_time(current_time):
+                return False
+            else :
+                self.loaded.append(target)
+                return True
 
-    def unload(self, target):
+    def unload(self, target, current_time):
         indice = target.identity
         for i,t in enumerate(self.loaded):
             if t.identity == indice:
-                del self.loaded[i]
-                return True
+                if t.end_in_time(current_time):
+                    del self.loaded[i]
+                    return True
+                else :
+                    return False
         return False
 
     def is_in(self, indice):
