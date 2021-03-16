@@ -79,6 +79,9 @@ def indice_map2image(indice_map, image_size):
 def distance(pos1, pos2):
     return np.linalg.norm(np.array(pos1) - np.array(pos2))
 
+def float_equality(f1, f2):
+    return abs(f1 - f2) < 0.001
+
 colors_list = [
     '#faff18',
     '#ff18dd',
@@ -99,7 +102,7 @@ colors_list = [
     '#1b7351',
 ]
 
-def instance2Image_rep(targets, drivers, size):
+def instance2Image_rep(targets, drivers, size, time_step):
     # Return an image gathered from svg data
 
     d = draw.Drawing(size*2, size*2, origin='center', displayInline=False)
@@ -129,6 +132,7 @@ def instance2Image_rep(targets, drivers, size):
         d.append(draw.Circle(driver.position[0], driver.position[1], 0.3,
                 fill=colors_list[driver.identity - 1], stroke_width=0.2, stroke='black'))
 
+    d.append(draw.Text('Basic text', 8, -10, 35, fill='blue'))
     #d.setPixelScale(2)  # Set number of pixels per geometry unit
     d.setRenderSize(size*40, size*40)
     fo = tempfile.NamedTemporaryFile()

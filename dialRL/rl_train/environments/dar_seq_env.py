@@ -11,7 +11,7 @@ from matplotlib.image import imsave
 
 from dialRL.dataset import tabu_parse_info, tabu_parse_best
 from dialRL.dataset import DarPInstance
-from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep, GAP_function
+from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep, GAP_function, float_equality
 from dialRL.rl_train.environments import DarEnv
 
 class DarSeqEnv(DarEnv):
@@ -34,7 +34,8 @@ class DarSeqEnv(DarEnv):
                 self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size = tabu_parse_info(self.dataset)
 
         else :
-            super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=1400, max_step=10)
+            self.best_cost = 1000
+            super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=1400, max_step=max_step)
             self.extremas = [-self.size, -self.size, self.size, self.size]
             x = np.random.uniform(-self.size, self.size)
             y = np.random.uniform(-self.size, self.size)
@@ -62,6 +63,7 @@ class DarSeqEnv(DarEnv):
         self.max_reward = int(1.5 * self.size)
         self.reward_range = (- self.max_reward, self.max_reward)
         self.time_step = 0
+        self.last_time_gap = 0
         self.current_episode = 0
 
         if self.verbose:
@@ -101,7 +103,7 @@ class DarSeqEnv(DarEnv):
         return world
 
     def get_image_representation(self):
-        image = instance2Image_rep(self.targets, self.drivers, self.size)
+        image = instance2Image_rep(self.targets, self.drivers, self.size, time_step=self.time_step)
         return image
 
 
@@ -122,6 +124,16 @@ class DarSeqEnv(DarEnv):
         self.targets = self.instance.targets.copy()
         self.drivers = self.instance.drivers.copy()
 
+        # It is important to let time step at target forks as well,
+            #in order to let possibility for driver to wake up after waiting
+        self.target_times = []
+        for target in self.targets :
+            self.target_times.append(target.start_fork[0])
+            self.target_times.append(target.start_fork[1])
+            self.target_times.append(target.end_fork[0])
+            self.target_times.append(target.end_fork[1])
+
+        self.next_players = [i for i in range(1, self.driver_population+1)]
         self.current_player = 1
         # distance is -1 if wrong aiming. 0 if there is no start of game yet and x if aimed corectly
         self.time_step = 0
@@ -166,6 +178,7 @@ class DarSeqEnv(DarEnv):
         if action == 0 :
             self.distance = 0
             self.short_log = 'Just do nothing'
+            aiming_driver.set_target(None, self.time_step)
 
         elif action > 0 and action <= self.target_population :
             aimed_target = self.targets[action - 1]
@@ -176,26 +189,21 @@ class DarSeqEnv(DarEnv):
                 self.short_log = 'Aimed target already delivered'
 
             elif aimed_target.state == -1:
-                result = aiming_driver.load(aimed_target, self.time_step)
+                result = aiming_driver.set_target(aimed_target, self.time_step)
                 # Managed to load the target
                 if result :
                     aimed_target.state = 0
-                    aiming_driver.position = aimed_target.pickup
-
-                    self.distance = distance(aimed_target.pickup, current_pos)
-                    self.short_log = 'Aimed right, and pick up !'
+                    self.distance = distance(aiming_driver.position, aiming_driver.destination)
+                    self.short_log = 'Aimed right, going for pick up !'
                 else :
                     self.distance = -4
-                    self.short_log = 'Aimed  right but driver full'
+                    self.short_log = 'Aimed free target but couldn"t load target (driver full, or wrong time window)'
 
             elif aimed_target.state == 0:
-                result = aiming_driver.unload(aimed_target, self.time_step)
+                result = aiming_driver.set_target(aimed_target, self.time_step)
                 if result :
-                    aimed_target.state = 1
-                    aiming_driver.position = aimed_target.dropoff
-                    self.distance = distance(aimed_target.dropoff, current_pos)
-
-                    self.short_log = 'Aimed right, and droping off !'
+                    self.distance = distance(aiming_driver.position, aiming_driver.destination)
+                    self.short_log = 'Aimed right, and goiong for dropoff !'
 
                 else :
                     self.distance = -5
@@ -214,40 +222,100 @@ class DarSeqEnv(DarEnv):
         #int(1.5 * self.size * (1 / distance))
 
 
-    def step(self, action):
-        # Curently the action is a heatmap ..
-        # NOO now it's an indice in the list of action n*n
+    def update_time_step(self):
+        # Should other types of events be added here ?
+            # Such as the end of the game event
+        events_in = []
+        for driver in self.drivers:
+            print(driver)
+            if driver.destination is not None :
+                events_in.append(self.time_step + distance(driver.position, driver.destination))
+        events_in = events_in + self.target_times
+        print(events_in)
+        events_in = [t for t in events_in if t>self.time_step]
+        self.last_time_gap = min(events_in) - self.time_step
+        self.time_step = min(events_in)
 
+
+    def update_drivers_positions(self):
+        if self.last_time_gap > 0:
+            for driver in self.drivers :
+                if driver.destination is not None :
+                    d = distance(driver.position, driver.destination)
+                    print('distance:', d, 'time gap:', self.last_time_gap)
+                    if float_equality(self.last_time_gap, d):
+                        # Driver arraving to destination
+                        driver.move(driver.destination)
+                        if driver.order == 'picking':
+                            result = driver.load(driver.target, self.time_step)
+                            if not result :
+                                raise "Error while loading the target, it is intended to be pickupable"
+
+                        elif driver.order == 'dropping':
+                            result = driver.unload(driver.target, self.time_step)
+                            driver.target.state = 1
+                            if not result :
+                                raise "Error while unloading the target, it is intended to be droppable"
+
+                        # reset the driver on waiting list
+                        driver.set_target(None, self.time_step)
+                        self.next_players.append(driver.identity)
+
+                    elif self.last_time_gap < d:
+                        # lx + (1-l)x with l=d'/d
+                        lam = (self.last_time_gap / d)
+                        driver.move(lam * np.array(driver.position) + (1 - lam) * np.array(driver.destination))
+
+                    else :
+                        raise "Error in updating drivers position. distance to destination:" + \
+                        str(d) + "last time gap:" + str(self.last_time_gap)
+
+
+    def step(self, action):
+        # Action is the selected target id to handle (Eiither pick of drop)
         self._take_action(action)
         self.current_step += 1
+
+        # Current driver turn need to be updated
+        if not self.next_players :
+            while len(self.next_players) == 0 :
+                # If no drivers turn, activate time steps
+                self.update_time_step()
+                self.update_drivers_positions()
+                for driver in self.drivers :
+                    if driver.destination is None :
+                        # Charge all players that may need a new destination
+                        self.next_players.append(driver.identity)
 
         if self.distance < 0:
             reward = -1 #-int(self.max_reward//2)
             done = False
+
         elif self.distance > 0:
             reward = self.reward(self.distance)
             done = False
             self.total_distance += self.distance
-            # update drivers turn
-            self.current_player = ((self.current_player + 1 - 1) % (self.driver_population) ) + 1
-        # End of simulation
+            self.current_player = self.next_players.pop()
+
         elif self.distance == 0 :
             reward = -1
             done = False
-            self.current_player = ((self.current_player + 1 - 1) % (self.driver_population) ) + 1
+            self.current_player = self.next_players.pop()
 
         self.cumulative_reward += reward
 
         if self.targets_to_go()[2] == self.target_population :
-            # Highh reward for accomplishing the task
+            # High reward for finishing the game
             reward += 100
             done = True
-        if self.current_step >= self.max_step:
+        if self.current_step >= self.max_step or self.time_step >= self.time_end :
+            reward -= 100
             done = True
 
         if done:
             self.current_episode += 1
             # print('End of episode, total reward :', self.cumulative_reward)
+
 
         obs = self._next_observation()
 
@@ -267,7 +335,9 @@ class DarSeqEnv(DarEnv):
         else :
             print(f'Player {self.current_player} aimed right')
 
+        print('Crurrent time step: ', self.time_step)
         print('Crurrent player: ', self.current_player)
+        print('Next player: ', self.next_players)
         print('Last aimed to : ', self.last_aim)
         print('Targets to go: ', self.targets_to_go())
         print('Cumulative reward : ', self.cumulative_reward)
@@ -279,9 +349,10 @@ class DarSeqEnv(DarEnv):
 
 if __name__ == '__main__':
     data = './data/instances/cordeau2003/tabu1.txt'
+    # data = None
     env = DarSeqEnv(size=4,
-                    target_population=5,
-                    driver_population=1,
+                    target_population=2,
+                    driver_population=2,
                     time_end=1400,
                     max_step=5000,
                     dataset=data,
@@ -301,6 +372,6 @@ if __name__ == '__main__':
             imsave('./data/rl_experiments/test/' + str(env.current_step) + '.png', image)
 
         if done:
-            print("\n ** \t Episode finished after {} timesteps".format(t+1))
+            print("\n ** \t Episode finished after {} time steps".format(t+1))
             break
     env.close()

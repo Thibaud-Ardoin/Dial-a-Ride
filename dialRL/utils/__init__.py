@@ -10,9 +10,11 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 objdict,
                                 visualize,
                                 instance2Image_rep,
-                                GAP_function)
+                                GAP_function,
+                                float_equality)
 
-__all__ = ['GAP_function',
+__all__ = ['float_equality',
+           'GAP_function',
            'utils',
            'instance2Image_rep',
            'image_coordonates2indices',

@@ -1,3 +1,5 @@
+from dialRL.utils import distance
+
 
 class Target():
     def __init__(self, pickup, dropoff, start, end, identity, weight=1):
@@ -52,15 +54,70 @@ class Driver():
         self.speed = speed
         self.identity = identity
         self.distance = 0
+        self.destination = None
+        self.target = None
+        self.order = 'waiting'
+        self.history_move = []
         self.loaded = [] #Target list
 
     def __repr__(self):
-        return "Driver at : " + str(self.position)
+        return "Driver at : " + str(self.position) + ' he is ' + self.order
 
     def __str__(self):
-        return "Driver at : " + str(self.position)
+        return "Driver at : " + str(self.position) + ' he is ' + self.order
+
+
+    def can_load(self, target, current_time):
+        if target.weight + self.capacity() > self.max_capacity :
+            return False
+        else :
+            if not target.start_in_time(current_time + distance(target.pickup, self.position)):
+                return False
+            else :
+                return True
+
+    def can_unload(self, target, current_time):
+        indice = target.identity
+        for i,t in enumerate(self.loaded):
+            if t.identity == indice:
+                if t.end_in_time(current_time + distance(target.dropoff, self.position)):
+                    return True
+                else :
+                    return False
+        return False
+
+
+    def set_target(self, target, current_time):
+        if target is None:
+            self.destination = None
+            self.order = 'waiting'
+
+        else :
+            # Set dropping off target
+            if target.state == 0 :
+                if self.can_unload(target, current_time) :
+                    self.destination = target.dropoff
+                    self.target = target
+                    self.order = 'dropping'
+                    return True
+                else :
+                    return False
+
+            # Set picking up target
+            elif target.state == -1 :
+                if self.can_load(target, current_time):
+                    self.target = target
+                    self.order = 'picking'
+                    self.destination = target.pickup
+                    return True
+                else :
+                    return False
+            else :
+                raise "Error with setting outdated target: " + str(target)
+
 
     def move(self, new_position):
+        self.history_move.append(new_position)
         self.distance = distance(new_position, self.position)
         self.position = new_position
 

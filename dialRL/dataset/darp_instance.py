@@ -124,7 +124,7 @@ class DarPInstance():
             plt.show()
 
         else :
-            image = instance2Image_rep(self.targets, self.drivers, self.size)
+            image = instance2Image_rep(self.targets, self.drivers, self.size, time_step=self.time_step)
             plt.imshow(image)
             plt.show()
             exit()

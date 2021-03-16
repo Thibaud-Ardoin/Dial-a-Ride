@@ -18,7 +18,7 @@ def tabu_parse(file_name):
             if l < number_line//2 :
                 identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
                 # print(identity, X, Y, we, ty, st, en)
-                t = Target(pickup=(X, Y), dropoff=None, start_fork=(st, en), end=None, identity=int(identity), weight=1)
+                t = Target(pickup=(X, Y), dropoff=None, start=(st, en), end=None, identity=int(identity), weight=1)
                 targets.append(t)
             else :
                 identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
