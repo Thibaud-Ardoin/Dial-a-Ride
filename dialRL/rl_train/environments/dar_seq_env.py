@@ -227,11 +227,9 @@ class DarSeqEnv(DarEnv):
             # Such as the end of the game event
         events_in = []
         for driver in self.drivers:
-            print(driver)
             if driver.destination is not None :
                 events_in.append(self.time_step + distance(driver.position, driver.destination))
         events_in = events_in + self.target_times
-        print(events_in)
         events_in = [t for t in events_in if t>self.time_step]
         self.last_time_gap = min(events_in) - self.time_step
         self.time_step = min(events_in)
@@ -242,7 +240,6 @@ class DarSeqEnv(DarEnv):
             for driver in self.drivers :
                 if driver.destination is not None :
                     d = distance(driver.position, driver.destination)
-                    print('distance:', d, 'time gap:', self.last_time_gap)
                     if float_equality(self.last_time_gap, d):
                         # Driver arraving to destination
                         driver.move(driver.destination)

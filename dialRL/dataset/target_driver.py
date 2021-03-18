@@ -1,4 +1,4 @@
-from dialRL.utils import distance
+from dialRL.utils import distance, float_equality
 
 
 class Target():
@@ -21,12 +21,16 @@ class Target():
         return "Target: " + str(self.pickup) + ' to ' + str(self.dropoff)
 
     def start_in_time(self, current_time):
+        if float_equality(current_time, self.start_fork[0]) or float_equality(current_time, self.start_fork[1]) :
+            return True
         if self.start_fork[0] <= current_time :
             if self.start_fork[1] >= current_time:
                 return True
         return False
 
     def end_in_time(self, current_time):
+        if float_equality(current_time, self.end_fork[0]) or float_equality(current_time, self.end_fork[1]) :
+            return True
         if self.end_fork[0] <= current_time :
             if self.end_fork[1] >= current_time:
                 return True
@@ -129,9 +133,11 @@ class Driver():
 
     def load(self, target, current_time):
         if target.weight + self.capacity() > self.max_capacity :
+            print('Weight problem')
             return False
         else :
             if not target.start_in_time(current_time):
+                print('Time windows problem')
                 return False
             else :
                 self.loaded.append(target)
