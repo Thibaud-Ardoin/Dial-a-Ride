@@ -20,7 +20,7 @@ class MonitorCallback(EvalCallback):
       It must contains the file created by the ``Monitor`` wrapper.
     :param verbose: (int)
     """
-    def __init__(self, eval_env, check_freq: int, log_dir: str,sacred=None, n_eval_episodes=5, render=False, verbose=1):
+    def __init__(self, eval_env, check_freq: int, save_example_freq: int, log_dir: str,sacred=None, n_eval_episodes=5, render=False, verbose=1):
         super(MonitorCallback, self).__init__(verbose=verbose,
                                               eval_env=eval_env,
                                               best_model_save_path=log_dir,
@@ -33,6 +33,7 @@ class MonitorCallback(EvalCallback):
         self.verbose = verbose
         self.env = eval_env
         self.check_freq = check_freq
+        self.save_example_freq = save_example_freq
         self.log_dir = log_dir
         self.save_path = os.path.join(log_dir, 'best_model')
         self.best_mean_reward = -np.inf
@@ -242,7 +243,10 @@ class MonitorCallback(EvalCallback):
                         self.env.render()
                 episode_rewards.append(np.sum(episode_reward))
                 # self.save_gif(observations, episode_reward)
-                # self.save_example(observations, episode_reward,number=i)
+                if self.num_timesteps % self.check == 0 :
+                    self.save_example(observations, episode_reward,number=i)
+                del observations
+
 
             self.statistics['reward'].append(np.mean(episode_rewards))
             self.statistics['std_reward'].append(np.std(episode_rewards))

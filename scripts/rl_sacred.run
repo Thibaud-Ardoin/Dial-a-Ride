@@ -22,6 +22,7 @@ source venv1/bin/activate
 python3.7 dialRL/run_rl_clearML.py \
 --total_timesteps 10000 \
 --monitor_freq 1000 \
+--example_freq 1000000 \
 --epochs 10000 \
 --alias PPO2_MLP \
 --model MlpPolicy \

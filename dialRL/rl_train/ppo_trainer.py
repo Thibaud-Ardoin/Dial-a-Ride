@@ -95,6 +95,7 @@ class PPOTrainer():
 
         self.monitor = MonitorCallback(eval_env=self.eval_env,
                                   check_freq=self.monitor_freq,
+                                  save_example_freq=self.example_freq,
                                   log_dir=self.path_name,
                                   n_eval_episodes=self.eval_episodes,
                                   verbose=self.verbose,

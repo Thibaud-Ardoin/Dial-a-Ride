@@ -33,6 +33,7 @@ def get_args(args):
     parser.add_argument('--layers', default=[64, 64], nargs='+', type=int)
     parser.add_argument('--total_timesteps', default=10000, type=int)
     parser.add_argument('--monitor_freq', default=1000, type=int)
+    parser.add_argument('--example_freq', default=100000, type=int)
     parser.add_argument('--eval_episodes', default=4, type=int)
     parser.add_argument('--verbose', default=1, type=int)
     parser.add_argument('--max_step', default=20, type=int)
