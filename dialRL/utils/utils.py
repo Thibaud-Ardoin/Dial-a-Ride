@@ -80,7 +80,7 @@ def distance(pos1, pos2):
     return np.linalg.norm(np.array(pos1) - np.array(pos2))
 
 def float_equality(f1, f2):
-    return abs(f1 - f2) < 0.001
+    return abs(f1 - f2) < 0.01
 
 colors_list = [
     '#faff18',
@@ -101,6 +101,16 @@ colors_list = [
     '#4f1b73',
     '#1b7351',
 ]
+colors=objdict({
+    'red': 'red',
+    'blue': 'blue',
+    'green': 'green',
+    'dark_red': '#8b5962',
+    'dark_blue': '#59598b',
+    'dark_green': '#516e4a',
+    'black': 'black',
+    'grey': '#555455',
+})
 
 def instance2Image_rep(targets, drivers, size, time_step):
     # Return an image gathered from svg data
@@ -108,31 +118,50 @@ def instance2Image_rep(targets, drivers, size, time_step):
     d = draw.Drawing(size*2, size*2, origin='center', displayInline=False)
     for target in targets:
         # draw two nodes for pickup and delivery + An arrow connecting them
-        if target.state > -1 :
-            d.append(draw.Circle(target.pickup[0],target.pickup[1], 0.2,
-                fill='#8b5962', stroke_width=0.05, stroke='#555455'))
+        if target.state == -2 :
+            pick_fill_col = colors.red
+            pick_strok_col = colors.black
+        elif target.state == -1 :
+            pick_fill_col = colors.red
+            pick_strok_col = colors.grey
         else :
-            d.append(draw.Circle(target.pickup[0],target.pickup[1], 0.2,
-                    fill='red', stroke_width=0.05, stroke='black'))
+            pick_fill_col = colors.dark_red
+            pick_strok_col = colors.grey
 
-        if target.state > 0 :
-            d.append(draw.Circle(target.dropoff[0],target.dropoff[1], 0.2,
-                fill='#59598b', stroke_width=0.05, stroke='#555455'))
-            d.append(draw.Line(target.pickup[0],target.pickup[1],
-                               target.dropoff[0],target.dropoff[1],
-                               stroke='#516e4a', stroke_width=0.01, fill='none'))
+        d.append(draw.Circle(target.pickup[0],target.pickup[1], 0.2,
+                fill=pick_fill_col, stroke_width=0.05, stroke=pick_strok_col))
+
+        if target.state < 1 :
+            drop_fill_col = colors.blue
+            drop_strok_col = colors.black
+            line_col = colors.green
+        elif target.state == 1:
+            drop_fill_col = colors.blue
+            drop_strok_col = colors.grey
+            line_col = colors.green
         else :
-            d.append(draw.Circle(target.dropoff[0],target.dropoff[1], 0.2,
-                    fill='blue', stroke_width=0.05, stroke='black'))
-            d.append(draw.Line(target.pickup[0],target.pickup[1],
-                               target.dropoff[0],target.dropoff[1],
-                               stroke='green', stroke_width=0.02, fill='none'))
+            drop_fill_col = colors.dark_blue
+            drop_strok_col = colors.grey
+            line_col = colors.dark_green
 
+        d.append(draw.Circle(target.dropoff[0],target.dropoff[1], 0.2,
+            fill=drop_fill_col, stroke_width=0.05, stroke=drop_strok_col))
+        d.append(draw.Line(target.pickup[0],target.pickup[1],
+                           target.dropoff[0],target.dropoff[1],
+                           stroke=line_col, stroke_width=0.01, fill='none'))
+    text_lines = []
     for driver in drivers :
-        d.append(draw.Circle(driver.position[0], driver.position[1], 0.3,
-                fill=colors_list[driver.identity - 1], stroke_width=0.2, stroke='black'))
+        if driver.target is None :
+            text_lines.append(str(driver.identity) + ': (Zzz)')
+        else :
+            text_lines.append(str(driver.identity) + ': (' + str(driver.target.identity) + ')')
 
-    d.append(draw.Text('Basic text', 8, -10, 35, fill='blue'))
+        d.append(draw.Circle(driver.position[0], driver.position[1], 0.3,
+                fill=colors_list[driver.identity - 1], stroke_width=0.2, stroke=colors.black))
+        for t in driver.loaded :
+            text_lines[-1] = text_lines[-1] + str(t.identity) +  '- '
+
+    d.append(draw.Text(text_lines, 1, size//2, size//2, fill='black', text_anchor='start'))
     #d.setPixelScale(2)  # Set number of pixels per geometry unit
     d.setRenderSize(size*40, size*40)
     fo = tempfile.NamedTemporaryFile()

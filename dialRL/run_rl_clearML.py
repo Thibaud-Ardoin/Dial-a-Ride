@@ -5,7 +5,7 @@ import numpy as np
 from clearml import Task
 
 from dialRL.utils import objdict
-from dialRL.rl_train import PPOTrainer
+from dialRL.rl_train import PPOTrainer, TrlTrainer
 
 
 
@@ -42,7 +42,8 @@ def get_args(args):
     parser.add_argument('--nb_drivers', default=1, type=int)
     parser.add_argument('--env', default='DarEnv', type=str)
     parser.add_argument('--dataset', default='', type=str)
-    parser.add_argument('--rootdir', default='~', type=str)
+    parser.add_argument('--rootdir', default='/home/tibo/Documents/Prog/EPFL/own/', type=str)
+    parser.add_argument('--trl', default=True, type=bool)
 
     return parser.parse_known_args(args)[0]
 
@@ -51,8 +52,10 @@ def goooo(task):
     parameters = objdict(vars(get_args(sys.argv[1:])))
 
     # Get the trainer object
-    trainer = PPOTrainer(parameters, sacred=task)
-
+    if parameters.trl :
+        trainer = TrlTrainer(parameters, sacred=task)
+    else :
+        trainer = PPOTrainer(parameters, sacred=task)
     # Start a train
     trainer.run()
 

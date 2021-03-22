@@ -11,7 +11,7 @@ class Target():
         self.identity = identity
 
         # State is in [-1, 0, 1] for [wait pick up, in a car, done]
-        self.state = -1
+        self.state = -2
         self.available = 0
 
     def __repr__(self):
@@ -75,10 +75,11 @@ class Driver():
         if target.weight + self.capacity() > self.max_capacity :
             return False
         else :
-            if not target.start_in_time(current_time + distance(target.pickup, self.position)):
-                return False
-            else :
+            if target.start_in_time(current_time + distance(target.pickup, self.position)):
                 return True
+            else :
+                return False
+
 
     def can_unload(self, target, current_time):
         indice = target.identity
@@ -93,25 +94,31 @@ class Driver():
 
     def set_target(self, target, current_time):
         if target is None:
+            self.target = None
             self.destination = None
             self.order = 'waiting'
 
         else :
+            if self.target is not None:
+                print('t id:', target.identity, self.target.identity)
+                raise ValueError("Setting up a new target without having delivered the privious one ! ")
             # Set dropping off target
             if target.state == 0 :
                 if self.can_unload(target, current_time) :
                     self.destination = target.dropoff
                     self.target = target
                     self.order = 'dropping'
+                    target.state = 1
                     return True
                 else :
                     return False
 
             # Set picking up target
-            elif target.state == -1 :
+            elif target.state == -2 :
                 if self.can_load(target, current_time):
                     self.target = target
                     self.order = 'picking'
+                    target.state = -1
                     self.destination = target.pickup
                     return True
                 else :
@@ -123,6 +130,7 @@ class Driver():
     def move(self, new_position):
         self.history_move.append(new_position)
         self.distance = distance(new_position, self.position)
+        # print('Driver ', self.identity, 'Moves from : ', self.distance)
         self.position = new_position
 
     def capacity(self):
@@ -137,9 +145,11 @@ class Driver():
             return False
         else :
             if not target.start_in_time(current_time):
+                print(current_time, target.start_fork, target.end_fork)
                 print('Time windows problem')
                 return False
             else :
+                target.state = 0
                 self.loaded.append(target)
                 return True
 
@@ -148,9 +158,12 @@ class Driver():
         for i,t in enumerate(self.loaded):
             if t.identity == indice:
                 if t.end_in_time(current_time):
+                    target.state = 2
                     del self.loaded[i]
                     return True
                 else :
+                    print(current_time, target.start_fork, target.end_fork)
+                    print('Time windows problem')
                     return False
         return False
 
