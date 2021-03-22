@@ -43,7 +43,7 @@ def get_args(args):
     parser.add_argument('--env', default='DarEnv', type=str)
     parser.add_argument('--dataset', default='', type=str)
     parser.add_argument('--rootdir', default='/home/tibo/Documents/Prog/EPFL/own/', type=str)
-    parser.add_argument('--trl', default=True, type=bool)
+    parser.add_argument('--trl', default=False, type=bool)
 
     return parser.parse_known_args(args)[0]
 

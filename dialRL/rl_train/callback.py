@@ -226,23 +226,26 @@ class MonitorCallback(EvalCallback):
                 episode_reward = [0.0]
                 episode_lengths.append(0)
                 while not done:
-                    
+
                     # Run of simulation
                     action, state = self.model.predict(obs, state=state, deterministic=False)
                     new_obs, reward, done, _info = self.env.step(action)
                     obs = new_obs
 
                     # Save observation only if time step evolved
-                    if self.env.time_step > last_time :
-                        last_time = self.env.time_step
-                        if self.sequence:
-                            if self.env.__class__.__name__ == 'DummyVecEnv':
+                    if self.sequence:
+                        if self.env.__class__.__name__ == 'DummyVecEnv':
+                            if self.env.env_method('time_step') > last_time :
+                                last_time = self.env.time_step
                                 observations.append(self.env.env_method('get_image_representation'))
-                            else :
-                                observations.append(self.env.get_image_representation())
                         else :
-                            observations.append(obs.copy())
-                        episode_reward.append(reward)
+                            if self.env.time_step > last_time :
+                                last_time = self.env.time_step
+                                observations.append(self.env.get_image_representation())
+                    else :
+                        observations.append(obs.copy())
+                    episode_reward.append(reward)
+                    
                     episode_lengths[-1] += 1
                     if self.render:
                         self.env.render()
