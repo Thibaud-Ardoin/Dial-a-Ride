@@ -48,6 +48,9 @@ class MonitorCallback(EvalCallback):
             'reward': [],
             'std_reward': [],
             'duration': [],
+            'GAP': [],
+            'Gap*': [],
+            'fit_solution': []
             # 'policy_loss': [],
             # 'value_loss': [],
             # 'policy_entropy': []
@@ -212,6 +215,7 @@ class MonitorCallback(EvalCallback):
         # super(MonitorCallback, self)._on_step()
         if self.num_timesteps % self.check_freq == 0 :
             episode_rewards, episode_lengths = [], []
+            gap, fit_solution = [], []
             for i in range(self.n_eval_episodes):
                 obs = self.env.reset()
                 done, state = False, None
@@ -235,7 +239,7 @@ class MonitorCallback(EvalCallback):
                     # Save observation only if time step evolved
                     if self.sequence:
                         if self.env.__class__.__name__ == 'DummyVecEnv':
-                            if self.env.env_method('time_step') > last_time :
+                            if self.env.get_attr('time_step') > last_time :
                                 last_time = self.env.time_step
                                 observations.append(self.env.env_method('get_image_representation'))
                         else :
@@ -245,16 +249,22 @@ class MonitorCallback(EvalCallback):
                     else :
                         observations.append(obs.copy())
                     episode_reward.append(reward)
-                    
+
                     episode_lengths[-1] += 1
                     if self.render:
                         self.env.render()
+                gap.append(env.get_GAP())
+                fit_solution.append(env.is_fit_solution())
                 episode_rewards.append(np.sum(episode_reward))
+
                 # self.save_gif(observations, episode_reward)
-                if self.num_timesteps % self.check == 0 :
+                if self.num_timesteps % self.save_example_freq == 0 :
                     self.save_example(observations, episode_reward,number=i)
                 del observations
 
+            self.statistics['GAP'].append(np.mean(gap))
+            self.statistics['GAP*'].append(np.min(gap))
+            self.statistics['fit_solution'].append(np.mean(fit_solution))
 
             self.statistics['reward'].append(np.mean(episode_rewards))
             self.statistics['std_reward'].append(np.std(episode_rewards))

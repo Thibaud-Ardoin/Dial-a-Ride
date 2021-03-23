@@ -79,6 +79,11 @@ class DarSeqEnv(DarEnv):
                      self.depot_position[1]]
         return game_info
 
+    def get_GAP(self):
+        return GAP_function(self.total_distance, self.best_cost)
+
+    def is_fit_solution(self):
+        return self.targets_to_go()[4] == self.target_population
 
     def representation(self):
         # Agregate  world infrmations
