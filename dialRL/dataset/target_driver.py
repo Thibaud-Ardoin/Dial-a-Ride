@@ -61,7 +61,7 @@ class Driver():
         self.destination = None
         self.target = None
         self.order = 'waiting'
-        self.history_move = []
+        self.history_move = [position]
         self.loaded = [] #Target list
 
     def __repr__(self):

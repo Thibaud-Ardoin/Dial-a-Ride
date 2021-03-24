@@ -79,10 +79,10 @@ def indice_map2image(indice_map, image_size):
 def distance(pos1, pos2):
     return np.linalg.norm(np.array(pos1) - np.array(pos2))
 
-def float_equality(f1, f2):
-    return abs(f1 - f2) < 0.01
+def float_equality(f1, f2, eps=0.001):
+    return abs(f1 - f2) < eps
 
-colors_list = [
+drivers_colors_list = [
     '#faff18',
     '#ff18dd',
     '#a818ff',
@@ -156,8 +156,15 @@ def instance2Image_rep(targets, drivers, size, time_step):
         else :
             text_lines.append(str(driver.identity) + ': (' + str(driver.target.identity) + ')')
 
+        for i_pos in range(1, len(driver.history_move)) :
+            pos1 = driver.history_move[i_pos - 1]
+            pos2 = driver.history_move[i_pos]
+            d.append(draw.Line(pos1[0], pos1[1],
+                               pos2[0], pos2[1],
+                               stroke=drivers_colors_list[driver.identity - 1], stroke_width=0.05, fill='none'))
+
         d.append(draw.Circle(driver.position[0], driver.position[1], 0.3,
-                fill=colors_list[driver.identity - 1], stroke_width=0.2, stroke=colors.black))
+                fill=drivers_colors_list[driver.identity - 1], stroke_width=0.2, stroke=colors.black))
         for t in driver.loaded :
             text_lines[-1] = text_lines[-1] + str(t.identity) +  '- '
 

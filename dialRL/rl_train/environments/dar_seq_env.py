@@ -248,7 +248,7 @@ class DarSeqEnv(DarEnv):
             for driver in self.drivers :
                 if driver.destination is not None :
                     d = distance(driver.position, driver.destination)
-                    if float_equality(self.last_time_gap, d):
+                    if float_equality(self.last_time_gap, d, eps=0.001):
                         # Driver arraving to destination
                         driver.move(driver.destination)
                         if driver.order == 'picking':
@@ -269,7 +269,7 @@ class DarSeqEnv(DarEnv):
                         # lx + (1-l)x with l=d'/d
                         lam = (self.last_time_gap / d)
                         new_pos = (1 - lam) * np.array(driver.position) + (lam) * np.array(driver.destination)
-                        if not float_equality(distance(new_pos, driver.position), self.last_time_gap):
+                        if not float_equality(distance(new_pos, driver.position), self.last_time_gap, eps=0.01):
                             raise Error('Distance float problem ? Here the distance to new position is different to time passing !')
                         driver.move(new_pos)
 
@@ -287,12 +287,12 @@ class DarSeqEnv(DarEnv):
         if not self.next_players and self.distance >= 0:
             while len(self.next_players) == 0 :
                 # If no drivers turn, activate time steps
-                if False :
+                if True :
                     image = env.get_image_representation()
                     imsave('./data/rl_experiments/test/' + str(env.current_step) + 'a.png', image)
                 self.update_time_step()
                 self.update_drivers_positions()
-                if False :
+                if True :
                     image = env.get_image_representation()
                     imsave('./data/rl_experiments/test/' + str(env.current_step) + 'b.png', image)
                 for driver in self.drivers :

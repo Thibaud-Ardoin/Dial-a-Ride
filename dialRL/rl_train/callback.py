@@ -49,7 +49,7 @@ class MonitorCallback(EvalCallback):
             'std_reward': [],
             'duration': [],
             'GAP': [],
-            'Gap*': [],
+            'GAP*': [],
             'fit_solution': []
             # 'policy_loss': [],
             # 'value_loss': [],
