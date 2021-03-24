@@ -270,7 +270,7 @@ class DarSeqEnv(DarEnv):
                         lam = (self.last_time_gap / d)
                         new_pos = (1 - lam) * np.array(driver.position) + (lam) * np.array(driver.destination)
                         if not float_equality(distance(new_pos, driver.position), self.last_time_gap, eps=0.01):
-                            raise Error('Distance float problem ? Here the distance to new position is different to time passing !')
+                            raise 'Distance float problem ? Here the distance to new position is different to time passing !'
                         driver.move(new_pos)
 
                     else :
@@ -358,6 +358,7 @@ class DarSeqEnv(DarEnv):
         print(' Cumulative distance :', self.total_distance)
         print('Additional  information : ', self.short_log)
         print('GAP to best known solution: ', GAP_function(self.total_distance, self.best_cost))
+        print('Is this a fit solution ? -> ', self.is_fit_solution())
         print('---------------------\n')
 
 

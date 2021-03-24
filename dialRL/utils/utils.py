@@ -168,7 +168,7 @@ def instance2Image_rep(targets, drivers, size, time_step):
         for t in driver.loaded :
             text_lines[-1] = text_lines[-1] + str(t.identity) +  '- '
 
-    d.append(draw.Text(text_lines, 1, size//2, size//2, fill='black', text_anchor='start'))
+    d.append(draw.Text(text_lines, 1, size//2, size//2, fill='white', text_anchor='start'))
     #d.setPixelScale(2)  # Set number of pixels per geometry unit
     d.setRenderSize(size*40, size*40)
     fo = tempfile.NamedTemporaryFile()

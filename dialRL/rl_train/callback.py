@@ -156,7 +156,7 @@ class MonitorCallback(EvalCallback):
 
         # Save the imges as video
         video_name = dir + 'r=' + str(np.sum(rewards)) + '.mp4'
-        clips = [ImageClip(m).set_duration(2)
+        clips = [ImageClip(m).set_duration(0.2)
               for m in noms]
 
         concat_clip = concatenate_videoclips(clips, method="compose")
