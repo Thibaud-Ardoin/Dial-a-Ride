@@ -80,10 +80,14 @@ class DarSeqEnv(DarEnv):
         return game_info
 
     def get_GAP(self):
-        return GAP_function(self.total_distance, self.best_cost)
+        g = GAP_function(self.total_distance, self.best_cost)
+        if g is None :
+            return 200
+        else :
+            return g
 
     def is_fit_solution(self):
-        return self.targets_to_go()[4] == self.target_population
+        return int(self.targets_to_go()[4] == self.target_population)
 
     def representation(self):
         # Agregate  world infrmations

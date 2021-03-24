@@ -239,8 +239,8 @@ class MonitorCallback(EvalCallback):
                     # Save observation only if time step evolved
                     if self.sequence:
                         if self.env.__class__.__name__ == 'DummyVecEnv':
-                            if self.env.get_attr('time_step') > last_time :
-                                last_time = self.env.time_step
+                            if self.env.get_attr('time_step')[0] > last_time :
+                                last_time = self.env.get_attr('time_step')[0]
                                 observations.append(self.env.env_method('get_image_representation'))
                         else :
                             if self.env.time_step > last_time :
@@ -253,8 +253,8 @@ class MonitorCallback(EvalCallback):
                     episode_lengths[-1] += 1
                     if self.render:
                         self.env.render()
-                gap.append(env.get_GAP())
-                fit_solution.append(env.is_fit_solution())
+                gap.append(self.env.env_method('get_GAP'))
+                fit_solution.append(self.env.env_method('is_fit_solution'))
                 episode_rewards.append(np.sum(episode_reward))
 
                 # self.save_gif(observations, episode_reward)
