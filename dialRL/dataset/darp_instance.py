@@ -42,7 +42,7 @@ class DarPInstance():
         else :
             x = np.random.uniform(self.extremas[0], self.extremas[2])
             y = np.random.uniform(self.extremas[1], self.extremas[3])
-            pt = np.array((x, y), dtype=np.float16)
+            pt = np.array((x, y))
         return pt
 
 

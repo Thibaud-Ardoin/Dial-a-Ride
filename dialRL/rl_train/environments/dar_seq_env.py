@@ -39,7 +39,7 @@ class DarSeqEnv(DarEnv):
             self.extremas = [-self.size, -self.size, self.size, self.size]
             x = np.random.uniform(-self.size, self.size)
             y = np.random.uniform(-self.size, self.size)
-            self.depot_position = np.array((x, y), dtype=np.float16)
+            self.depot_position = np.array((x, y)) #, dtype=np.float16)
 
         #self.driver_population*2 + self.target_population
 
@@ -267,9 +267,29 @@ class DarSeqEnv(DarEnv):
 
                     elif self.last_time_gap < d:
                         # lx + (1-l)x with l=d'/d
-                        lam = (self.last_time_gap / d)
-                        new_pos = (1 - lam) * np.array(driver.position) + (lam) * np.array(driver.destination)
-                        if not float_equality(distance(new_pos, driver.position), self.last_time_gap, eps=0.01):
+                        d = distance(driver.position, driver.destination)
+                        lam = self.last_time_gap / d
+                        new_pos = (1. - lam) * np.array(driver.position) + (lam * np.array(driver.destination))
+                        # print('new_pos1: ', new_pos)
+                        # lam = np.array(self.last_time_gap, dtype=np.float32) / np.array(d, dtype=np.float32)
+                        # new_pos = (1. - lam) * np.array(driver.position, dtype=np.float32) + (lam) * np.array(driver.destination, dtype=np.float32)
+                        # print('new_pos32: ', new_pos)
+                        # lam = np.array(self.last_time_gap, dtype=np.float16) / np.array(d, dtype=np.float16)
+                        # new_pos = (1. - lam) * np.array(driver.position, dtype=np.float16) + (lam) * np.array(driver.destination, dtype=np.float16)
+                        # print('new_pos16: ', new_pos)
+                        # # print('Comparaison of types: ', np.array(driver.position, dtype=np.float32), driver.position)
+                        # print('lam: ', lam)
+                        # print('distance to target', d)
+                        # print('distance to new pose', distance(new_pos, driver.position))
+                        # print('distance to new pose with array', distance(np.array(new_pos), np.array(driver.position)))
+                        # print('Multiplied distance :', distance(m * new_pos, m * np.array(driver.position))/m)
+                        # print('Time gap:', self.last_time_gap)
+                        # print('equ 0.01', float_equality(distance(new_pos, np.array(driver.position)), self.last_time_gap, eps=0.01))
+                        # print('equ 0.001', float_equality(distance(new_pos, np.array(driver.position)), self.last_time_gap, eps=0.001))
+                        # print('equ 0.0001', float_equality(distance(new_pos, np.array(driver.position)), self.last_time_gap, eps=0.0001))
+                        # print('equ 0.00001', float_equality(distance(new_pos, np.array(driver.position)), self.last_time_gap, eps=0.00001))
+                        # exit()
+                        if not float_equality(distance(new_pos, driver.position), self.last_time_gap, eps=0.001):
                             raise 'Distance float problem ? Here the distance to new position is different to time passing !'
                         driver.move(new_pos)
 
