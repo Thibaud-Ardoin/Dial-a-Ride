@@ -116,11 +116,11 @@ class TrlTrainer():
         self.gpt2_model_ref = GPT2Model(configuration)
         self.gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
-        self.word_embedding = torch.nn.Embedding(num_embeddings=10, embedding_dim=64)
-        self.position_embedding = torch.nn.Embedding(num_embeddings=10, embedding_dim=64)
+        self.word_embedding = torch.nn.Embedding(num_embeddings=10, embedding_dim=16)
+        self.position_embedding = torch.nn.Embedding(num_embeddings=10, embedding_dim=16)
 
-        # self.gpt2_model = GPT2HeadWithValueModel.from_pretrained('gpt2')
-        # self.gpt2_model_ref = GPT2HeadWithValueModel.from_pretrained('gpt2')
+        self.gpt2_model = GPT2HeadWithValueModel.from_pretrained('gpt2')
+        self.gpt2_model_ref = GPT2HeadWithValueModel.from_pretrained('gpt2')
         # self.gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
         # initialize trainer
@@ -149,36 +149,27 @@ class TrlTrainer():
 
     def run(self):
         print('\t ** Learning START ! **')
-        # encode a query
-        # query_txt = "I think I really like "
 
-        # while query_txt != 'stop':
+        # For i in range traning step
         for i in range(2):
-            # print(query_txt)
-            # query_txt = input("Input sentence: ")
-            # query_tensor = self.gpt2_tokenizer.encode(query_txt, return_tensors="pt")
-            # print(query_tensor)
 
-            query_tensor = self.word_embedding(torch.tensor([1,2,3,4,5,6]))
-            print(query_tensor)
-            # get model response
-            response_tensor  = respond_to_batch(self.gpt2_model, query_tensor)
-            print(response_tensor)
+            obs = self.env.reset()
+            done = False
+            while not done :
+                #Traduction to query
+                query_tensors = torch.tensor(obs)
+                response_tensor  = respond_to_batch(self.gpt2_model, query_tensors)
 
-            response_txt = self.gpt2_tokenizer.decode(response_tensor[0,:])
-            print(self.position_embedding(response_txt))
+                # traduction to action
+                action = response_tensor
+                obs, rwd, info = self.env.step(action)
 
-            print('REsp is: ', response_txt)
+                # Traduction to reward
+                reward = torch.tensor([float(rwd)])
 
-            # define a reward for response
-            # (this could be any reward such as human feedback or output from another model)
-
-            rwd = input("Reward : ")
-            reward = torch.tensor([float(rwd)])
-
-            # train model with ppo
-            train_stats = self.ppo_trainer.step(query_tensor, response_tensor, reward)
-            print(train_stats)
+                # train model with ppo / batch segmentation ???
+                train_stats = self.ppo_trainer.step(query_tensors, response_tensor, reward)
+                print(train_stats)
 
             print('\t ** Learning DONE ! **')
 

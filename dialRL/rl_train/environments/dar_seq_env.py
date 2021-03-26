@@ -287,13 +287,13 @@ class DarSeqEnv(DarEnv):
         if not self.next_players and self.distance >= 0:
             while len(self.next_players) == 0 :
                 # If no drivers turn, activate time steps
-                if True :
-                    image = env.get_image_representation()
+                if False :
+                    image = self.get_image_representation()
                     imsave('./data/rl_experiments/test/' + str(env.current_step) + 'a.png', image)
                 self.update_time_step()
                 self.update_drivers_positions()
-                if True :
-                    image = env.get_image_representation()
+                if False :
+                    image = self.get_image_representation()
                     imsave('./data/rl_experiments/test/' + str(env.current_step) + 'b.png', image)
                 for driver in self.drivers :
                     if driver.destination is None :
