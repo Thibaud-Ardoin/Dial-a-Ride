@@ -255,7 +255,7 @@ class MonitorCallback(EvalCallback):
                         self.env.render()
                 gap.append(self.env.env_method('get_GAP'))
                 fit_solution.append(self.env.env_method('is_fit_solution'))
-                episode_rewards.append(np.sum(episode_reward))
+                episode_rewards.append(episode_reward)
 
                 # self.save_gif(observations, episode_reward)
                 if self.num_timesteps % self.save_example_freq == 0 :
@@ -267,8 +267,8 @@ class MonitorCallback(EvalCallback):
             self.statistics['fit_solution'].append(np.mean(fit_solution))
 
             self.statistics['reward'].append(np.mean(episode_rewards))
-            self.statistics['std_reward'].append(np.std(episode_rewards))
-            self.statistics['step_reward'].append(np.mean([episode_rewards[i]/episode_lengths[i] for i in range(len(episode_lengths))]))
+            self.statistics['std_reward'].append(npp.mean(np.std(episode_rewards, axis=1))
+            self.statistics['step_reward'].append(np.mean([np.sum(episode_rewards, axis=1)[i]/episode_lengths[i] for i in range(len(episode_lengths))]))
             self.statistics['duration'].append(np.mean(episode_lengths))
             # self.statistics['policy_loss'].append(self.model.pg_loss.numpy())
             # self.statistics['value_loss'].append(self.model.vf_loss.numpy())
