@@ -149,7 +149,7 @@ def instance2Image_rep(targets, drivers, size, time_step):
         d.append(draw.Line(target.pickup[0],target.pickup[1],
                            target.dropoff[0],target.dropoff[1],
                            stroke=line_col, stroke_width=0.01, fill='none'))
-    text_lines = []
+    text_lines = ['time step:' + str(time_step)]
     for driver in drivers :
         if driver.target is None :
             text_lines.append(str(driver.identity) + ': (Zzz)')
