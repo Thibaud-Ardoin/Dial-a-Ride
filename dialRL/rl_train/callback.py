@@ -50,7 +50,8 @@ class MonitorCallback(EvalCallback):
             'duration': [],
             'GAP': [],
             'GAP*': [],
-            'fit_solution': []
+            'fit_solution': [],
+            'delivered': []
             # 'policy_loss': [],
             # 'value_loss': [],
             # 'policy_entropy': []
@@ -215,7 +216,7 @@ class MonitorCallback(EvalCallback):
         # super(MonitorCallback, self)._on_step()
         if self.num_timesteps % self.check_freq == 0 :
             episode_rewards, episode_lengths = [], []
-            gap, fit_solution = [], []
+            gap, fit_solution, delivered = [], [], []
             for i in range(self.n_eval_episodes):
                 obs = self.env.reset()
                 done, state = False, None
@@ -254,6 +255,7 @@ class MonitorCallback(EvalCallback):
                     if self.render:
                         self.env.render()
                 gap.append(self.env.env_method('get_GAP'))
+                delivered.append(self.env.get_attr('targets_to_go',4))
                 fit_solution.append(self.env.env_method('is_fit_solution'))
                 episode_rewards.append(episode_reward)
 
@@ -265,9 +267,10 @@ class MonitorCallback(EvalCallback):
             self.statistics['GAP'].append(np.mean(gap))
             self.statistics['GAP*'].append(np.min(gap))
             self.statistics['fit_solution'].append(np.mean(fit_solution))
+            self.statistics['delivered'].append(np.mean(delivered))
 
             self.statistics['reward'].append(np.mean(episode_rewards))
-            self.statistics['std_reward'].append(npp.mean(np.std(episode_rewards, axis=1))
+            self.statistics['std_reward'].append(np.mean(np.std(episode_rewards, dtype=float, axis=1)))
             self.statistics['step_reward'].append(np.mean([np.sum(episode_rewards, axis=1)[i]/episode_lengths[i] for i in range(len(episode_lengths))]))
             self.statistics['duration'].append(np.mean(episode_lengths))
             # self.statistics['policy_loss'].append(self.model.pg_loss.numpy())

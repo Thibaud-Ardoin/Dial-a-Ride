@@ -82,7 +82,7 @@ class DarSeqEnv(DarEnv):
     def get_GAP(self):
         g = GAP_function(self.total_distance, self.best_cost)
         if g is None :
-            return 200
+            return 300.
         else :
             return g
 

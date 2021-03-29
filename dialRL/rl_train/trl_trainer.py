@@ -151,8 +151,9 @@ class TrlTrainer():
         print('\t ** Learning START ! **')
 
         # For i in range traning step
-        for i in range(2):
-
+        for i in range(self.epochs):
+            # Do we need it ?
+            memorry = []
             obs = self.env.reset()
             done = False
             while not done :
@@ -171,7 +172,7 @@ class TrlTrainer():
                 train_stats = self.ppo_trainer.step(query_tensors, response_tensor, reward)
                 print(train_stats)
 
-            print('\t ** Learning DONE ! **')
+        print('\t ** Learning DONE ! **')
 
 
     def test(self):
