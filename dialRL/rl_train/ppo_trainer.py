@@ -68,12 +68,14 @@ class PPOTrainer():
                           dataset=self.dataset,
                           verbose=self.verbose)
 
-        self.eval_env = DummyVecEnv([lambda : DarSeqEnv(size=self.image_size,
-                          target_population=self.nb_target,
-                          driver_population=self.nb_drivers,
-                          max_step=self.max_step,
-                          test_env=True,
-                          dataset=self.dataset) for i in range(1)])
+        # self.eval_env = DummyVecEnv([lambda : DarSeqEnv(size=self.image_size,
+        self.eval_env = DarSeqEnv(size=self.image_size,
+                                  target_population=self.nb_target,
+                                  driver_population=self.nb_drivers,
+                                  max_step=self.max_step,
+                                  test_env=True,
+                                  dataset=self.dataset)
+                          # dataset=self.dataset) for i in range(1)])
 
         if self.model=='MlpPolicy':
             self.model = MlpPolicy
