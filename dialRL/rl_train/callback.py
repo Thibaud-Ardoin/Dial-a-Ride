@@ -9,6 +9,7 @@ matplotlib.use('Agg')
 
 import tensorflow as tf
 from stable_baselines.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines.common.vec_env import DummyVecEnv
 
 class MonitorCallback(EvalCallback):
     """
@@ -217,8 +218,9 @@ class MonitorCallback(EvalCallback):
         if self.num_timesteps % self.check_freq == 0 :
             episode_rewards, episode_lengths = [], []
             gap, fit_solution, delivered = [], [], []
+            wrapped_env = DummyVecEnv([lambda: self.env])
             for i in range(self.n_eval_episodes):
-                obs = self.env.reset()
+                obs = wrapped_env.reset()
                 done, state = False, None
                 last_time = 0
                 if self.sequence :
@@ -234,7 +236,7 @@ class MonitorCallback(EvalCallback):
 
                     # Run of simulation
                     action, state = self.model.predict(obs, state=state, deterministic=False)
-                    new_obs, reward, done, _info = self.env.step(action)
+                    new_obs, reward, done, _info = wrapped_env.step(action)
                     obs = new_obs
 
                     # Save observation only if time step evolved
@@ -254,7 +256,7 @@ class MonitorCallback(EvalCallback):
                     episode_lengths[-1] += 1
                     if self.render:
                         self.env.render()
-                        
+
                 gap.append(self.env.get_GAP())
                 delivered.append(self.env.targets_to_go()[4])
                 fit_solution.append(self.env.is_fit_solution())
