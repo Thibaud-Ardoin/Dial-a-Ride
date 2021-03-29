@@ -236,7 +236,7 @@ class MonitorCallback(EvalCallback):
 
                     # Run of simulation
                     action, state = self.model.predict(obs, state=state, deterministic=False)
-                    new_obs, reward, done, _info = wrapped_env.step(action)
+                    new_obs, reward, done, info = wrapped_env.step(action)
                     obs = new_obs
 
                     # Save observation only if time step evolved

@@ -353,8 +353,13 @@ class DarSeqEnv(DarEnv):
 
         obs = self._next_observation()
 
+        info = {
+            'delivered': self.targets_to_go()[4],
+            'GAP': self.get_GAP(),
+            'fit_solution': self.is_fit_solution()
+        }
         # Last element is info (dict)
-        return obs, reward, done, {}
+        return obs, reward, done, info
 
 
     def render(self, mode='classic'):
