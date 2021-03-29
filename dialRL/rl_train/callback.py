@@ -257,9 +257,9 @@ class MonitorCallback(EvalCallback):
                     if self.render:
                         self.env.render()
 
-                gap.append(self.env.get_GAP())
-                delivered.append(self.env.targets_to_go()[4])
-                fit_solution.append(self.env.is_fit_solution())
+                gap.append(info['GAP'])
+                delivered.append(info['delivered'])
+                fit_solution.append(info['fit_solution'])
                 episode_rewards.append(np.sum(episode_reward))
 
                 # self.save_gif(observations, episode_reward)
