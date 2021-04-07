@@ -72,6 +72,18 @@ def indice2image_coordonates(indice, image_size):
     return indice // image_size, indice%image_size
 
 
+def coord2int(coord):
+    number_precision = 3
+    new_coord = int(round(coord, number_precision)*(10**number_precision))
+    return new_coord
+
+
+def obs2int(obs):
+    mi = -int(min(obs))
+    new_obs = [int(m) + mi for m in obs]
+    return new_obs
+
+
 def indice_map2image(indice_map, image_size):
     # x = Id // image_size ; y = Id%image_size
     return np.reshape(indice_map, (image_size, image_size))

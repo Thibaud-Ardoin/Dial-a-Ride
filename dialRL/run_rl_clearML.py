@@ -44,12 +44,19 @@ def get_args(args):
     parser.add_argument('--dataset', default='', type=str)
     parser.add_argument('--rootdir', default='/home/tibo/Documents/Prog/EPFL/own/', type=str)
     parser.add_argument('--trl', default=False, type=bool)
+    parser.add_argument('--clearml', default=False, type=bool)
 
     return parser.parse_known_args(args)[0]
 
-def goooo(task):
+def goooo():
     # Get params
     parameters = objdict(vars(get_args(sys.argv[1:])))
+
+    task = None
+    if parameters.clearml :
+        n = np.random.randint(10000)
+        task = Task.init(
+            project_name="DaRP", task_name="experiment" + str(n))
 
     # Get the trainer object
     if parameters.trl :
@@ -64,7 +71,4 @@ def goooo(task):
 
 
 if __name__ == '__main__':
-    numbah = np.random.randint(10000)
-    task = Task.init(
-        project_name="DaRP", task_name="experiment" + str(numbah))
-    goooo(task)
+    goooo()

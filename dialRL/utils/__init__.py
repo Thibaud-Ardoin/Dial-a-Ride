@@ -11,9 +11,12 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 visualize,
                                 instance2Image_rep,
                                 GAP_function,
-                                float_equality)
+                                float_equality,
+                                obs2int,
+                                coord2int)
 
-__all__ = ['float_equality',
+__all__ = ['coord2int',
+           'float_equality',
            'GAP_function',
            'utils',
            'instance2Image_rep',
@@ -26,4 +29,5 @@ __all__ = ['float_equality',
            'distance',
            'get_device',
            'objdict',
-           'visualize']
+           'visualize',
+           'obs2int']

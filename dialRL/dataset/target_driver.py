@@ -1,4 +1,4 @@
-from dialRL.utils import distance, float_equality
+from dialRL.utils import distance, float_equality, coord2int
 
 
 class Target():
@@ -38,10 +38,10 @@ class Target():
 
     def get_info_vector(self):
         vector = [self.identity]
-        vector.append(self.pickup[0])
-        vector.append(self.pickup[1])
-        vector.append(self.dropoff[0])
-        vector.append(self.dropoff[1])
+        vector.append(coord2int(self.pickup[0]))
+        vector.append(coord2int(self.pickup[1]))
+        vector.append(coord2int(self.dropoff[0]))
+        vector.append(coord2int(self.dropoff[1]))
         vector.append(self.start_fork[0])
         vector.append(self.start_fork[1])
         vector.append(self.end_fork[0])
@@ -174,7 +174,7 @@ class Driver():
         return False
 
     def get_info_vector(self):
-        vector = [self.identity, self.position[0], self.position[1]]
+        vector = [self.identity, coord2int(self.position[0]), coord2int(self.position[1])]
         loaded_target_id = [self.loaded[i].identity for i in range(len(self.loaded))]
         countainer = loaded_target_id + [0.] * (self.max_capacity - len(self.loaded))
         return vector + countainer

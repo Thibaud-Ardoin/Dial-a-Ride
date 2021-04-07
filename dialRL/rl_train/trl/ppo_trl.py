@@ -117,7 +117,7 @@ class PPOTrainer:
             scores (torch.tensor): tensor containing the scores, shape [batch_size]
 
         returns:
-            train_stats (dict): a summary of the training statistics
+            train_stats (dict): a summary of the training statisticsebi
         """
 
         bs = self.ppo_params['batch_size']
@@ -177,8 +177,16 @@ class PPOTrainer:
 
         for i in range(int(self.ppo_params['batch_size']/fbs)):
             m_input = model_input[i*fbs:(i+1)*fbs]
-            logits, _, v = self.model(m_input)
-            ref_logits, _, _ = self.ref_model(m_input)
+            logits, _ , v  = self.model(m_input)     # logits, _ , v = self.model(m_input)
+            # v = out
+            # v = np.array(out.values()[0])
+            ref_logits, _, _ = self.ref_model(m_input) # ref_logits, _, _= self.ref_model(m_input)
+            # print(gen_len)
+            # print(v)
+            # print(np.shape(v))
+            # print(logits)
+            # print(type(v))
+            # print(v[:, -gen_len-1:-1].detach())
 
             values.append(v[:, -gen_len-1:-1].detach())
             logprobs.append(logprobs_from_logits(logits[:,:-1,:], m_input[:,1:])[:, -gen_len:].detach())

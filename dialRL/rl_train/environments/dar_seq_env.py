@@ -11,7 +11,7 @@ from matplotlib.image import imsave
 
 from dialRL.dataset import tabu_parse_info, tabu_parse_best
 from dialRL.dataset import DarPInstance
-from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep, GAP_function, float_equality
+from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep, GAP_function, float_equality, coord2int
 from dialRL.rl_train.environments import DarEnv
 
 class DarSeqEnv(DarEnv):
@@ -73,10 +73,10 @@ class DarSeqEnv(DarEnv):
 
 
     def get_info_vector(self):
-        game_info = [self.time_step,
+        game_info = [coord2int(self.time_step),
                      self.current_player,
-                     self.depot_position[0],
-                     self.depot_position[1]]
+                     coord2int(self.depot_position[0]),
+                     coord2int(self.depot_position[1])]
         return game_info
 
     def get_GAP(self):
@@ -124,7 +124,7 @@ class DarSeqEnv(DarEnv):
                                     extremas=self.extremas,
                                     time_end=self.time_end,
                                     verbose=False)
-        if self.test_env :
+        if self.test_env and self.dataset:
             self.instance.dataset_generation(self.dataset)
         else :
             self.instance.random_generation()

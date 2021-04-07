@@ -16,14 +16,19 @@ import tensorflow as tf
 from clearml import Task
 
 import torch
-from transformers import GPT2Tokenizer, GPT2Config, GPT2Model
-from trl.gpt2 import GPT2HeadWithValueModel, respond_to_batch
-from trl.ppo import PPOTrainer
-
+from transformers import (GPT2Tokenizer,
+                          GPT2Config,
+                          GPT2Model,
+                          PretrainedConfig,
+                          BertConfig,
+                          BertModel,
+                          pipeline)
 
 from dialRL.models import *
+from dialRL.rl_train.trl.ppo_trl import PPOTrainer
+from dialRL.rl_train.trl.GPT2_trl import GPT2HeadWithValueModel, respond_to_batch
 from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
-from dialRL.utils import get_device
+from dialRL.utils import get_device, obs2int, coord2int
 from dialRL.rl_train.callback import MonitorCallback
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
@@ -108,16 +113,27 @@ class TrlTrainer():
                                   sacred=self.sacred)
 
 
-
         # get models
 
-        configuration = GPT2Config()
-        self.gpt2_model = GPT2Model(configuration)
-        self.gpt2_model_ref = GPT2Model(configuration)
-        self.gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        # configuration = GPT2Config()
+        # print(configuration)
+        # self.gpt2_model = GPT2Model(configuration)
+        # self.gpt2_model_ref = GPT2Model(configuration)
 
-        self.word_embedding = torch.nn.Embedding(num_embeddings=10, embedding_dim=16)
-        self.position_embedding = torch.nn.Embedding(num_embeddings=10, embedding_dim=16)
+        # feature_extrator = pipeline('feature-extraction')
+        # print(feature_extrator)
+        # out = feature_extrator('test', size=1)
+        # print(out)
+
+        # configuration = BertConfig()
+        # print(configuration)
+        # self.gpt2_model = BertModel(configuration)
+        # self.gpt2_model_ref = BertModel(configuration)
+
+        # self.gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
+        # self.word_embedding = torch.nn.Embedding(num_embeddings=10, embedding_dim=16)
+        # self.position_embedding = torch.nn.Embedding(num_embeddings=10, embedding_dim=16)
 
         self.gpt2_model = GPT2HeadWithValueModel.from_pretrained('gpt2')
         self.gpt2_model_ref = GPT2HeadWithValueModel.from_pretrained('gpt2')
@@ -157,13 +173,16 @@ class TrlTrainer():
             obs = self.env.reset()
             done = False
             while not done :
+                obs = obs2int(obs)
+                # print(obs)
                 #Traduction to query
-                query_tensors = torch.tensor(obs)
-                response_tensor  = respond_to_batch(self.gpt2_model, query_tensors)
+                query_tensors = torch.tensor([obs])
+                response_tensor  = respond_to_batch(self.gpt2_model, query_tensors, txt_len=1)
+                # print(response_tensor)
 
                 # traduction to action
-                action = response_tensor
-                obs, rwd, info = self.env.step(action)
+                action = response_tensor[0][0]
+                obs, rwd, done, info = self.env.step(action)
 
                 # Traduction to reward
                 reward = torch.tensor([float(rwd)])
