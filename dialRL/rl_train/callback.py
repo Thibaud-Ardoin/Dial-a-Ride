@@ -257,6 +257,7 @@ class MonitorCallback(EvalCallback):
                     if self.render:
                         self.env.render()
 
+                info = info[0]
                 gap.append(info['GAP'])
                 delivered.append(info['delivered'])
                 fit_solution.append(info['fit_solution'])

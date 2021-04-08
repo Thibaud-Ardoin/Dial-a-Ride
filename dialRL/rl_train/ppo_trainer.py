@@ -16,6 +16,7 @@ import tensorflow as tf
 from clearml import Task
 
 from dialRL.models import *
+from dialRL.rl_train.reward_functions import *
 from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device
 from dialRL.rl_train.callback import MonitorCallback
@@ -57,12 +58,16 @@ class PPOTrainer():
 
         self.device = get_device()
 
-        # RL elements
+        #### RL elements
+
+        reward_function = globals()[self.reward_function]()
+        print(reward_function)
 
         ## TODO: Add globals()[self.env]
         self.env = DarSeqEnv(size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
+                          reward_function=reward_function,
                           max_step=self.max_step,
                           test_env=False,
                           dataset=self.dataset,
@@ -72,6 +77,7 @@ class PPOTrainer():
         self.eval_env = DarSeqEnv(size=self.image_size,
                                   target_population=self.nb_target,
                                   driver_population=self.nb_drivers,
+                                  reward_function=reward_function,
                                   max_step=self.max_step,
                                   test_env=True,
                                   dataset=self.dataset)

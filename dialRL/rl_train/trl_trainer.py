@@ -166,6 +166,8 @@ class TrlTrainer():
     def run(self):
         print('\t ** Learning START ! **')
 
+        training_steps = 0
+
         # For i in range traning step
         for i in range(self.epochs):
             # Do we need it ?
@@ -174,7 +176,7 @@ class TrlTrainer():
             done = False
             while not done :
                 obs = obs2int(obs)
-                # print(obs)
+
                 #Traduction to query
                 query_tensors = torch.tensor([obs])
                 response_tensor  = respond_to_batch(self.gpt2_model, query_tensors, txt_len=1)
@@ -189,6 +191,11 @@ class TrlTrainer():
 
                 # train model with ppo / batch segmentation ???
                 train_stats = self.ppo_trainer.step(query_tensors, response_tensor, reward)
+                for key in train_stats:
+                    self.sacred.get_logger().report_scalar(title='Train stats',
+                        series=key, value=train_stats[key], iteration=training_steps)
+
+                training_steps += 1
                 print(train_stats)
 
         print('\t ** Learning DONE ! **')

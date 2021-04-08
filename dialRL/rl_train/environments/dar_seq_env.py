@@ -11,15 +11,17 @@ from matplotlib.image import imsave
 
 from dialRL.dataset import tabu_parse_info, tabu_parse_best
 from dialRL.dataset import DarPInstance
+from dialRL.rl_train.reward_functions import *
 from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep, GAP_function, float_equality, coord2int
 from dialRL.rl_train.environments import DarEnv
 
 class DarSeqEnv(DarEnv):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, size, target_population, driver_population, dataset=None, test_env=False, time_end=1400, max_step=10, verbose=0):
+    def __init__(self, size, target_population, driver_population, reward_function, dataset=None, test_env=False, time_end=1400, max_step=10, verbose=0):
 
         self.dataset = dataset
+        self.reward_function = reward_function
         self.test_env = test_env
         self.max_step = max_step
         self.verbose = verbose
@@ -65,6 +67,7 @@ class DarSeqEnv(DarEnv):
         self.time_step = 0
         self.last_time_gap = 0
         self.current_episode = 0
+
 
         if self.verbose:
             print(' -- DarP Sequential Environment : -- ')
@@ -320,36 +323,37 @@ class DarSeqEnv(DarEnv):
                         # Charge all players that may need a new destination
                         self.next_players.append(driver.identity)
 
-        # Generate reward from distance
-        if self.distance < 0:
-            reward = -1 #-int(self.max_reward//2)
-            done = False
-        elif self.distance > 0:
-            reward = self.reward(self.distance)
-            done = False
-            self.total_distance += self.distance
-        elif self.distance == 0 :
-            reward = -1
-            done = False
 
         # Update current player (if last action was successfull)
         if self.distance >=0 :
             self.current_player = self.next_players.pop()
+            self.total_distance += self.distance
+
+
+        # # Generate reward from distance
+        # if self.distance < 0:
+        #     reward = -1 #-int(self.max_reward//2)
+        #     done = False
+        # elif self.distance > 0:
+        #     reward = self.reward(self.distance)
+        #     done = False
+        #     self.total_distance += self.distance
+        # elif self.distance == 0 :
+        #     reward = -1
+        #     done = False
+        done = False
+
+        if self.targets_to_go()[4] == self.target_population :
+            done = True
+        if self.current_step >= self.max_step or self.time_step >= self.time_end :
+            done = True
+
+        reward = self.reward_function.compute(self.distance, done, self)
 
         self.cumulative_reward += reward
 
-        if self.targets_to_go()[4] == self.target_population :
-            # High reward for finishing the game
-            reward += 100
-            done = True
-        if self.current_step >= self.max_step or self.time_step >= self.time_end :
-            reward -= 100
-            done = True
-
         if done:
             self.current_episode += 1
-            # print('End of episode, total reward :', self.cumulative_reward)
-
 
         obs = self._next_observation()
 
@@ -390,9 +394,11 @@ class DarSeqEnv(DarEnv):
 if __name__ == '__main__':
     data = './data/instances/cordeau2003/tabu1.txt'
     # data = None
+    rwd_fun = ProportionalEndReward()
     env = DarSeqEnv(size=4,
                     target_population=2,
                     driver_population=2,
+                    reward_function=rwd_fun,
                     time_end=1400,
                     max_step=5000,
                     dataset=data,
