@@ -90,7 +90,7 @@ class DarSeqEnv(DarEnv):
             return g
 
     def is_fit_solution(self):
-        return int(self.targets_to_go()[4] == self.target_population)
+        return int(self.targets_states()[4] == self.target_population)
 
     def representation(self):
         # Agregate  world infrmations
@@ -167,7 +167,7 @@ class DarSeqEnv(DarEnv):
             del self.targets[indice]
 
 
-    def targets_to_go(self):
+    def targets_states(self):
         count = [0, 0, 0, 0, 0]
         for target in self.targets:
             count[target.state + 2] += 1
@@ -273,25 +273,6 @@ class DarSeqEnv(DarEnv):
                         d = distance(driver.position, driver.destination)
                         lam = self.last_time_gap / d
                         new_pos = (1. - lam) * np.array(driver.position) + (lam * np.array(driver.destination))
-                        # print('new_pos1: ', new_pos)
-                        # lam = np.array(self.last_time_gap, dtype=np.float32) / np.array(d, dtype=np.float32)
-                        # new_pos = (1. - lam) * np.array(driver.position, dtype=np.float32) + (lam) * np.array(driver.destination, dtype=np.float32)
-                        # print('new_pos32: ', new_pos)
-                        # lam = np.array(self.last_time_gap, dtype=np.float16) / np.array(d, dtype=np.float16)
-                        # new_pos = (1. - lam) * np.array(driver.position, dtype=np.float16) + (lam) * np.array(driver.destination, dtype=np.float16)
-                        # print('new_pos16: ', new_pos)
-                        # # print('Comparaison of types: ', np.array(driver.position, dtype=np.float32), driver.position)
-                        # print('lam: ', lam)
-                        # print('distance to target', d)
-                        # print('distance to new pose', distance(new_pos, driver.position))
-                        # print('distance to new pose with array', distance(np.array(new_pos), np.array(driver.position)))
-                        # print('Multiplied distance :', distance(m * new_pos, m * np.array(driver.position))/m)
-                        # print('Time gap:', self.last_time_gap)
-                        # print('equ 0.01', float_equality(distance(new_pos, np.array(driver.position)), self.last_time_gap, eps=0.01))
-                        # print('equ 0.001', float_equality(distance(new_pos, np.array(driver.position)), self.last_time_gap, eps=0.001))
-                        # print('equ 0.0001', float_equality(distance(new_pos, np.array(driver.position)), self.last_time_gap, eps=0.0001))
-                        # print('equ 0.00001', float_equality(distance(new_pos, np.array(driver.position)), self.last_time_gap, eps=0.00001))
-                        # exit()
                         if not float_equality(distance(new_pos, driver.position), self.last_time_gap, eps=0.001):
                             raise 'Distance float problem ? Here the distance to new position is different to time passing !'
                         driver.move(new_pos)
@@ -343,7 +324,7 @@ class DarSeqEnv(DarEnv):
         #     done = False
         done = False
 
-        if self.targets_to_go()[4] == self.target_population :
+        if self.targets_states()[4] == self.target_population :
             done = True
         if self.current_step >= self.max_step or self.time_step >= self.time_end :
             done = True
@@ -358,7 +339,7 @@ class DarSeqEnv(DarEnv):
         obs = self._next_observation()
 
         info = {
-            'delivered': self.targets_to_go()[4],
+            'delivered': self.targets_states()[4],
             'GAP': self.get_GAP(),
             'fit_solution': self.is_fit_solution()
         }
@@ -382,7 +363,7 @@ class DarSeqEnv(DarEnv):
         print('Crurrent player: ', self.current_player)
         print('Next player: ', self.next_players)
         print('Last aimed to : ', self.last_aim)
-        print('Targets to go: ', self.targets_to_go())
+        print('Targets to go: ', self.targets_states())
         print('Cumulative reward : ', self.cumulative_reward)
         print(' Cumulative distance :', self.total_distance)
         print('Additional  information : ', self.short_log)
@@ -394,7 +375,7 @@ class DarSeqEnv(DarEnv):
 if __name__ == '__main__':
     data = './data/instances/cordeau2003/tabu1.txt'
     # data = None
-    rwd_fun = ProportionalEndReward()
+    rwd_fun = ConstantDistributionReward()
     env = DarSeqEnv(size=4,
                     target_population=2,
                     driver_population=2,

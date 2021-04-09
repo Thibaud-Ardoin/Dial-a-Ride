@@ -1,0 +1,94 @@
+import numpy as np
+
+from moviepy.editor import *
+from matplotlib.image import imsave
+
+from dialRL.rl_train.environments import DarSeqEnv
+from dialRL.rl_train.reward_functions import *
+
+class BaseStrategy():
+    def __init__(self,
+                 size=4,
+                 target_population=2,
+                 driver_population=2,
+                 reward_function='',
+                 time_end=1400,
+                 max_step=5000,
+                 dataset='./data/instances/cordeau2003/tabu1.txt',
+                 test_env=False):
+
+        self.data = dataset
+        self.rwd_fun =  globals()[reward_function]()
+        self.env = DarSeqEnv(size=size,
+                            target_population=target_population,
+                            driver_population=driver_population,
+                            reward_function=self.rwd_fun,
+                            time_end=time_end,
+                            max_step=max_step,
+                            dataset=self.data,
+                            test_env=test_env)
+        self.max_step = max_step
+
+    def norm_image(self, image, type=None, scale=10):
+        image = np.kron(image, np.ones((scale, scale)))
+        if type=='rgb':
+            ret = np.empty((image.shape[0], image.shape[0], 3), dtype=np.uint8)
+            ret[:, :, 0] = image.copy()
+            ret[:, :, 1] = image.copy()
+            ret[:, :, 2] = image.copy()
+            image = ret.copy()
+        return (255 * (image - np.min(image)) / (np.max(image) - np.min(image))).astype(np.uint8)
+
+
+    def save_video(self, dir, observations):
+        # Save the imges as video
+        video_name = dir + '/Strat_res.mp4'
+        clips = [ImageClip(m).set_duration(0.2)
+              for m in noms]
+
+        concat_clip = concatenate_videoclips(clips, method="compose")
+        concat_clip.write_videofile(video_name, fps=24, verbose=None, logger=None)
+        del concat_clip
+        del clips
+
+    def save_image(self, dir, t, image):
+        image = self.norm_image(image, scale=1)
+        save_name = dir + '/' + \
+               str(t) + \
+               'b.png'
+        imsave(save_name, image)
+        return save_name
+
+
+    def run(self):
+        # Image saving dir
+        dir = './data/rl_experiments/strategies/' + \
+               self.__class__.__name__
+        os.makedirs(dir, exist_ok=True)
+        cumulative_reward = 0
+        observation = self.env.reset()
+        images = []
+        last_time = 0
+        self.env.render()
+        for t in range(self.max_step):
+            action = self.action_choice(observation)
+            observation, reward, done, info = self.env.step(action)
+            cumulative_reward += reward
+            print('Cumulative reward : ', cumulative_reward, ' (', reward, ')')
+            self.env.render()
+
+            # If time updataed, save image
+            if self.env.time_step > last_time :
+                last_time = self.env.time_step
+                images.append(self.save_image(dir, t, self.env.get_image_representation()))
+
+            if done:
+                print("\n ** \t Episode finished after {} time steps".format(t+1))
+                break
+
+        self.save_video(dir, images)
+        self.env.close()
+
+
+    def action_choice(self):
+        pass

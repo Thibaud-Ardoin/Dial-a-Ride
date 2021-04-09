@@ -10,7 +10,8 @@ class Target():
         self.weight = weight
         self.identity = identity
 
-        # State is in [-1, 0, 1] for [wait pick up, in a car, done]
+        # State is in [-2, -1, 0, 1, 2] for
+        # [wait pick up, getting picked up, In car, getting dropped, done]
         self.state = -2
         self.available = 0
 

@@ -144,3 +144,20 @@ class HybridProportionalReward(BaseReward):
                 return 0
             else :
                 return env.max_reward - distance
+
+class ConstantDistributionReward(BaseReward):
+    def __init__(self):
+        """
+        Rwd proportional to distributed state
+        """
+        super().__init__()
+        self.distribution = None
+
+    def compute(self, distance, done, env):
+        new_distribution = env.targets_states()
+        rwd = 0
+        if self.distribution is None or not(self.distribution == new_distribution) :
+            for t, count in enumerate(new_distribution):
+                rwd += t * count
+            self.distribution = new_distribution
+        return rwd
