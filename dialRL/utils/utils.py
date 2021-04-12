@@ -7,7 +7,7 @@ import tempfile
 import matplotlib.pyplot as plt
 
 def get_device():
-    if is_available():
+    if is_available(): #False: #
         device = 'cuda:0'
     else:
         device = 'cpu'

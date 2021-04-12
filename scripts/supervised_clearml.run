@@ -1,0 +1,36 @@
+#!/bin/bash
+
+#SBATCH --chdir /home/ardoin/
+
+#SBATCH --nodes 1
+
+#SBATCH --cpus-per-task 1
+
+#SBATCH --gres=gpu:1
+
+#SBATCH --ntasks 1
+
+#SBATCH --account=vita
+
+#SBATCH --mem 30G
+
+#SBATCH --time 20:00:00
+
+echo "fidis $HOSTNAME"
+
+python3.7 dialRL/run_supervised_rl_clearML.py \
+--total_timesteps 10000 \
+--monitor_freq 1000 \
+--example_freq 1000000 \
+--epochs 10000 \
+--alias TestSupervised \
+--model Trans1 \
+--layers 64 64 \
+--eval_episodes 5 \
+--verbose 1 \
+--nb_target 2 \
+--image_size 4 \
+--nb_drivers 1 \
+--dataset '' \
+--reward_function HybridProportionalReward \
+--batch_size 256
