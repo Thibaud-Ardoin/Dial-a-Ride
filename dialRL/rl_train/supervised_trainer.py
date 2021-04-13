@@ -13,6 +13,7 @@ from stable_baselines.common.callbacks import EvalCallback
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.vec_env import DummyVecEnv
 from clearml import Task
+from icecream import ic
 
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
@@ -97,6 +98,7 @@ class SupervisedTrainer():
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           reward_function=reward_function,
+                          rep_type='trans',
                           max_step=self.max_step,
                           test_env=False,
                           dataset=self.dataset,
@@ -107,6 +109,7 @@ class SupervisedTrainer():
                                   target_population=self.nb_target,
                                   driver_population=self.nb_drivers,
                                   reward_function=reward_function,
+                                  rep_type='trans',
                                   max_step=self.max_step,
                                   test_env=True,
                                   dataset=self.dataset)
@@ -127,7 +130,7 @@ class SupervisedTrainer():
                                                  src_pad_idx=self.image_size,
                                                  trg_pad_idx=self.image_size,
                                                  dropout=self.dropout,
-                                                 device=self.device).to(self.device)
+                                                 device=self.device).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
 
@@ -240,13 +243,12 @@ class SupervisedTrainer():
                 if done :
                     observation = self.env.reset()
 
-                observation = observation - np.min(observation)
-                observation = np.clip(observation, 0, 40000)
+                info_block, positions = observation
+                # ic(info_block)
 
-                # print('MAXX', np.max(observation), np.min(observation))
-
-                model_action = self.model(torch.tensor([observation]).type(torch.LongTensor).to(self.device),
-                                          torch.tensor([[0]]).type(torch.LongTensor).to(self.device))
+                model_action = self.model(torch.tensor([info_block]).type(torch.LongTensor).to(self.device),
+                                          torch.tensor([[0]]).type(torch.LongTensor).to(self.device),
+                                          positions=positions)
                 supervised_action = self.supervision.action_choice(observation)
                 supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
 

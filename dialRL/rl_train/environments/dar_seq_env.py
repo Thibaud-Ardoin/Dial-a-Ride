@@ -8,18 +8,20 @@ import tempfile
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.image import imsave
+from icecream import ic
 
 from dialRL.dataset import tabu_parse_info, tabu_parse_best
 from dialRL.dataset import DarPInstance
 from dialRL.rl_train.reward_functions import *
-from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep, GAP_function, float_equality, coord2int
+from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep, GAP_function, float_equality, coord2int, time2int
 from dialRL.rl_train.environments import DarEnv
 
 class DarSeqEnv(DarEnv):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, size, target_population, driver_population, reward_function, dataset=None, test_env=False, time_end=1400, max_step=10, verbose=0):
+    def __init__(self, size, target_population, driver_population, reward_function, rep_type='block', dataset=None, test_env=False, time_end=1400, max_step=10, verbose=0):
 
+        self.rep_type = rep_type
         self.dataset = dataset
         self.reward_function = reward_function
         self.test_env = test_env
@@ -76,7 +78,7 @@ class DarSeqEnv(DarEnv):
 
 
     def get_info_vector(self):
-        game_info = [coord2int(self.time_step),
+        game_info = [time2int(self.time_step),
                      self.current_player,
                      coord2int(self.depot_position[0]),
                      coord2int(self.depot_position[1])]
@@ -93,26 +95,64 @@ class DarSeqEnv(DarEnv):
         return int(self.targets_states()[4] == self.target_population)
 
     def representation(self):
-        # Agregate  world infrmations
-        world_info = self.get_info_vector()
-        # print('world: ', world_info)
+        if self.rep_type=='block' :
+            # Agregate  world infrmations
+            world_info = self.get_info_vector()
+            # print('world: ', world_info)
 
-        # Agregate targets infrmations
-        targets_info = []
-        for target in self.targets:
-            targets_info.append(target.get_info_vector())
-        targets_info = np.concatenate(targets_info)
-        # print('targets_info: ', targets_info)
+            # Agregate targets infrmations
+            targets_info = []
+            for target in self.targets:
+                targets_info.append(target.get_info_vector())
+            targets_info = np.concatenate(targets_info)
+            # print('targets_info: ', targets_info)
 
-        drivers_info = []
-        for driver in self.drivers:
-            drivers_info.append(driver.get_info_vector())
-        drivers_info = np.concatenate(drivers_info)
-        # print('drivers_info: ', drivers_info)
+            drivers_info = []
+            for driver in self.drivers:
+                drivers_info.append(driver.get_info_vector())
+            drivers_info = np.concatenate(drivers_info)
+            # print('drivers_info: ', drivers_info)
 
-        world = np.concatenate([world_info, targets_info, drivers_info])
+            world = np.concatenate([world_info, targets_info, drivers_info])
+            return world
 
-        return world
+        elif self.rep_type=='trans':
+            # Depot (2dim), drivers (D x 2dim), targets (T x 4dim)
+            positions = [self.depot_position,
+                         [[target.pickup, target.dropoff] for target in self.targets],
+                         [driver.position for driver in self.drivers]]
+
+            world_info = self.get_info_vector()
+            targets_info = []
+            for target in self.targets:
+                targets_info.append(target.get_info_vector())
+            targets_info = np.concatenate(targets_info)
+            drivers_info = []
+            for driver in self.drivers:
+                drivers_info.append(driver.get_info_vector())
+            drivers_info = np.concatenate(drivers_info)
+            world = np.concatenate([world_info, targets_info, drivers_info])
+            return [world, positions]
+
+
+        else :
+            dic = {'world': {'time': self.time_step,
+                             'player': self.current_player,
+                             'depot': self.depot_position},
+                   'targets': [{'id': target.identity,
+                               'pickup': target.pickup,
+                               'dropoff': target.dropoff,
+                               'start': target.start_fork,
+                               'end': target.end_fork,
+                               'weight': target.weight,
+                               'state': target.state} for target in self.targets ],
+                   'drivers': [{'id': driver.identity,
+                                'position': driver.position,
+                                'capacity': driver.max_capacity,
+                                'loaded': [lo.identity for lo in driver.loaded]} for driver in self.drivers] }
+            return dic
+
+
 
     def get_image_representation(self):
         image = instance2Image_rep(self.targets, self.drivers, self.size, time_step=self.time_step)

@@ -13,9 +13,11 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 GAP_function,
                                 float_equality,
                                 obs2int,
-                                coord2int)
+                                coord2int,
+                                time2int)
 
 __all__ = ['coord2int',
+           'time2int',
            'float_equality',
            'GAP_function',
            'utils',

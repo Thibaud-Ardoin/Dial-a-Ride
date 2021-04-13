@@ -5,6 +5,7 @@ import numpy as np
 import drawSvg as draw
 import tempfile
 import matplotlib.pyplot as plt
+from icecream import ic
 
 def get_device():
     if is_available(): #False: #
@@ -75,6 +76,11 @@ def indice2image_coordonates(indice, image_size):
 def coord2int(coord):
     number_precision = 3
     new_coord = int(round(coord, number_precision)*(10**number_precision))
+    return new_coord
+
+def time2int(time):
+    number_precision = 0
+    new_coord = int(round(time, number_precision)*(10**number_precision))
     return new_coord
 
 

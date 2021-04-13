@@ -1,10 +1,4 @@
-"""
-A from scratch implementation of Transformer network,
-following the paper Attention is all you need with a
-few minor differences. I tried to make it as clear as
-possible to understand and also went through the code
-on my youtube channel!
-"""
+from icecream import ic
 
 import torch
 import torch.nn as nn
@@ -120,6 +114,9 @@ class Encoder(nn.Module):
         self.word_embedding = nn.Embedding(src_vocab_size, embed_size)
         self.position_embedding = nn.Embedding(max_length, embed_size)
 
+        mapping_size = 256
+        self.B_gauss = torch.normal(0, 1, size=(mapping_size, 2)) * 10
+
         self.layers = nn.ModuleList(
             [
                 TransformerBlock(
@@ -134,11 +131,15 @@ class Encoder(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x, mask):
+    def forward(self, x, mask, positions=None):
         N, seq_length = x.shape
-        positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
+        if positions is None:
+            positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
+        else :
+            positions = self.positional_encoding(positions)
+        x = x - x.min()
         out = self.dropout(
-            (self.word_embedding(x.to(self.device)) + self.position_embedding(positions.to(self.device)))
+            (self.word_embedding(x.to(self.device)) + positions.to(self.device)) #self.position_embedding(positions.to(self.device)))
         )
 
         # In the Encoder the query, key, value are all the same, it's in the
@@ -148,6 +149,28 @@ class Encoder(nn.Module):
 
         return out
 
+    def fourier_feature(self, coordonates):
+        pi = torch.tensor(torch.acos(torch.zeros(1)).item() * 2 * 2)
+        x = (pi * coordonates).double()
+        transB = torch.transpose(self.B_gauss, 0, 1).double()
+        x_proj = x.matmul(transB)
+        return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], axis=-1)
+
+
+    def positional_encoding(self, position):
+        depot = self.fourier_feature(position[0])
+        targets = [self.fourier_feature(pos[0] + pos[1]) for pos in position[1]]
+        drivers = [self.fourier_feature(pos) for pos in position[2]]
+
+        d1 = torch.stack([depot] * 4)
+        for target in targets :
+            d2 = torch.stack([target] * 11)
+            d1 = torch.cat([d1, d2])
+        for driver in drivers :
+            d3 = torch.stack([driver] * 9)
+            d1 = torch.cat([d1, d3])
+
+        return d1
 
 class DecoderBlock(nn.Module):
     def __init__(self, embed_size, heads, forward_expansion, dropout, device):
@@ -263,10 +286,10 @@ class Trans1(nn.Module):
 
         return trg_mask.to(self.device)
 
-    def forward(self, src, trg):
+    def forward(self, src, trg, positions=None):
         src_mask = self.make_src_mask(src)
         trg_mask = self.make_trg_mask(trg)
-        enc_src = self.encoder(src, src_mask)
+        enc_src = self.encoder(src, src_mask, positions=positions)
         out = self.decoder(trg, enc_src, src_mask, trg_mask)
         return out
 
