@@ -189,10 +189,13 @@ class SupervisedTrainer():
             print(item, ':', vars(self)[item])
 
 
-    def generate_supervision_data(self, data_size):
+    def generate_supervision_data(self):
         print('\t ** Generation Started **')
+        number_batch = self.data_size // self.batch_size
+        size = number_batch * self.batch_size
+
         data = []
-        saving_name = self.rootdir + '/data/supervision_data/' + str(data_size) + '.pt'
+        saving_name = self.rootdir + '/data/supervision_data/' + str(size) + '.pt'
         done = True
 
         if os.path.isfile(saving_name) :
@@ -201,7 +204,7 @@ class SupervisedTrainer():
             return dataset
 
         # Generate a Memory batch
-        for element in range(data_size):
+        for element in range(size):
 
             if done :
                 observation = self.env.reset()
@@ -212,9 +215,12 @@ class SupervisedTrainer():
             supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
 
             observation, reward, done, info = self.env.step(supervised_action)
-            self.env.render()
             data.append([observation, supervised_action])
 
+            if element % 1000 == 0:
+                print('Generating data... [{i}/{ii}]'.format(i=element, ii=size))
+
+        print('Done Generating !')
         train_data = SupervisionDataset(data)
         torch.save(train_data, saving_name)
         return train_data
@@ -255,6 +261,10 @@ class SupervisedTrainer():
             correct += np.sum((model_action.argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
             running_loss += loss.item()
 
+            # Limit train passage to 20 rounds
+            if i == 20:
+                break
+
         print('-> Réussite: ', 100 * correct/total, '%')
         print('-> Loss:', running_loss)
         self.scheduler.step(running_loss)
@@ -265,7 +275,7 @@ class SupervisedTrainer():
 
 
     def run(self):
-        dataset = self.generate_supervision_data(data_size=20*self.batch_size)
+        dataset = self.generate_supervision_data()
         print('\t ** Learning START ! **')
         done = True
 

@@ -47,6 +47,7 @@ def get_args(args):
     parser.add_argument('--reward_function', type=str)
     parser.add_argument('--trl', default=False, type=bool)
     parser.add_argument('--clearml', default=False, type=bool)
+    parser.add_argument('--data_size', default=100000, type=int)
 
     return parser.parse_known_args(args)[0]
 
