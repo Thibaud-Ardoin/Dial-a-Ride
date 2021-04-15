@@ -182,6 +182,7 @@ class SupervisedTrainer():
                                       n_eval_episodes=self.eval_episodes,
                                       verbose=self.verbose,
                                       sacred=self.sacred)
+        self.current_epoch = 0
 
 
         print(' *// What is this train about //* ')
@@ -271,7 +272,7 @@ class SupervisedTrainer():
 
         if self.sacred :
             self.sacred.get_logger().report_scalar(title='Train stats',
-            series='train loss', value=running_loss, iteration=epoch)
+            series='train loss', value=running_loss, iteration=self.current_epoch)
 
 
     def run(self):
@@ -282,6 +283,7 @@ class SupervisedTrainer():
         supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
 
         for epoch in range(self.epochs):
+            self.current_epoch = epoch
             self.train(supervision_data)
             self.evaluate()
 
@@ -331,4 +333,4 @@ class SupervisedTrainer():
 
         if self.sacred :
             self.sacred.get_logger().report_scalar(title='Test stats',
-            series='reussite %', value=100*correct/total, iteration=epoch)
+            series='reussite %', value=100*correct/total, iteration=self.current_epoch)
