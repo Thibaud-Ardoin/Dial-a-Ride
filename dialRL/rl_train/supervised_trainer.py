@@ -57,6 +57,19 @@ class MemoryDataset(Dataset):
         instance = self.data[idx]
         return instance
 
+class SupervisionDataset(Dataset):
+    """ Customed Dataset class for our Instances data
+    """
+    def __init__(self, data_list):
+        self.data = data_list
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        """ simple idx """
+        return self.data[idx]
+
 
 class SupervisedTrainer():
     def __init__(self, flags, sacred=None):
@@ -115,8 +128,8 @@ class SupervisedTrainer():
                                   dataset=self.dataset)
                           # dataset=self.dataset) for i in range(1)])
 
-        self.supervision = NNStrategy(reward_function=self.reward_function)
-        self.supervision.env = self.env
+        self.supervision = NNStrategy(reward_function=self.reward_function,
+                                      env=self.env)
 
         # Model Choice
         if self.model=='MlpPolicy':
@@ -176,35 +189,62 @@ class SupervisedTrainer():
             print(item, ':', vars(self)[item])
 
 
-    def forward_data(self, data):
-        print(data)
-        inputs, neighbors = data[0].to(self.device, non_blocking=True), data[1].to(self.device, non_blocking=True)
-        labels = neighbors[:,0]
-        shuffled_indexes = torch.randperm(neighbors.shape[1])
-        anonym_neighbors = neighbors[:,shuffled_indexes].to(self.device)
+    def generate_supervision_data(self, data_size):
+        print('\t ** Generation Started **')
+        data = []
+        saving_name = self.rootdir + '/data/supervision_data/' + str(data_size) + '.pt'
+        done = True
 
-        outputs = self.model(inputs.to(self.device).type(torch.LongTensor),
-                        torch.tensor([[self.image_size**2] for _ in range(inputs.shape[0])]).to(self.device).type(torch.LongTensor))
-        labels = label2heatmap(labels, self.image_size).to(self.device)
-        labels = torch.argmax(labels, 1)
-        outputs = torch.squeeze(outputs[:, :, :-1])
+        if os.path.isfile(saving_name) :
+            print('This data is already out there !')
+            dataset = torch.load(saving_name)
+            return dataset
 
-        return outputs, labels
+        # Generate a Memory batch
+        for element in range(data_size):
+
+            if done :
+                observation = self.env.reset()
+
+            info_block, positions = observation
+
+            supervised_action = self.supervision.action_choice()
+            supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
+
+            observation, reward, done, info = self.env.step(supervised_action)
+            self.env.render()
+            data.append([observation, supervised_action])
+
+        train_data = SupervisionDataset(data)
+        torch.save(train_data, saving_name)
+        return train_data
 
 
-    def train(self, memory):
+    def train(self, dataloader):
         max_test_accuracy = 0
         running_loss = 0
         total = 0
         correct = nearest_accuracy = pointing_accuracy = 0
 
         self.model.train()
-        for i, data in enumerate(memory):
+        for i, data in enumerate(dataloader):
             # set the parameter gradients to zero
             self.optimizer.zero_grad()
 
-            observation, model_action, supervised_action = data
-            loss = self.criterion(model_action, supervised_action)
+            observation, supervised_action = data
+
+            info_block, positions = observation
+            info_tensor = torch.tensor(info_block).type(torch.LongTensor).to(self.device)
+
+            target_tensor = torch.tensor([[0] for i in range(self.batch_size)]).type(torch.LongTensor).to(self.device)
+
+            model_action = self.model(info_tensor,
+                                      target_tensor,
+                                      positions=positions)
+
+            model_action = model_action[:,0]
+
+            loss = self.criterion(model_action, supervised_action.squeeze(-1))
 
             loss.backward()
 
@@ -212,60 +252,73 @@ class SupervisedTrainer():
             self.optimizer.step()
 
             total += supervised_action.size(0)
-            correct += np.sum((model_action.argmax(-1) == supervised_action).cpu().numpy())
+            correct += np.sum((model_action.argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
             running_loss += loss.item()
 
         print('-> Réussite: ', 100 * correct/total, '%')
         print('-> Loss:', running_loss)
         self.scheduler.step(running_loss)
 
-        # if self.statistics['test_accuracy'][-1] == np.max(self.statistics['test_accuracy']) :
-        #     if self.checkpoint_type == 'best':
-        #         self.save_model(epoch=epoch)
-        # elif self.checkpoint_type == 'all':
-        #     self.save_model(epoch=epoch)
-
+        if self.sacred :
+            self.sacred.get_logger().report_scalar(title='Train stats',
+            series='train loss', value=running_loss, iteration=epoch)
 
 
     def run(self):
+        dataset = self.generate_supervision_data(data_size=20*self.batch_size)
         print('\t ** Learning START ! **')
         done = True
 
-        # Run X number of training epochs
+        supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+
         for epoch in range(self.epochs):
-            last_time = 0
-            # self.env.render()
-            memory = []
-
-            # Generate a Memory batch
-            for b in range(self.batch_size * 1):
-
-                if done :
-                    observation = self.env.reset()
-
-                info_block, positions = observation
-                # ic(info_block)
-
-                model_action = self.model(torch.tensor([info_block]).type(torch.LongTensor).to(self.device),
-                                          torch.tensor([[0]]).type(torch.LongTensor).to(self.device),
-                                          positions=positions)
-                supervised_action = self.supervision.action_choice(observation)
-                supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
-
-                # print('Action', model_action.argmax(-1))
-                chosen_action = model_action.argmax(-1)
-
-                memory.append([observation, model_action[0, 0], supervised_action.squeeze(0)])
-
-                # Arbitrary choice of following the model action to evolve the environment
-                observation, reward, done, info = self.env.step(chosen_action)
-                # self.env.render()
-
-            print('Train now, with memorry size:', len(memory))
-            train_data = MemoryDataset(memory)
-            data = DataLoader(train_data, batch_size=self.batch_size, shuffle=self.shuffle)
-            self.train(data)
-
-        self.env.close()
+            self.train(supervision_data)
+            self.evaluate()
 
         print('\t ** Learning DONE ! **')
+
+
+    def evaluate(self):
+        correct = total = running_loss = total_reward = 0
+        self.supervision.env = self.eval_env
+
+        self.model.eval()
+        for eval_step in range(self.eval_episodes):
+            done = False
+            observation = self.eval_env.reset()
+
+            while not done :
+
+                info_block, positions = observation
+
+                positions = [torch.tensor([positions[0]]),
+                            [torch.tensor([pos]) for pos in positions[1]],
+                            [torch.tensor([pos]) for pos in positions[2]]]
+
+                info_tensor = torch.tensor([info_block]).type(torch.LongTensor).to(self.device)
+                target_tensor = torch.tensor([[0]]).type(torch.LongTensor).to(self.device)
+
+                model_action = self.model(info_tensor,
+                                          target_tensor,
+                                          positions=positions)
+
+                supervised_action = self.supervision.action_choice()
+                supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
+
+                chosen_action = model_action[:, 0].argmax(-1)
+
+                observation, reward, done, info = self.eval_env.step(chosen_action.cpu().item())
+                # self.env.render()
+                # loss = self.criterion(model_action, supervised_action.unsqueeze(-1))
+
+                total_reward += reward
+                total += 1
+                correct += (model_action.argmax(-1)[0][0] == supervised_action).cpu().numpy()
+                # running_loss += loss.item()
+
+        print('--> Test Réussite: ', 100 * correct/total, '%')
+        # print('-> Test Loss:', running_loss)
+
+        if self.sacred :
+            self.sacred.get_logger().report_scalar(title='Test stats',
+            series='reussite %', value=100*correct/total, iteration=epoch)

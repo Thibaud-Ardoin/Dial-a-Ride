@@ -14,12 +14,14 @@ class BaseStrategy():
                  reward_function='',
                  time_end=1400,
                  max_step=5000,
+                 env=None,
                  dataset='./data/instances/cordeau2003/tabu1.txt',
                  test_env=False):
 
         self.data = dataset
         self.rwd_fun =  globals()[reward_function]()
-        self.env = DarSeqEnv(size=size,
+        if env is None:
+            self.env = DarSeqEnv(size=size,
                             target_population=target_population,
                             driver_population=driver_population,
                             reward_function=self.rwd_fun,
@@ -27,6 +29,8 @@ class BaseStrategy():
                             max_step=max_step,
                             dataset=self.data,
                             test_env=test_env)
+        else :
+            self.env = env
         self.max_step = max_step
 
     def norm_image(self, image, type=None, scale=10):

@@ -117,9 +117,9 @@ class DarSeqEnv(DarEnv):
             return world
 
         elif self.rep_type=='trans':
-            # Depot (2dim), drivers (D x 2dim), targets (T x 4dim)
+            # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [self.depot_position,
-                         [[target.pickup, target.dropoff] for target in self.targets],
+                         [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
                          [driver.position for driver in self.drivers]]
 
             world_info = self.get_info_vector()

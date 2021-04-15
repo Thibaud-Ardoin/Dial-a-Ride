@@ -8,7 +8,7 @@ class NNStrategy(BaseStrategy):
     def __init__(self, **kwarg):
         super().__init__(**kwarg)
 
-    def action_choice(self, observation):
+    def action_choice(self, observation=None):
         player_nb = self.env.current_player
         player = self.env.drivers[player_nb - 1]
         choice = (None, np.inf)

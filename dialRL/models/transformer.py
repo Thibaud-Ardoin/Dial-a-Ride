@@ -114,9 +114,6 @@ class Encoder(nn.Module):
         self.word_embedding = nn.Embedding(src_vocab_size, embed_size)
         self.position_embedding = nn.Embedding(max_length, embed_size)
 
-        mapping_size = 256
-        self.B_gauss = torch.normal(0, 1, size=(mapping_size, 2)) * 10
-
         self.layers = nn.ModuleList(
             [
                 TransformerBlock(
@@ -135,8 +132,6 @@ class Encoder(nn.Module):
         N, seq_length = x.shape
         if positions is None:
             positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
-        else :
-            positions = self.positional_encoding(positions)
         x = x - x.min()
         out = self.dropout(
             (self.word_embedding(x.to(self.device)) + positions.to(self.device)) #self.position_embedding(positions.to(self.device)))
@@ -148,29 +143,6 @@ class Encoder(nn.Module):
             out = layer(out, out, out, mask)
 
         return out
-
-    def fourier_feature(self, coordonates):
-        pi = torch.tensor(torch.acos(torch.zeros(1)).item() * 2 * 2)
-        x = (pi * coordonates).double()
-        transB = torch.transpose(self.B_gauss, 0, 1).double()
-        x_proj = x.matmul(transB)
-        return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], axis=-1)
-
-
-    def positional_encoding(self, position):
-        depot = self.fourier_feature(position[0])
-        targets = [self.fourier_feature(pos[0] + pos[1]) for pos in position[1]]
-        drivers = [self.fourier_feature(pos) for pos in position[2]]
-
-        d1 = torch.stack([depot] * 4)
-        for target in targets :
-            d2 = torch.stack([target] * 11)
-            d1 = torch.cat([d1, d2])
-        for driver in drivers :
-            d3 = torch.stack([driver] * 9)
-            d1 = torch.cat([d1, d3])
-
-        return d1
 
 class DecoderBlock(nn.Module):
     def __init__(self, embed_size, heads, forward_expansion, dropout, device):
@@ -215,17 +187,18 @@ class Decoder(nn.Module):
         self.fc_out = nn.Linear(embed_size, trg_vocab_size)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x, enc_out, src_mask, trg_mask):
+    def forward(self, x, enc_out, src_mask, trg_mask, positions=None):
         N, seq_length = x.shape
         # positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
-        positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
-        x = self.dropout((self.word_embedding(x.to(self.device)) + self.position_embedding(positions.to(self.device))))
+        if positions is None:
+            positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
+
+        x = self.dropout((self.word_embedding(x.to(self.device)) + positions.to(self.device))) #self.position_embedding(positions.to(self.device))))
 
         for layer in self.layers:
             x = layer(x, enc_out, enc_out, src_mask, trg_mask)
 
         out = self.fc_out(x)
-
         return out
 
 
@@ -236,7 +209,7 @@ class Trans1(nn.Module):
         trg_vocab_size,
         src_pad_idx=0,
         trg_pad_idx=0,
-        embed_size=512,
+        embed_size=128,
         num_layers=6,
         forward_expansion=4,
         heads=8,
@@ -273,6 +246,11 @@ class Trans1(nn.Module):
         self.src_pad_idx = src_pad_idx
         self.trg_pad_idx = trg_pad_idx
 
+        mapping_size = embed_size // 2
+        scale = 10
+        self.B_gauss = torch.normal(0, 1, size=(mapping_size, 2)) * scale
+
+
     def make_src_mask(self, src):
         src_mask = (src != self.src_pad_idx).unsqueeze(1).unsqueeze(2)
         # (N, 1, 1, src_len)
@@ -289,19 +267,55 @@ class Trans1(nn.Module):
     def forward(self, src, trg, positions=None):
         src_mask = self.make_src_mask(src)
         trg_mask = self.make_trg_mask(trg)
+        if not positions is None :
+            positions = self.positional_encoding(positions)
         enc_src = self.encoder(src, src_mask, positions=positions)
-        out = self.decoder(trg, enc_src, src_mask, trg_mask)
+        out = self.decoder(trg, enc_src, src_mask, trg_mask, positions=positions)
         return out
+
+
+    def fourier_feature(self, coordonates):
+        coordonates = torch.tensor(coordonates)
+        pi = torch.tensor(torch.acos(torch.zeros(1)).item() * 2 * 2)
+        x = (pi * coordonates).double()
+        transB = torch.transpose(self.B_gauss, 0, 1).double()
+        if x.shape[1] == 4:
+            transB = torch.cat([transB, transB])
+        x_proj = x.matmul(transB)
+        return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], axis=-1)
+
+
+    def positional_encoding(self, position):
+        depot = self.fourier_feature(position[0])
+        targets = [self.fourier_feature(pos) for pos in position[1]]
+        drivers = [self.fourier_feature(pos) for pos in position[2]]
+
+        d1 = torch.stack([depot] * 4)
+        for target in targets :
+            d2 = torch.stack([target] * 11)
+            d1 = torch.cat([d1, d2])
+        for driver in drivers :
+            d3 = torch.stack([driver] * 9)
+            d1 = torch.cat([d1, d3])
+        return d1.permute(1, 0, 2)
 
 
 if __name__ == "__main__":
     device = get_device()
     print(device)
 
-    x = torch.tensor([[1, 5, 6, 4, 3, 9, 5, 2, 0], [1, 8, 7, 3, 4, 5, 6, 7, 2]]).to(
+    x = torch.tensor([[1, 5, 6, 4, 3, 9, 5, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                      [1, 5, 6, 4, 3, 9, 5, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]).to(
         device
     )
-    trg = torch.tensor([[1, 7, 4, 3, 5, 9, 2, 0], [1, 5, 6, 2, 4, 7, 6, 2]]).to(device)
+    trg = torch.tensor([[0], [0]]).to(device)
+
+    positions = [
+                torch.tensor([[0.1,0.1],[0.1,0.1]]),
+                torch.tensor([[[0.2, 0.2]], [[0.2, 0.2]]]),
+                torch.tensor([[[0.3, 0.3, 0.4, 0.4], [1.1, 1.1, 1.2, 1.2]], [[0.3, 0.3, 0.4, 0.4], [1.1, 1.1, 1.2, 1.2]]])
+                ]
+
 
     src_pad_idx = 0
     trg_pad_idx = 0
@@ -310,7 +324,7 @@ if __name__ == "__main__":
     model = Trans1(src_vocab_size, trg_vocab_size, src_pad_idx, trg_pad_idx, device=device).to(
         device
     )
-    out = model(x, trg[:, :-1])
+    out = model(x, trg[:, :-1], positions=positions)
     print(out)
     print(out.argmax(-1))
     print(out.shape)
