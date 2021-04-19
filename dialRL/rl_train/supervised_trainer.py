@@ -210,13 +210,11 @@ class SupervisedTrainer():
             if done :
                 observation = self.env.reset()
 
-            info_block, positions = observation
-
             supervised_action = self.supervision.action_choice()
             supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
 
-            observation, reward, done, info = self.env.step(supervised_action)
             data.append([observation, supervised_action])
+            observation, reward, done, info = self.env.step(supervised_action)
 
             if element % 1000 == 0:
                 print('Generating data... [{i}/{ii}]'.format(i=element, ii=size))
@@ -240,12 +238,12 @@ class SupervisedTrainer():
 
             observation, supervised_action = data
 
-            info_block, positions = observation
-            info_tensor = torch.tensor(info_block).type(torch.LongTensor).to(self.device)
+            world, targets, drivers, positions = observation
+            info_block = [world, targets, drivers]
 
             target_tensor = torch.tensor([[0] for i in range(self.batch_size)]).type(torch.LongTensor).to(self.device)
 
-            model_action = self.model(info_tensor,
+            model_action = self.model(info_block,
                                       target_tensor,
                                       positions=positions)
 
@@ -285,7 +283,7 @@ class SupervisedTrainer():
         for epoch in range(self.epochs):
             self.current_epoch = epoch
             self.train(supervision_data)
-            self.evaluate()
+            # self.evaluate()
 
         print('\t ** Learning DONE ! **')
 
@@ -300,17 +298,12 @@ class SupervisedTrainer():
             observation = self.eval_env.reset()
 
             while not done :
+                world, targets, drivers, positions = observation
+                info_block = [world, targets, drivers]
 
-                info_block, positions = observation
-
-                positions = [torch.tensor([positions[0]]),
-                            [torch.tensor([pos]) for pos in positions[1]],
-                            [torch.tensor([pos]) for pos in positions[2]]]
-
-                info_tensor = torch.tensor([info_block]).type(torch.LongTensor).to(self.device)
                 target_tensor = torch.tensor([[0]]).type(torch.LongTensor).to(self.device)
 
-                model_action = self.model(info_tensor,
+                model_action = self.model(info_block,
                                           target_tensor,
                                           positions=positions)
 

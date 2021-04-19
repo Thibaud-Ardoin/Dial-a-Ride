@@ -121,18 +121,30 @@ class DarSeqEnv(DarEnv):
             positions = [self.depot_position,
                          [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
                          [driver.position for driver in self.drivers]]
+            world = list(map(float, [self.time_step,
+                     self.current_player,
+                     self.depot_position[0],
+                     self.depot_position[1]]))
+            targets = [list(map(float, [target.identity,
+                       target.pickup[0],
+                       target.pickup[1],
+                       target.dropoff[0],
+                       target.dropoff[1],
+                       target.start_fork[0],
+                       target.start_fork[1],
+                       target.end_fork[0],
+                       target.end_fork[1],
+                       target.weight,
+                       target.state])) for target in self.targets]
+            drivers = [list(map(float, [driver.identity,
+                        driver.position[0],
+                        driver.position[1],
+                        driver.max_capacity])) +
+                       [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
 
-            world_info = self.get_info_vector()
-            targets_info = []
-            for target in self.targets:
-                targets_info.append(target.get_info_vector())
-            targets_info = np.concatenate(targets_info)
-            drivers_info = []
-            for driver in self.drivers:
-                drivers_info.append(driver.get_info_vector())
-            drivers_info = np.concatenate(drivers_info)
-            world = np.concatenate([world_info, targets_info, drivers_info])
-            return [world, positions]
+
+
+            return world, targets, drivers, positions
 
 
         else :

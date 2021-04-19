@@ -129,12 +129,12 @@ class Encoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, mask, positions=None):
-        N, seq_length = x.shape
+        N, seq_length, _ = x.shape
         if positions is None:
             positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
         x = x - x.min()
         out = self.dropout(
-            (self.word_embedding(x.to(self.device)) + positions.to(self.device)) #self.position_embedding(positions.to(self.device)))
+            (x.to(self.device) + positions.to(self.device)) #self.position_embedding(positions.to(self.device)))
         )
 
         # In the Encoder the query, key, value are all the same, it's in the
@@ -246,13 +246,15 @@ class Trans1(nn.Module):
         self.src_pad_idx = src_pad_idx
         self.trg_pad_idx = trg_pad_idx
 
+        self.embed_size = embed_size
         mapping_size = embed_size // 2
         scale = 10
         self.B_gauss = torch.normal(0, 1, size=(mapping_size, 2)) * scale
 
 
     def make_src_mask(self, src):
-        src_mask = (src != self.src_pad_idx).unsqueeze(1).unsqueeze(2)
+        # Little change towards original: src got embedding dimention in additon
+        src_mask = (src[:,:,0] != self.src_pad_idx).unsqueeze(1).unsqueeze(2)
         # (N, 1, 1, src_len)
         return src_mask.to(self.device)
 
@@ -265,13 +267,34 @@ class Trans1(nn.Module):
         return trg_mask.to(self.device)
 
     def forward(self, src, trg, positions=None):
-        src_mask = self.make_src_mask(src)
-        trg_mask = self.make_trg_mask(trg)
+        # Encoode positoin and env
+        src = self.env_encoding(src)
         if not positions is None :
             positions = self.positional_encoding(positions)
+
+        src_mask = self.make_src_mask(src)
+
+        trg_mask = self.make_trg_mask(trg)
         enc_src = self.encoder(src, src_mask, positions=positions)
         out = self.decoder(trg, enc_src, src_mask, trg_mask, positions=positions)
         return out
+
+    def env_encoding(self, src):
+        w, ts, ds = src
+        embeddig_size = self.embed_size #max(len(w), len(ts[0]), len(ds[0]))
+        bsz = w[0].shape[-1]
+        absant_vector = torch.zeros(bsz, dtype=torch.float64)
+        w = w + [absant_vector] * (embeddig_size - len(w))
+        world_emb = torch.stack(w)
+        targets_emb = [torch.stack(target + [absant_vector] * (embeddig_size - len(target))) for target in ts]
+        drivers_emb = [torch.stack(driver + [absant_vector] * (embeddig_size - len(driver))) for driver in ds]
+
+        final_emb = torch.stack([world_emb] + targets_emb + drivers_emb)
+
+        final_emb = final_emb.permute(2, 0, 1)
+        return final_emb
+        # Goal vector:
+        #   (1 + |ts| + |ds|) x (max(4, len(ts[0]), len(ds[0]))) x bsz
 
 
     def fourier_feature(self, coordonates):
@@ -290,14 +313,16 @@ class Trans1(nn.Module):
         targets = [self.fourier_feature(pos) for pos in position[1]]
         drivers = [self.fourier_feature(pos) for pos in position[2]]
 
-        d1 = torch.stack([depot] * 4)
+        d1 = torch.stack([depot])
         for target in targets :
-            d2 = torch.stack([target] * 11)
+            d2 = torch.stack([target])
             d1 = torch.cat([d1, d2])
         for driver in drivers :
-            d3 = torch.stack([driver] * 9)
+            d3 = torch.stack([driver])
             d1 = torch.cat([d1, d3])
+
         return d1.permute(1, 0, 2)
+        # return d1.permute(0, 2, 1)
 
 
 if __name__ == "__main__":
