@@ -1,6 +1,31 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
+from icecream import ic
 
+def printing(mat):
+    # mat = positional_encoding(max_pos, d_model, 0)
+    ic(mat.shape)
+    plt.pcolormesh(mat, cmap='copper')
+    plt.xlabel('Depth')
+    plt.xlim((0, d_model))
+    plt.ylabel('Position')
+    plt.title("PE matrix heat map")
+    plt.colorbar()
+    plt.show()
+
+
+
+def fourier_feature(coordonates, B_gauss):
+    # coordonates = torch.stack(coordonates).permute(1, 0)
+    pi = torch.tensor(torch.acos(torch.zeros(1)).item() * 2 * 2)
+    x = (pi * coordonates).double()
+    transB = torch.transpose(B_gauss, 0, 1).double()
+    if x.shape[1] == 4:
+        transB = torch.cat([transB, transB])
+    x_proj = x.matmul(transB)
+    final = torch.cat([torch.sin(x_proj), torch.cos(x_proj)], axis=-1)
+    return final
 
 
 #### TensorFlow only version ####
@@ -29,14 +54,27 @@ def positional_encoding(max_position, d_model, y, min_freq=1e-4):
     return pos_enc
 
 ### Plotting ####
+scale = 1000
 d_model = 64
-max_pos = 256
-# for y in range(d_model):
-mat = positional_encoding(max_pos, d_model, 0)
-plt.pcolormesh(mat, cmap='copper')
-plt.xlabel('Depth')
-plt.xlim((0, d_model))
-plt.ylabel('Position')
-plt.title("PE matrix heat map")
-plt.colorbar()
-plt.show()
+max_pos = 64
+
+mapping_size =  d_model
+B_gauss = torch.normal(0, 1, size=(mapping_size, 2)) * scale
+# B_gauss = torch.eye(2)
+# B_gauss = torch.normal(0, 1, (mapping_size, 2))
+
+
+
+ffs = []
+x = 0
+for y in range(200):
+    a, b =np.random.random(), np.random.random()
+    ffs.append(fourier_feature(torch.tensor([[a, b]]), B_gauss).squeeze().numpy())
+
+# a, b =np.random.random(), np.random.random()
+for y in range(200):
+    ffs.append(fourier_feature(torch.tensor([[y/200, y/200]]), B_gauss).squeeze().numpy())
+
+
+# ic(ff)
+printing(np.array(ffs))

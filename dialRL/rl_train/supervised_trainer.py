@@ -111,9 +111,10 @@ class SupervisedTrainer():
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           reward_function=reward_function,
-                          rep_type='trans',
+                          rep_type='trans2',
                           max_step=self.max_step,
                           test_env=False,
+                          timeless=True,
                           dataset=self.dataset,
                           verbose=self.verbose)
 
@@ -122,8 +123,9 @@ class SupervisedTrainer():
                                   target_population=self.nb_target,
                                   driver_population=self.nb_drivers,
                                   reward_function=reward_function,
-                                  rep_type='trans',
+                                  rep_type='trans2',
                                   max_step=self.max_step,
+                                  timeless=True,
                                   test_env=True,
                                   dataset=self.dataset)
                           # dataset=self.dataset) for i in range(1)])

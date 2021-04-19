@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import drawSvg as draw
 import tempfile
-import matplotlib.pyplot as plt
 from icecream import ic
+import time
 
 def get_device():
     if is_available(): #False: #
@@ -201,6 +201,21 @@ def GAP_function(cost, best_cost):
         return None
     plus = cost - best_cost
     return 100 * plus / best_cost
+
+
+def plotting(mat):
+    d_model = mat.shape[-1]
+    ic(d_model)
+    ic(mat)
+    # mat = positional_encoding(max_pos, d_model, 0)
+    plt.pcolormesh(np.array(mat[0]), cmap='copper')
+    plt.xlabel('Depth')
+    plt.xlim((0, d_model))
+    plt.ylabel('Position')
+    plt.title("PE matrix heat map")
+    plt.colorbar()
+    plt.show()
+    time.sleep(5)
 
 
 def visualize(image, txt=''):

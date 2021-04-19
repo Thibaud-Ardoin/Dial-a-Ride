@@ -3,7 +3,7 @@ from icecream import ic
 import torch
 import torch.nn as nn
 
-from dialRL.utils import get_device
+from dialRL.utils import get_device, plotting
 
 class SelfAttention(nn.Module):
     def __init__(self, embed_size, heads):
@@ -208,15 +208,15 @@ class Trans1(nn.Module):
         self,
         src_vocab_size,
         trg_vocab_size,
-        src_pad_idx=0,
-        trg_pad_idx=0,
-        embed_size=128,
-        num_layers=6,
-        forward_expansion=4,
-        heads=8,
-        dropout=0,
+        src_pad_idx=0,         #0
+        trg_pad_idx=0,          #0
+        embed_size=128,         #128
+        num_layers=6,           #6
+        forward_expansion=4,    #4
+        heads=8,                #8
+        dropout=0,              #0
         device="",
-        max_length=100,
+        max_length=100,         #100
     ):
 
         super(Trans1, self).__init__()
@@ -299,7 +299,7 @@ class Trans1(nn.Module):
 
 
     def fourier_feature(self, coordonates):
-        coordonates = torch.tensor(coordonates)
+        # coordonates = torch.stack(coordonates).permute(1, 0)
         pi = torch.tensor(torch.acos(torch.zeros(1)).item() * 2 * 2)
         x = (pi * coordonates).double()
         transB = torch.transpose(self.B_gauss, 0, 1).double()

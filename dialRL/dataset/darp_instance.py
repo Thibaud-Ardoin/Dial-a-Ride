@@ -46,7 +46,7 @@ class DarPInstance():
         return pt
 
 
-    def random_generation(self, seed=None):
+    def random_generation(self, timeless=False, seed=None):
         """ Basicly populating the instance
         """
 
@@ -75,10 +75,13 @@ class DarPInstance():
             pickup = coordonates[self.nb_drivers + 2*j]
             dropoff = coordonates[self.nb_drivers + 2*j + 1]
 
-            # Generate 50% of free dropof conditions, and 50% of free pickup time conditions
-            intermediate_margin = 20
-            tp1 = np.random.randint(intermediate_margin, self.time_end - intermediate_margin*2 - 1)
-            tp2 = np.random.randint(tp1 + intermediate_margin, self.time_end - intermediate_margin)
+            if timeless :
+                tp1, tp2 = 0, self.time_end
+            else :
+                # Generate 50% of free dropof conditions, and 50% of free pickup time conditions
+                intermediate_margin = 20
+                tp1 = np.random.randint(intermediate_margin, self.time_end - intermediate_margin*2 - 1)
+                tp2 = np.random.randint(tp1 + intermediate_margin, self.time_end - intermediate_margin)
 
             if j > self.nb_targets // 2 :
                 start_fork = (0, self.time_end)

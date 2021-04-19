@@ -19,8 +19,9 @@ from dialRL.rl_train.environments import DarEnv
 class DarSeqEnv(DarEnv):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, size, target_population, driver_population, reward_function, rep_type='block', dataset=None, test_env=False, time_end=1400, max_step=10, verbose=0):
+    def __init__(self, size, target_population, driver_population, reward_function, rep_type='block', dataset=None, test_env=False, time_end=1400, timeless=False, max_step=10, verbose=0):
 
+        self.timeless = timeless
         self.rep_type = rep_type
         self.dataset = dataset
         self.reward_function = reward_function
@@ -43,7 +44,9 @@ class DarSeqEnv(DarEnv):
             self.extremas = [-self.size, -self.size, self.size, self.size]
             x = np.random.uniform(-self.size, self.size)
             y = np.random.uniform(-self.size, self.size)
-            self.depot_position = np.array((x, y)) #, dtype=np.float16)
+            # # TODO: Remove this
+            # self.depot_position = np.array((x, y)) #, dtype=np.float16)
+            self.depot_position = np.array((0.1, 0.1))
 
         #self.driver_population*2 + self.target_population
 
@@ -141,11 +144,21 @@ class DarSeqEnv(DarEnv):
                         driver.position[1],
                         driver.max_capacity])) +
                        [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
-
-
-
             return world, targets, drivers, positions
 
+        elif self.rep_type=='trans2':
+            # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
+            positions = [self.depot_position,
+                         [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
+                         [driver.position for driver in self.drivers]]
+            world = list(map(float, [self.current_player,
+                                     self.current_player]))
+
+            targets = [list(map(float, [target.identity,
+                       target.state])) for target in self.targets]
+            drivers = [list(map(float, [driver.identity])) +
+                       [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
+            return world, targets, drivers, positions
 
         else :
             dic = {'world': {'time': self.time_step,
@@ -182,7 +195,7 @@ class DarSeqEnv(DarEnv):
         if self.test_env and self.dataset:
             self.instance.dataset_generation(self.dataset)
         else :
-            self.instance.random_generation()
+            self.instance.random_generation(timeless=self.timeless)
 
         # print('* Reset - Instance image : ', self.instance.image)
         self.targets = self.instance.targets.copy()

@@ -14,9 +14,11 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 float_equality,
                                 obs2int,
                                 coord2int,
-                                time2int)
+                                time2int,
+                                plotting)
 
 __all__ = ['coord2int',
+           'plotting',
            'time2int',
            'float_equality',
            'GAP_function',
