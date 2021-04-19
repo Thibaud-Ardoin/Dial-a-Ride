@@ -132,10 +132,11 @@ class Encoder(nn.Module):
         N, seq_length, _ = x.shape
         if positions is None:
             positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
-        x = x - x.min()
+
         out = self.dropout(
             (x.to(self.device) + positions.to(self.device)) #self.position_embedding(positions.to(self.device)))
         )
+
 
         # In the Encoder the query, key, value are all the same, it's in the
         # decoder this will change. This might look a bit odd in this case.
@@ -189,15 +190,15 @@ class Decoder(nn.Module):
 
     def forward(self, x, enc_out, src_mask, trg_mask, positions=None):
         N, seq_length = x.shape
-        # positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
+        positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
+
         if positions is None:
             positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
 
-        x = self.dropout((self.word_embedding(x.to(self.device)) + positions.to(self.device))) #self.position_embedding(positions.to(self.device))))
+        x = self.dropout(self.word_embedding(x.to(self.device)) + self.position_embedding(positions.to(self.device)))
 
         for layer in self.layers:
             x = layer(x, enc_out, enc_out, src_mask, trg_mask)
-
         out = self.fc_out(x)
         return out
 

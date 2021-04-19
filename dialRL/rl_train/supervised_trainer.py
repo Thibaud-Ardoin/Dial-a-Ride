@@ -240,8 +240,8 @@ class SupervisedTrainer():
 
             world, targets, drivers, positions = observation
             info_block = [world, targets, drivers]
-
-            target_tensor = torch.tensor([[0] for i in range(self.batch_size)]).type(torch.LongTensor).to(self.device)
+            # Current player as trg elmt
+            target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
 
             model_action = self.model(info_block,
                                       target_tensor,
@@ -264,13 +264,16 @@ class SupervisedTrainer():
             if i == 20:
                 break
 
-        print('-> Réussite: ', 100 * correct/total, '%')
+        acc = 100 * correct/total
+        print('-> Réussite: ', acc, '%')
         print('-> Loss:', running_loss)
         self.scheduler.step(running_loss)
 
         if self.sacred :
             self.sacred.get_logger().report_scalar(title='Train stats',
-            series='train loss', value=running_loss, iteration=self.current_epoch)
+                series='train loss', value=running_loss, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='Train stats',
+                series='Train accuracy', value=acc, iteration=self.current_epoch)
 
 
     def run(self):
