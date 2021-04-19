@@ -288,7 +288,7 @@ class SupervisedTrainer():
         for epoch in range(self.epochs):
             self.current_epoch = epoch
             self.train(supervision_data)
-            # self.evaluate()
+            self.evaluate()
 
         print('\t ** Learning DONE ! **')
 
@@ -304,9 +304,16 @@ class SupervisedTrainer():
 
             while not done :
                 world, targets, drivers, positions = observation
-                info_block = [world, targets, drivers]
+                w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
+                t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
+                d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
+                info_block = [w_t, t_t, d_t]
 
-                target_tensor = torch.tensor([[0]]).type(torch.LongTensor).to(self.device)
+                positions = [torch.tensor([positions[0]], dtype=torch.float64),
+                             [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
+                             [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
+
+                target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
 
                 model_action = self.model(info_block,
                                           target_tensor,
@@ -319,16 +326,18 @@ class SupervisedTrainer():
 
                 observation, reward, done, info = self.eval_env.step(chosen_action.cpu().item())
                 # self.env.render()
-                # loss = self.criterion(model_action, supervised_action.unsqueeze(-1))
+                loss = self.criterion(model_action[0], supervised_action)
 
                 total_reward += reward
                 total += 1
                 correct += (model_action.argmax(-1)[0][0] == supervised_action).cpu().numpy()
-                # running_loss += loss.item()
+                running_loss += loss.item()
 
-        print('--> Test Réussite: ', 100 * correct/total, '%')
-        # print('-> Test Loss:', running_loss)
+        print('\t--> Test Réussite: ', 100 * correct[0]/total, '%')
+        print('\t--> Test Loss:', running_loss/total)
 
         if self.sacred :
             self.sacred.get_logger().report_scalar(title='Test stats',
-            series='reussite %', value=100*correct/total, iteration=self.current_epoch)
+                series='reussite %', value=100*correct[0]/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='Test stats',
+                series='Loss', value=running_loss/total, iteration=self.current_epoch)
