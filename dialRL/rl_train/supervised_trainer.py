@@ -139,12 +139,21 @@ class SupervisedTrainer():
         elif self.model=='MlpLstmPolicy':
             self.model = MlpLstmPolicy
         elif self.model=='Trans1':
-            self.model = globals()[self.model](src_vocab_size=50000,
+            self.model = globals()[self.model](src_vocab_size=70000,
                                                  trg_vocab_size=self.nb_target + 1,
                                                  max_length=self.nb_drivers+1,
                                                  src_pad_idx=self.image_size,
                                                  trg_pad_idx=self.image_size,
                                                  dropout=self.dropout,
+                                                 device=self.device).to(self.device).double()
+        elif self.model=='Trans2':
+            self.model = globals()[self.model](src_vocab_size=70000,
+                                                 trg_vocab_size=self.nb_target + 1,
+                                                 max_length=self.nb_drivers+1,
+                                                 src_pad_idx=self.image_size,
+                                                 trg_pad_idx=self.image_size,
+                                                 dropout=self.dropout,
+                                                 extremas=self.env.extremas,
                                                  device=self.device).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
@@ -295,6 +304,7 @@ class SupervisedTrainer():
 
     def evaluate(self):
         correct = total = running_loss = total_reward = 0
+        fit_sol = 0
         self.supervision.env = self.eval_env
 
         self.model.eval()
@@ -333,6 +343,8 @@ class SupervisedTrainer():
                 correct += (model_action.argmax(-1)[0][0] == supervised_action).cpu().numpy()
                 running_loss += loss.item()
 
+            fit_sol += self.eval_env.is_fit_solution()
+
         print('\t--> Test Réussite: ', 100 * correct[0]/total, '%')
         print('\t--> Test Loss:', running_loss/total)
 
@@ -341,3 +353,5 @@ class SupervisedTrainer():
                 series='reussite %', value=100*correct[0]/total, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title='Test stats',
                 series='Loss', value=running_loss/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='Test stats',
+                series='Fit solution %', value=100*fit_sol/self.eval_episodes, iteration=self.current_epoch)
