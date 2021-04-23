@@ -19,7 +19,7 @@ from moviepy.editor import *
 from matplotlib.image import imsave
 
 from torch.utils.data import DataLoader
-from torch.utils.data import Dataset, trans25_coord2int
+from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
@@ -35,7 +35,7 @@ from transformers import (GPT2Tokenizer,
 from dialRL.models import *
 from dialRL.rl_train.reward_functions import *
 from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
-from dialRL.utils import get_device
+from dialRL.utils import get_device, trans25_coord2int
 from dialRL.rl_train.callback import MonitorCallback
 from dialRL.strategies import NNStrategy
 
@@ -406,7 +406,7 @@ class SupervisedTrainer():
 
             fit_sol += self.eval_env.is_fit_solution()
             self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
-            
+
         print('\t--> Test Réussite: ', 100 * correct[0]/total, '%')
         print('\t--> Test Loss:', running_loss/total)
 
