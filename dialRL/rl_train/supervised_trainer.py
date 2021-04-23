@@ -401,7 +401,7 @@ class SupervisedTrainer():
                 if self.eval_env.time_step > last_time :
                     # last_time = self.eval_env.time_step
                     to_save.append(self.eval_env.get_image_representation())
-                    save_rewards.append(reward)
+                    save_rewards.append(correct)
 
 
             fit_sol += self.eval_env.is_fit_solution()

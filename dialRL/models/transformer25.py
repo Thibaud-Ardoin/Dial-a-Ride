@@ -113,7 +113,7 @@ class Encoder(nn.Module):
         self.embed_size = embed_size
         self.device = device
         # self.word_embedding = nn.Embedding(50000, embed_size)
-        self.word_embedding = nn.Embedding(10*(6 + 2) + 2, embed_size)
+        self.word_embedding = nn.Embedding(10000, embed_size)
         # self.position_embedding1 = nn.Embedding(src_vocab_size, embed_size//2)
         # self.position_embedding2 = nn.Embedding(src_vocab_size, embed_size//2)
         self.position_embedding = nn.Embedding(src_vocab_size, embed_size)
@@ -269,8 +269,6 @@ class Trans25(nn.Module):
         self.extremas = extremas
         self.siderange = int(math.sqrt(self.src_vocab_size))
         self.boxh, self.boxw = abs(self.extremas[2] - self.extremas[0]) / self.siderange, abs(self.extremas[3] - self.extremas[1]) / self.siderange
-        ic(self.boxh, self.boxw)
-        ic(self.siderange)
 
         self.embed_size = embed_size
         mapping_size = embed_size // 2
@@ -281,7 +279,6 @@ class Trans25(nn.Module):
     def make_src_mask(self, src):
         # Little change towards original: src got embedding dimention in additon
         src_mask = (src[:,:] != self.src_pad_idx).unsqueeze(1).unsqueeze(2)
-        ic(src_mask)
         # (N, 1, 1, src_len)
         return src_mask.to(self.device)
 
@@ -303,9 +300,7 @@ class Trans25(nn.Module):
         src_mask = self.make_src_mask(src)
 
         trg_mask = self.make_trg_mask(trg)
-        ic(trg_mask)
-        exit()
-        
+
         enc_src = self.encoder(src, src_mask, positions=positions)
         out = self.decoder(trg, enc_src, src_mask, trg_mask, positions=positions[:, nb_targets:])
         return out
@@ -320,15 +315,13 @@ class Trans25(nn.Module):
         # 10 * target id + 100 * state
         targets_emb = []
         for target in ts :
-            bij_id = 2 + target[0] + (target[0] - 1)*10 + (target[1]+2)
-            targets_emb.append(bij_id)#target[0] + (target[1]+2) * 100)
-            targets_emb.append(bij_id + 5)# + (target[1]+2) * 100)
+            # bij_id = 2 + target[0] + (target[0] - 1)*10 + (target[1]+2)
+            targets_emb.append(target[0] + (target[1]+2) * 100)
+            targets_emb.append(target[0] + (target[1]+2) * 1000)
         # 1000 * driver id
         drivers_emb = [driver[0] for driver in ds]
 
         final_emb = torch.stack(targets_emb + drivers_emb).long()
-
-        ic(final_emb)
 
         return final_emb.permute(1, 0)
         # Goal vector:
@@ -366,8 +359,6 @@ class Trans25(nn.Module):
             d3 = torch.stack([driver])
             d1.append(d3)
         d1 = torch.cat(d1)
-
-        ic(d1)
 
         return d1.permute(1, 0)
         # return d1.permute(0, 2, 1)
