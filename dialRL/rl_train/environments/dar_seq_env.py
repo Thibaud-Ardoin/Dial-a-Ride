@@ -160,6 +160,38 @@ class DarSeqEnv(DarEnv):
                        [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
             return world, targets, drivers, positions
 
+        elif self.rep_type=='trans25':
+            # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
+            positions = [self.depot_position,
+                         [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
+                         [driver.position for driver in self.drivers]]
+            world = list(map(float, [self.current_player,
+                                     self.current_player]))
+
+            targets = [list(map(float, [target.identity + self.driver_population,
+                       target.state])) for target in self.targets]
+
+            drivers = [list(map(float, [driver.identity])) +
+                       [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
+            return world, targets, drivers, positions
+
+        elif self.rep_type=='trans3':
+            # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
+            positions = [self.depot_position,
+                         [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
+                         [driver.position for driver in self.drivers]]
+
+            times = [self.time_step,
+                    [np.concatenate([target.start_fork, target.end_fork]) for target in self.targets]]
+
+            world = list(map(float, [self.current_player,
+                                     self.current_player]))
+            targets = [list(map(float, [target.identity,
+                       target.state])) for target in self.targets]
+            drivers = [list(map(float, [driver.identity])) +
+                       [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
+            return world, targets, drivers, positions, times
+
         else :
             dic = {'world': {'time': self.time_step,
                              'player': self.current_player,

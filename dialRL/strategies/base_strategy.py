@@ -3,7 +3,7 @@ import numpy as np
 from moviepy.editor import *
 from matplotlib.image import imsave
 
-from dialRL.rl_train.environments import DarSeqEnv
+from dialRL.rl_train.environments.dar_seq_env import DarSeqEnv
 from dialRL.rl_train.reward_functions import *
 
 class BaseStrategy():
@@ -14,6 +14,7 @@ class BaseStrategy():
                  reward_function='',
                  time_end=1400,
                  max_step=5000,
+                 timeless=False,
                  env=None,
                  dataset='./data/instances/cordeau2003/tabu1.txt',
                  test_env=False):
@@ -27,6 +28,7 @@ class BaseStrategy():
                             reward_function=self.rwd_fun,
                             time_end=time_end,
                             max_step=max_step,
+                            timeless=timeless,
                             dataset=self.data,
                             test_env=test_env)
         else :
@@ -44,7 +46,7 @@ class BaseStrategy():
         return (255 * (image - np.min(image)) / (np.max(image) - np.min(image))).astype(np.uint8)
 
 
-    def save_video(self, dir, observations):
+    def save_video(self, dir, noms):
         # Save the imges as video
         video_name = dir + '/Strat_res.mp4'
         clips = [ImageClip(m).set_duration(0.2)

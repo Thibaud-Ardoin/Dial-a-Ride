@@ -15,8 +15,11 @@ from stable_baselines.common.vec_env import DummyVecEnv
 from clearml import Task
 from icecream import ic
 
+from moviepy.editor import *
+from matplotlib.image import imsave
+
 from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, trans25_coord2int
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
@@ -111,9 +114,9 @@ class SupervisedTrainer():
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           reward_function=reward_function,
-                          rep_type='trans2',
+                          rep_type='trans25',
                           max_step=self.max_step,
-                          test_env=False,
+                          test_env=True,
                           timeless=True,
                           dataset=self.dataset,
                           verbose=self.verbose)
@@ -123,7 +126,7 @@ class SupervisedTrainer():
                                   target_population=self.nb_target,
                                   driver_population=self.nb_drivers,
                                   reward_function=reward_function,
-                                  rep_type='trans2',
+                                  rep_type='trans25',
                                   max_step=self.max_step,
                                   timeless=True,
                                   test_env=True,
@@ -152,6 +155,15 @@ class SupervisedTrainer():
                                                  max_length=self.nb_drivers+1,
                                                  src_pad_idx=self.image_size,
                                                  trg_pad_idx=self.image_size,
+                                                 dropout=self.dropout,
+                                                 extremas=self.env.extremas,
+                                                 device=self.device).to(self.device).double()
+        elif self.model=='Trans25':
+            self.model = globals()[self.model](src_vocab_size=70000,
+                                                 trg_vocab_size=self.nb_target + 1,
+                                                 max_length=self.nb_drivers+1,
+                                                 src_pad_idx=-1,
+                                                 trg_pad_idx=-1,
                                                  dropout=self.dropout,
                                                  extremas=self.env.extremas,
                                                  device=self.device).to(self.device).double()
@@ -201,13 +213,49 @@ class SupervisedTrainer():
             print(item, ':', vars(self)[item])
 
 
+    def save_example(self, observations, rewards, number, time_step):
+        noms = []
+        dir = self.path_name + '/example/' + str(time_step) + '/ex_number' + str(number)
+        if dir is not None:
+            os.makedirs(dir, exist_ok=True)
+
+            for i, obs in enumerate(observations):
+                save_name = dir + '/' + str(i) + '_r=' + str(rewards[i]) + '.png'  #[np.array(img) for i, img in enumerate(images)
+                # if self.env.__class__.__name__ == 'DummyVecEnv':
+                #     image = self.norm_image(obs[0], scale=1)
+                # else :
+                #     image = self.norm_image(obs, scale=1)
+                image = obs
+                # print('SHae after image', np.shape(image))
+                imsave(save_name, image)
+                noms.append(save_name)
+
+        # Save the imges as video
+        video_name = dir + 'r=' + str(np.sum(rewards)) + '.mp4'
+        clips = [ImageClip(m).set_duration(0.2)
+              for m in noms]
+
+        concat_clip = concatenate_videoclips(clips, method="compose")
+        concat_clip.write_videofile(video_name, fps=24, verbose=None, logger=None)
+
+        if self.sacred :
+            self.sacred.get_logger().report_media('video', 'Res_' + str(number) + '_Rwd=' + str(np.sum(rewards)),
+                                                  iteration=time_step,
+                                                  local_path=video_name)
+        del concat_clip
+        del clips
+
+
     def generate_supervision_data(self):
         print('\t ** Generation Started **')
         number_batch = self.data_size // self.batch_size
         size = number_batch * self.batch_size
 
         data = []
-        saving_name = self.rootdir + '/data/supervision_data/' + str(size) + '.pt'
+        saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}.pt'.format(s=str(size),
+                                                                                              t=str(self.nb_target),
+                                                                                              d=str(self.nb_drivers),
+                                                                                              i=str(self.image_size))
         done = True
 
         if os.path.isfile(saving_name) :
@@ -253,14 +301,17 @@ class SupervisedTrainer():
             info_block = [world, targets, drivers]
             # Current player as trg elmt
             target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
+            # target_tensor = torch.tensor([0 for _ in range(self.batch_size)]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+            # coord_int = trans25_coord2int(positions[1][supervised_action])
 
             model_action = self.model(info_block,
                                       target_tensor,
                                       positions=positions)
 
-            model_action = model_action[:,0]
+            # model_action = model_action[:,0]
 
-            loss = self.criterion(model_action, supervised_action.squeeze(-1))
+            # loss = self.criterion(model_action, supervised_action.squeeze(-1))
+            loss = self.criterion(model_action.squeeze(1), supervised_action.squeeze(-1))
 
             loss.backward()
 
@@ -268,7 +319,7 @@ class SupervisedTrainer():
             self.optimizer.step()
 
             total += supervised_action.size(0)
-            correct += np.sum((model_action.argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
+            correct += np.sum((model_action.squeeze(1).argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
             running_loss += loss.item()
 
             # Limit train passage to 20 rounds
@@ -277,12 +328,12 @@ class SupervisedTrainer():
 
         acc = 100 * correct/total
         print('-> Réussite: ', acc, '%')
-        print('-> Loss:', running_loss)
+        print('-> Loss:', 100*running_loss/total)
         self.scheduler.step(running_loss)
 
         if self.sacred :
             self.sacred.get_logger().report_scalar(title='Train stats',
-                series='train loss', value=running_loss, iteration=self.current_epoch)
+                series='train loss', value=100*running_loss/total, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title='Train stats',
                 series='Train accuracy', value=acc, iteration=self.current_epoch)
 
@@ -312,6 +363,10 @@ class SupervisedTrainer():
             done = False
             observation = self.eval_env.reset()
 
+            to_save = [self.eval_env.get_image_representation()]
+            save_rewards = [0]
+            last_time = 0
+
             while not done :
                 world, targets, drivers, positions = observation
                 w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
@@ -336,15 +391,22 @@ class SupervisedTrainer():
 
                 observation, reward, done, info = self.eval_env.step(chosen_action.cpu().item())
                 # self.env.render()
-                loss = self.criterion(model_action[0], supervised_action)
+                # loss = self.criterion(model_action[0], supervised_action)
 
                 total_reward += reward
                 total += 1
                 correct += (model_action.argmax(-1)[0][0] == supervised_action).cpu().numpy()
-                running_loss += loss.item()
+                running_loss += 0 #loss.item()
+
+                if self.eval_env.time_step > last_time :
+                    # last_time = self.eval_env.time_step
+                    to_save.append(self.eval_env.get_image_representation())
+                    save_rewards.append(reward)
+
 
             fit_sol += self.eval_env.is_fit_solution()
-
+            self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            
         print('\t--> Test Réussite: ', 100 * correct[0]/total, '%')
         print('\t--> Test Loss:', running_loss/total)
 

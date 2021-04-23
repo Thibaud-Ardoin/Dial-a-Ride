@@ -6,6 +6,7 @@ import drawSvg as draw
 import tempfile
 from icecream import ic
 import time
+import math
 
 def get_device():
     if is_available(): #False: #
@@ -14,6 +15,23 @@ def get_device():
         device = 'cpu'
     print(' - Device: ', device, ' - ')
     return device
+
+def trans25_coord2int(coord, src_vocab_size, extremas):
+    siderange = int(math.sqrt(src_vocab_size))
+    boxh, boxw = abs(extremas[2] - extremas[0]) / siderange, abs(extremas[3] - extremas[1]) / siderange
+    h, w = abs(coordonate[:,0] - extremas[0]) / boxh, abs(coordonate[:,1] -  extremas[1]) / boxw
+    return h.add(w * siderange).long()
+
+
+def norm_image(self, image, type=None, scale=1):
+    image = np.kron(image, np.ones((scale, scale)))
+    if type=='rgb':
+        ret = np.empty((image.shape[0], image.shape[0], 3), dtype=np.uint8)
+        ret[:, :, 0] = image.copy()
+        ret[:, :, 1] = image.copy()
+        ret[:, :, 2] = image.copy()
+        image = ret.copy()
+    return (255 * (image - np.min(image)) / (np.max(image) - np.min(image))).astype(np.uint8)
 
 
 class objdict(dict):

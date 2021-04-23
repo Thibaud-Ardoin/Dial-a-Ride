@@ -1,4 +1,5 @@
 import numpy as np
+from icecream import ic
 
 from dialRL.strategies import BaseStrategy
 from dialRL.utils import distance
@@ -24,9 +25,10 @@ class NNStrategy(BaseStrategy):
             # Potential Dropoff
             elif target.state == 0 :
                 if player.can_unload(target, self.env.time_step) :
-                    d = distance(player.position, target.pickup)
+                    d = distance(player.position, target.dropoff)
                     if choice[1] > d:
                         choice = (target, d)
+
         if choice[0] is None :
             return 0
         return choice[0].identity
@@ -35,11 +37,12 @@ class NNStrategy(BaseStrategy):
 if __name__ == '__main__':
     strat = NNStrategy(size=4,
                         target_population=2,
-                        driver_population=2,
+                        driver_population=1,
                         reward_function='ConstantReward',
                         time_end=1400,
                         max_step=5000,
-                        dataset='./data/instances/cordeau2003/tabu6.txt',
+                        timeless=True,
+                        dataset='',
                         test_env=True)
 
     strat.run()
