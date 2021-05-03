@@ -268,7 +268,8 @@ class Trans25(nn.Module):
         # Boxing stuff
         self.extremas = extremas
         self.siderange = int(math.sqrt(self.src_vocab_size))
-        self.boxh, self.boxw = abs(self.extremas[2] - self.extremas[0]) / self.siderange, abs(self.extremas[3] - self.extremas[1]) / self.siderange
+        self.boxh = abs(self.extremas[2] - self.extremas[0]) / self.siderange
+        self.boxw = abs(self.extremas[3] - self.extremas[1]) / self.siderange
 
         self.embed_size = embed_size
         mapping_size = embed_size // 2
@@ -301,8 +302,8 @@ class Trans25(nn.Module):
 
         trg_mask = self.make_trg_mask(trg)
 
-        enc_src = self.encoder(src, src_mask, positions=positions)
-        out = self.decoder(trg, enc_src, src_mask, trg_mask, positions=positions[:, nb_targets:])
+        enc_src = self.encoder(src, src_mask, positions=positions[:, :nb_targets*2])
+        out = self.decoder(trg, enc_src, src_mask, trg_mask, positions=positions[:, 2*nb_targets:])
         return out
 
     def env_encoding(self, src):
@@ -316,12 +317,13 @@ class Trans25(nn.Module):
         targets_emb = []
         for target in ts :
             # bij_id = 2 + target[0] + (target[0] - 1)*10 + (target[1]+2)
-            targets_emb.append(target[0] + (target[1]+2) * 100)
-            targets_emb.append(target[0] + (target[1]+2) * 1000)
+            targets_emb.append(target[0]*10 + (target[1]+2))
+            targets_emb.append(target[0])
         # 1000 * driver id
         drivers_emb = [driver[0] for driver in ds]
 
-        final_emb = torch.stack(targets_emb + drivers_emb).long()
+        # Removed drivers
+        final_emb = torch.stack(targets_emb).long()
 
         return final_emb.permute(1, 0)
         # Goal vector:
@@ -340,7 +342,8 @@ class Trans25(nn.Module):
 
 
     def bidim2int(self, coordonate):
-        h, w = abs(coordonate[:,0] - self.extremas[0]) / self.boxh, abs(coordonate[:,1] - self.extremas[1]) / self.boxw
+        h = abs(coordonate[:,0] - self.extremas[0]) / self.boxh
+        w = abs(coordonate[:,1] - self.extremas[1]) / self.boxw
         return h.add(w * self.siderange).long()
 
     def positional_encoding(self, position):

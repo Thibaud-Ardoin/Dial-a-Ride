@@ -97,6 +97,19 @@ class DarSeqEnv(DarEnv):
     def is_fit_solution(self):
         return int(self.targets_states()[4] == self.target_population)
 
+    def nearest_target(self, position):
+        choosen = (None, np.inf)
+        for target in self.targets :
+            if target.state < 0 :
+                d = distance(position, target.pickup)
+            else :
+                d = distance(position, target.dropoff)
+            if choosen[1] > d :
+                choosen = (target.identity, d)
+
+        return choosen[0]
+
+
     def representation(self):
         if self.rep_type=='block' :
             # Agregate  world infrmations
@@ -168,7 +181,7 @@ class DarSeqEnv(DarEnv):
             world = list(map(float, [self.current_player,
                                      self.current_player]))
 
-            targets = [list(map(float, [target.identity + self.driver_population,
+            targets = [list(map(float, [target.identity,
                        target.state])) for target in self.targets]
 
             drivers = [list(map(float, [driver.identity])) +

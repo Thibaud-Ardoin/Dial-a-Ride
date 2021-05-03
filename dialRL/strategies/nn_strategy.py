@@ -36,7 +36,7 @@ class NNStrategy(BaseStrategy):
 
 if __name__ == '__main__':
     strat = NNStrategy(size=4,
-                        target_population=2,
+                        target_population=6,
                         driver_population=1,
                         reward_function='ConstantReward',
                         time_end=1400,

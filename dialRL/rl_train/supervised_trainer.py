@@ -5,6 +5,7 @@ import imageio
 import time
 import json
 import numpy as np
+import math
 
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 from stable_baselines.common import make_vec_env
@@ -160,8 +161,8 @@ class SupervisedTrainer():
                                                  device=self.device).to(self.device).double()
         elif self.model=='Trans25':
             self.model = globals()[self.model](src_vocab_size=70000,
-                                                 trg_vocab_size=self.nb_target + 1,
-                                                 max_length=self.nb_drivers+1,
+                                                 trg_vocab_size=70000,
+                                                 max_length=10,
                                                  src_pad_idx=-1,
                                                  trg_pad_idx=-1,
                                                  dropout=self.dropout,
@@ -246,6 +247,27 @@ class SupervisedTrainer():
         del clips
 
 
+    def bidim2int(self, coordonate):
+        src_vocab_size = 70000
+        siderange = int(math.sqrt(src_vocab_size))
+        boxh, boxw = abs(self.env.extremas[2] - self.env.extremas[0]) / siderange, abs(self.env.extremas[3] - self.env.extremas[1]) / siderange
+
+        h = int(abs(coordonate[0] - self.env.extremas[0]) / boxh )
+        w = int(abs(coordonate[1] - self.env.extremas[1]) / boxw )
+        return int(h + (w * siderange))
+
+    def int2bidim(self, int_position):
+        src_vocab_size = 70000
+        siderange = int(math.sqrt(src_vocab_size))
+        boxh, boxw = abs(self.env.extremas[2] - self.env.extremas[0]) / siderange, abs(self.env.extremas[3] - self.env.extremas[1]) / siderange
+
+        h = int_position - siderange * (int_position // siderange)
+        w = (int_position - h) / siderange
+        h = (h * boxh) + self.env.extremas[0]
+        w = (w * boxw) + self.env.extremas[1]
+        return h, w
+
+
     def generate_supervision_data(self):
         print('\t ** Generation Started **')
         number_batch = self.data_size // self.batch_size
@@ -271,6 +293,12 @@ class SupervisedTrainer():
 
             supervised_action = self.supervision.action_choice()
             supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
+
+            action_target = self.env.targets[supervised_action - 1]
+            if action_target.state < 0:
+                supervised_action = self.bidim2int(action_target.pickup)
+            else :
+                supervised_action = self.bidim2int(action_target.dropoff)
 
             data.append([observation, supervised_action])
             observation, reward, done, info = self.env.step(supervised_action)
@@ -309,6 +337,7 @@ class SupervisedTrainer():
                                       positions=positions)
 
             # model_action = model_action[:,0]
+            supervised_action = supervised_action.to(self.device)
 
             # loss = self.criterion(model_action, supervised_action.squeeze(-1))
             loss = self.criterion(model_action.squeeze(1), supervised_action.squeeze(-1))
@@ -387,15 +416,16 @@ class SupervisedTrainer():
                 supervised_action = self.supervision.action_choice()
                 supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
 
-                chosen_action = model_action[:, 0].argmax(-1)
+                chosen_position = model_action[:, 0].argmax(-1).cpu().item()
+                chosen_action = self.eval_env.nearest_target(self.int2bidim(chosen_position))
 
-                observation, reward, done, info = self.eval_env.step(chosen_action.cpu().item())
+                observation, reward, done, info = self.eval_env.step(chosen_action)
                 # self.env.render()
                 # loss = self.criterion(model_action[0], supervised_action)
 
                 total_reward += reward
                 total += 1
-                correct += (model_action.argmax(-1)[0][0] == supervised_action).cpu().numpy()
+                correct += (chosen_action == supervised_action).cpu().numpy()
                 running_loss += 0 #loss.item()
 
                 if self.eval_env.time_step > last_time :
@@ -417,3 +447,5 @@ class SupervisedTrainer():
                 series='Loss', value=running_loss/total, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title='Test stats',
                 series='Fit solution %', value=100*fit_sol/self.eval_episodes, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='Test stats',
+                series='Step Reward', value=total_reward/total, iteration=self.current_epoch)
