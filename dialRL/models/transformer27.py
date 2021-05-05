@@ -235,6 +235,7 @@ class Trans27(nn.Module):
         extremas=None,
         device="",
         max_length=100,         #100
+        typ=None
     ):
 
         super(Trans27, self).__init__()
@@ -280,10 +281,34 @@ class Trans27(nn.Module):
 
         self.pe = self.generate_positional_encoding(self.embed_size, max_len=1000)
 
-        self.ind_embedding = nn.Embedding(100, embed_size)
+        self.trg_vocab_size = trg_vocab_size
+        self.typ=typ
+
         self.pos_embedding = nn.Embedding(src_vocab_size, embed_size)
 
-        self.input_emb = nn.Linear(2, self.embed_size)
+
+        if self.typ in [1, 2]:
+            self.ind_embedding = nn.Embedding(100, self.embed_size)
+        elif self.typ in [3]:
+            self.ind_embedding = nn.Linear(2, self.embed_size)
+        elif self.typ in [4]:
+            # driver, #target pickup, #target dropoff
+            self.ind_embedding = [nn.Linear(2, self.embed_size).to(self.device),
+                                  nn.Linear(2, self.embed_size).to(self.device),
+                                  nn.Linear(2, self.embed_size).to(self.device)]
+
+
+
+        if self.typ in [1, 3]:
+            self.input_emb = nn.Linear(2, self.embed_size)
+        elif self.typ in [2]:
+            self.input_emb = nn.Linear(self.embed_size, self.embed_size).to(self.device)
+        elif self.typ in [4] :
+            # Driver, pickup, dropoff
+            self.input_emb = [nn.Linear(2, self.embed_size).to(self.device),
+                              nn.Linear(2, self.embed_size).to(self.device),
+                              nn.Linear(2, self.embed_size).to(self.device)]
+
 
 
     def make_src_mask(self, src):
@@ -310,6 +335,10 @@ class Trans27(nn.Module):
         src_mask = self.make_src_mask(src)
 
         trg_mask = self.make_trg_mask(trg)
+        if self.typ == 4:
+            src = src.float()
+            positions = positions.float()
+            src_mask = src_mask.float()
 
         enc_src = self.encoder(src, src_mask, positions=positions)#[:, :nb_targets])
         out = self.decoder(trg, enc_src, src_mask, trg_mask, positions=positions[:, nb_targets:])
@@ -343,11 +372,28 @@ class Trans27(nn.Module):
         targets_emb = []
         for target in ts :
             # bij_id = 2 + target[0] + (target[0] - 1)*10 + (target[1]+2)
-            targets_emb.append(self.ind_embedding((target[0] + 2 + target[1]+2).long().to(self.device)))
-            targets_emb.append(self.ind_embedding((target[0]).long().to(self.device)))
+            if self.typ in [1, 2]:
+                targets_emb.append(self.ind_embedding((target[0] + self.trg_vocab_size + target[1]+2).long().to(self.device)))
+                targets_emb.append(self.ind_embedding((target[0]).long().to(self.device)))
+            elif self.typ in [3]:
+                targets_emb.append(self.ind_embedding(torch.stack([target[0], target[1]+2], dim=-1).double().to(self.device)))
+                targets_emb.append(self.ind_embedding(torch.stack([target[0], target[0]], dim=-1).double().to(self.device)))
+            elif self.typ in [4]:
+                targets_emb.append(self.ind_embedding[1](torch.stack([target[0], target[1]+2], dim=-1).float().to(self.device)))
+                targets_emb.append(self.ind_embedding[2](torch.stack([target[0], target[1]+2], dim=-1).float().to(self.device)))
+            else :
+                raise "Nah"
             # targets_emb.append(target[0])
+
         # 1000 * driver id
-        drivers_emb = [self.ind_embedding(driver[0].long().to(self.device)) for driver in ds]
+        if self.typ in [1, 2]:
+            drivers_emb = [self.ind_embedding(driver[0].long().to(self.device)) for driver in ds]
+        elif self.typ in [3]:
+            drivers_emb = [self.ind_embedding(torch.stack([driver[0], driver[0]], dim=-1).double().to(self.device)) for driver in ds]
+        elif self.typ in [4]:
+            drivers_emb = [self.ind_embedding[0](torch.stack([driver[0], driver[0]], dim=-1).float().to(self.device)) for driver in ds]
+        else :
+            raise "Nah"
 
         # Removed drivers
         final_emb = torch.stack(targets_emb + drivers_emb)
@@ -358,7 +404,7 @@ class Trans27(nn.Module):
 
 
     def fourier_feature(self, coordonates):
-        coordonates = torch.stack(coordonates).permute(1, 0)
+        # coordonates = torch.stack(coordonates).permute(1, 0)
         pi = torch.tensor(torch.acos(torch.zeros(1)).item() * 2 * 2)
         x = (pi * coordonates).double()
         transB = torch.transpose(self.B_gauss, 0, 1).double()
@@ -372,7 +418,6 @@ class Trans27(nn.Module):
         h = abs(coordonate[:,0] - self.extremas[0]) / self.boxh
         w = abs(coordonate[:,1] - self.extremas[1]) / self.boxw
         return h.add(w * self.siderange).long()
-
 
 
     def positional_encoding(self, position):
@@ -392,12 +437,28 @@ class Trans27(nn.Module):
             # self.pos_embedding(doff.to(self.device))
             # self.pos_embedding(pick.to(self.device))
             # nn.Parameter(torch.rand(bsz, self.embed_size))
-            d2 = torch.stack([self.input_emb(pick.to(self.device))])
+            if self.typ in [1, 3]:
+                d2 = torch.stack([self.input_emb(pick.to(self.device))])
+                d25 = torch.stack([self.input_emb(doff.to(self.device))])
+            elif self.typ in [2]:
+                d2 = torch.stack([self.input_emb(self.fourier_feature(pick).to(self.device))])
+                d25 = torch.stack([self.input_emb(self.fourier_feature(doff).to(self.device))])
+            elif self.typ in [4]:
+                d2 = torch.stack([self.input_emb[1](pick.float().to(self.device))])
+                d25 = torch.stack([self.input_emb[2](doff.float().to(self.device))])
+            else :
+                raise "Nah"
             d1.append(d2)
-            d2 = torch.stack([self.input_emb(doff.to(self.device))])
-            d1.append(d2)
+            d1.append(d25)
         for driver in drivers :
-            d3 = torch.stack([self.input_emb(driver.to(self.device))])
+            if self.typ in [1, 3]:
+                d3 = torch.stack([self.input_emb(driver.to(self.device))])
+            elif self.typ in [2]:
+                d3 = torch.stack([self.input_emb(self.fourier_feature(driver).to(self.device))])
+            elif self.typ in [4]:
+                d3 = torch.stack([self.input_emb[0](driver.float().to(self.device))])
+            else :
+                raise "Nah"
             d1.append(d3)
         d1 = torch.cat(d1)
 

@@ -176,7 +176,8 @@ class SupervisedTrainer():
                                                  trg_pad_idx=-1,
                                                  dropout=self.dropout,
                                                  extremas=self.env.extremas,
-                                                 device=self.device).to(self.device).double()
+                                                 device=self.device,
+                                                 typ=self.typ).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
 
@@ -416,7 +417,7 @@ class SupervisedTrainer():
 
 
             fit_sol += self.eval_env.is_fit_solution()
-            self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            # self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
 
         print('\t--> Test Réussite: ', 100 * correct[0]/total, '%')
         print('\t--> Test Loss:', running_loss/total)
