@@ -71,6 +71,12 @@ class Driver():
     def __str__(self):
         return "Driver at : " + str(self.position) + ' he is ' + self.order
 
+    def next_available(self, current_time):
+        if self.destination is None:
+            return current_time
+        else :
+            return current_time + distance(self.destination, self.position)
+
 
     def can_load(self, target, current_time):
         if target.weight + self.capacity() > self.max_capacity :

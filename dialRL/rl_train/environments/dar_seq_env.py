@@ -188,6 +188,26 @@ class DarSeqEnv(DarEnv):
                        [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
             return world, targets, drivers, positions
 
+        elif self.rep_type=='trans28':
+            # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
+            positions = [self.depot_position,
+                         [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
+                         [driver.position for driver in self.drivers]]
+
+            time_constraint = [self.time_step,
+                               [np.concatenate([target.start_fork, target.end_fork]) for target in self.targets],
+                               [driver.next_available(self.time_step) for driver in self.drivers]]
+
+            world = list(map(float, [self.current_player,
+                                     self.current_player]))
+
+            targets = [list(map(float, [target.identity,
+                       target.state])) for target in self.targets]
+
+            drivers = [list(map(float, [driver.identity])) +
+                       [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
+            return world, targets, drivers, positions, time_constraint
+
         elif self.rep_type=='trans3':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [self.depot_position,

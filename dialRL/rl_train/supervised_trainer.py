@@ -115,10 +115,10 @@ class SupervisedTrainer():
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           reward_function=reward_function,
-                          rep_type='trans25',
+                          rep_type='trans28',
                           max_step=self.max_step,
                           test_env=True,
-                          timeless=True,
+                          timeless=self.timeless,
                           dataset=self.dataset,
                           verbose=self.verbose)
 
@@ -127,9 +127,9 @@ class SupervisedTrainer():
                                   target_population=self.nb_target,
                                   driver_population=self.nb_drivers,
                                   reward_function=reward_function,
-                                  rep_type='trans25',
+                                  rep_type='trans28',
                                   max_step=self.max_step,
-                                  timeless=True,
+                                  timeless=self.timeless,
                                   test_env=True,
                                   dataset=self.dataset)
                           # dataset=self.dataset) for i in range(1)])
@@ -178,6 +178,16 @@ class SupervisedTrainer():
                                                  extremas=self.env.extremas,
                                                  device=self.device,
                                                  typ=self.typ).to(self.device).double()
+        elif self.model=='Trans28':
+            self.model = globals()[self.model](src_vocab_size=50000,
+                                                 trg_vocab_size=self.nb_target + 1,
+                                                 max_length=10,
+                                                 src_pad_idx=-1,
+                                                 trg_pad_idx=-1,
+                                                 dropout=self.dropout,
+                                                 extremas=self.env.extremas,
+                                                 device=self.device,
+                                                 typ=self.typ).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
 
@@ -209,13 +219,13 @@ class SupervisedTrainer():
         self.testing_size = self.batch_size * (10000 // self.batch_size)    #About 10k
         self.training_size = self.batch_size * (100000 // self.batch_size)   #About 100k
 
-        self.monitor = MonitorCallback(eval_env=self.eval_env,
-                                      check_freq=self.monitor_freq,
-                                      save_example_freq=self.example_freq,
-                                      log_dir=self.path_name,
-                                      n_eval_episodes=self.eval_episodes,
-                                      verbose=self.verbose,
-                                      sacred=self.sacred)
+        # self.monitor = MonitorCallback(eval_env=self.eval_env,
+        #                               check_freq=self.monitor_freq,
+        #                               save_example_freq=self.example_freq,
+        #                               log_dir=self.path_name,
+        #                               n_eval_episodes=self.eval_episodes,
+        #                               verbose=self.verbose,
+        #                               sacred=self.sacred)
         self.current_epoch = 0
 
 
@@ -308,7 +318,7 @@ class SupervisedTrainer():
 
             observation, supervised_action = data
 
-            world, targets, drivers, positions = observation
+            world, targets, drivers, positions, time_constraints = observation
             info_block = [world, targets, drivers]
             # Current player as trg elmt
             target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
@@ -317,7 +327,8 @@ class SupervisedTrainer():
 
             model_action = self.model(info_block,
                                       target_tensor,
-                                      positions=positions)
+                                      positions=positions,
+                                      times=time_constraints)
 
             # model_action = model_action[:,0]
             supervised_action = supervised_action.to(self.device)
@@ -380,7 +391,7 @@ class SupervisedTrainer():
             last_time = 0
 
             while not done :
-                world, targets, drivers, positions = observation
+                world, targets, drivers, positions, time_contraints = observation
                 w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
                 t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
                 d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
@@ -390,11 +401,16 @@ class SupervisedTrainer():
                              [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
                              [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
 
+                time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
+                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
+
                 target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
 
                 model_action = self.model(info_block,
                                           target_tensor,
-                                          positions=positions)
+                                          positions=positions,
+                                          times=time_contraints)
 
                 supervised_action = self.supervision.action_choice()
                 supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
