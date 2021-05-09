@@ -117,7 +117,7 @@ class SupervisedTrainer():
                           reward_function=reward_function,
                           rep_type='trans28',
                           max_step=self.max_step,
-                          test_env=True,
+                          test_env=False,
                           timeless=self.timeless,
                           dataset=self.dataset,
                           verbose=self.verbose)
@@ -356,7 +356,7 @@ class SupervisedTrainer():
             running_loss += loss.item()
 
             # Limit train passage to 20 rounds
-            if i == 1:
+            if i == 20:
                 break
 
         acc = 100 * correct/total
@@ -443,8 +443,10 @@ class SupervisedTrainer():
 
 
             fit_sol += self.eval_env.is_fit_solution()
-            self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
 
+        # To spare time, only the last example is saved
+
+        self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
         print('\t--> Test Réussite: ', 100 * correct[0]/total, '%')
         print('\t--> Test Loss:', running_loss/total)
 

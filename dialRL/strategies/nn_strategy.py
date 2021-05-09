@@ -41,8 +41,8 @@ if __name__ == '__main__':
                         reward_function='ConstantReward',
                         time_end=1400,
                         max_step=5000,
-                        timeless=True,
-                        dataset='',
-                        test_env=True)
+                        timeless=False,
+                        dataset='/home/tibo/Documents/Prog/EPFL/own/data/instances/cordeau2003/tabu1.txt',
+                        test_env=False)
 
     strat.run()

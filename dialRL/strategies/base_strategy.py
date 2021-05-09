@@ -1,3 +1,4 @@
+from icecream import ic
 import numpy as np
 
 from moviepy.editor import *
