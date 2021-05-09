@@ -273,10 +273,11 @@ class SupervisedTrainer():
         size = number_batch * self.batch_size
 
         data = []
-        saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}.pt'.format(s=str(size),
+        saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}.pt'.format(s=str(size),
                                                                                               t=str(self.nb_target),
                                                                                               d=str(self.nb_drivers),
-                                                                                              i=str(self.image_size))
+                                                                                              i=str(self.image_size),
+                                                                                              tt=str(self.timeless))
         done = True
 
         if os.path.isfile(saving_name) :
@@ -433,7 +434,7 @@ class SupervisedTrainer():
 
 
             fit_sol += self.eval_env.is_fit_solution()
-            # self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
 
         print('\t--> Test Réussite: ', 100 * correct[0]/total, '%')
         print('\t--> Test Loss:', running_loss/total)
