@@ -194,9 +194,9 @@ class DarSeqEnv(DarEnv):
                          [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
                          [driver.position for driver in self.drivers]]
 
-            time_constraint = [self.time_step,
+            time_constraint = [float(self.time_step),
                                [np.concatenate([target.start_fork, target.end_fork]) for target in self.targets],
-                               [driver.next_available(self.time_step) for driver in self.drivers]]
+                               [float(driver.next_available(self.time_step)) for driver in self.drivers]]
 
             world = list(map(float, [self.current_player,
                                      self.current_player]))

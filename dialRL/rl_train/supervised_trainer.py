@@ -134,6 +134,10 @@ class SupervisedTrainer():
                                   dataset=self.dataset)
                           # dataset=self.dataset) for i in range(1)])
 
+        self.nb_target = self.env.target_population
+        self.nb_drivers = self.env.driver_population
+        self.image_size = self.env.size
+
         self.supervision = NNStrategy(reward_function=self.reward_function,
                                       env=self.env)
 
@@ -273,11 +277,16 @@ class SupervisedTrainer():
         size = number_batch * self.batch_size
 
         data = []
-        saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}.pt'.format(s=str(size),
-                                                                                              t=str(self.nb_target),
-                                                                                              d=str(self.nb_drivers),
-                                                                                              i=str(self.image_size),
-                                                                                              tt=str(self.timeless))
+        if self.dataset:
+            data_type = self.dataset.split('/')[-1].split('.')[0]
+            saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}.pt'.format(s=str(size),
+                                                                                                                tt=str(self.timeless))
+        else :
+            saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}.pt'.format(s=str(size),
+                                                                                                              t=str(self.nb_target),
+                                                                                                              d=str(self.nb_drivers),
+                                                                                                              i=str(self.image_size),
+                                                                                                              tt=str(self.timeless))
         done = True
 
         if os.path.isfile(saving_name) :
@@ -347,7 +356,7 @@ class SupervisedTrainer():
             running_loss += loss.item()
 
             # Limit train passage to 20 rounds
-            if i == 20:
+            if i == 1:
                 break
 
         acc = 100 * correct/total

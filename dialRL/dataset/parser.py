@@ -1,3 +1,4 @@
+import numpy as np
 from dialRL.dataset import Target, Driver
 
 
@@ -11,20 +12,20 @@ def tabu_parse(file_name):
         # Depot
         identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
         for d in range(nb_drivers):
-            driver = Driver(position=(X, Y), identity=d+1, max_capacity=e, speed=1, verbose=False)
+            driver = Driver(position=np.array([X, Y]), identity=d+1, max_capacity=e, speed=1, verbose=False)
             drivers.append(driver)
 
         for l in range(number_line) :
             if l < number_line//2 :
                 identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
                 # print(identity, X, Y, we, ty, st, en)
-                t = Target(pickup=(X, Y), dropoff=None, start=(st, en), end=None, identity=int(identity), weight=1)
+                t = Target(pickup=np.array([X, Y]), dropoff=None, start=np.array([st, en]), end=None, identity=int(identity), weight=1)
                 targets.append(t)
             else :
                 identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
                 re_t = targets[l - number_line//2]
-                re_t.dropoff = (X, Y)
-                re_t.end_fork = (st, en)
+                re_t.dropoff = np.array([X, Y])
+                re_t.end_fork = np.array([st, en])
 
     return targets, drivers
 
@@ -45,7 +46,7 @@ def tabu_parse_info(file_name):
         time_end = en
         target_population = number_line // 2
         driver_population = nb_drivers
-        depot_position = (X, Y)
+        depot_position = np.array([X, Y])
 
         extremas = check_extrema(extremas, X, Y)
         for l in range(number_line) :
