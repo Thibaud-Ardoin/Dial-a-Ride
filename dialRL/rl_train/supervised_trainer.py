@@ -191,7 +191,8 @@ class SupervisedTrainer():
                                                  dropout=self.dropout,
                                                  extremas=self.env.extremas,
                                                  device=self.device,
-                                                 typ=self.typ).to(self.device).double()
+                                                 typ=self.typ,
+                                                 max_time=self.env.time_end).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
 

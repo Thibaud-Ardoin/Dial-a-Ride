@@ -22,6 +22,8 @@ def trans25_coord2int(coord, src_vocab_size, extremas):
     h, w = abs(coordonate[:,0] - extremas[0]) / boxh, abs(coordonate[:,1] -  extremas[1]) / boxw
     return h.add(w * siderange).long()
 
+def quinconx(a, b, d=1):
+    return torch.cat([a.unsqueeze(-1), b.unsqueeze(-1)], dim=-1).flatten(start_dim=d)
 
 def norm_image(self, image, type=None, scale=1):
     image = np.kron(image, np.ones((scale, scale)))

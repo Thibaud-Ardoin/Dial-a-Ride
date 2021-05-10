@@ -16,9 +16,11 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 coord2int,
                                 time2int,
                                 plotting,
-                                trans25_coord2int)
+                                trans25_coord2int,
+                                quinconx)
 
 __all__ = ['coord2int',
+           'quinconx',
            'trans25_coord2int',
            'plotting',
            'time2int',
