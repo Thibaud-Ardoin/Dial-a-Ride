@@ -50,6 +50,7 @@ def get_args(args):
     parser.add_argument('--data_size', default=100000, type=int)
     parser.add_argument('--typ', default=1, type=int)
     parser.add_argument('--timeless', default=False, type=bool)
+    parser.add_argument('--embed_size', default=128, type=int)
 
     return parser.parse_known_args(args)[0]
 

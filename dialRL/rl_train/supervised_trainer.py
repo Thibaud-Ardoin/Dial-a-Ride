@@ -188,6 +188,7 @@ class SupervisedTrainer():
                                                  max_length=10,
                                                  src_pad_idx=-1,
                                                  trg_pad_idx=-1,
+                                                 embed_size=self.embed_size,
                                                  dropout=self.dropout,
                                                  extremas=self.env.extremas,
                                                  device=self.device,
