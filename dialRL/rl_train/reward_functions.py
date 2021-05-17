@@ -161,3 +161,18 @@ class ConstantDistributionReward(BaseReward):
                 rwd += t * count
             self.distribution = new_distribution
         return rwd
+
+class JustDistance(BaseReward):
+    def __init__(self):
+        """
+        Reward = Distance lors du calcul
+        """
+        super().__init__()
+
+    def compute(self, distance, done, env):
+        if distance < 0 :
+            return 100
+        elif distance == 0 :
+            return 10
+        else :
+            return distance

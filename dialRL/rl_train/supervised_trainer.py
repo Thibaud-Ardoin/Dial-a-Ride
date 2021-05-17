@@ -23,6 +23,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
+from torch.nn.functional import softmax
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
 import torch.optim as optim
 from transformers import (GPT2Tokenizer,
@@ -134,6 +135,7 @@ class SupervisedTrainer():
                                   dataset=self.dataset)
                           # dataset=self.dataset) for i in range(1)])
 
+        self.best_eval_accuracy = 0
         self.nb_target = self.env.target_population
         self.nb_drivers = self.env.driver_population
         self.image_size = self.env.size
@@ -280,6 +282,7 @@ class SupervisedTrainer():
 
         data = []
         if self.dataset:
+            self.eval_episodes = 1
             data_type = self.dataset.split('/')[-1].split('.')[0]
             saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}.pt'.format(s=str(size),
                                                                                                                 tt=str(self.timeless))
@@ -373,16 +376,128 @@ class SupervisedTrainer():
                 series='Train accuracy', value=acc, iteration=self.current_epoch)
 
 
+    def generate_rl_data(self):
+        print(" - Generate ...")
+        size = 1 * self.batch_size
+        actions = []
+        supervised = []
+        rewards = []
+        final_data = []
+        done = False
+        observation = self.env.reset()
+        step = 0
+
+        # Generate a Memory batch
+        while step < size:
+
+            if done :
+                observation = self.env.reset()
+                # ic(torch.stack(actions))
+                # ic(torch.stack(actions).sum(dim=0))
+                # ic(torch.sum(torch.tensor(rewards)))
+                final_data.append([torch.sum(torch.tensor(rewards)), torch.stack(actions).sum(dim=0).squeeze(), []])
+                # ic(final_data[-1][0].shape)
+                # ic(final_data[-1][1].shape)
+                actions = []
+                supervised = []
+                rewards = []
+                print('[{s} / {ss}]'.format(s=step, ss=size))
+
+            world, targets, drivers, positions, time_contraints = observation
+            w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
+            t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
+            d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
+            info_block = [w_t, t_t, d_t]
+
+            positions = [torch.tensor([positions[0]], dtype=torch.float64),
+                         [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
+                         [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
+
+            time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
+                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
+
+            target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+
+            # supervised_action = self.supervision.action_choice()
+            # supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
+
+            model_action = self.model(info_block,
+                                      target_tensor,
+                                      positions=positions,
+                                      times=time_contraints)
+
+            observation, reward, done, info = self.env.step(model_action.squeeze(1).argmax(-1))
+            actions.append(model_action)
+            supervised.append(1)
+            rewards.append(reward)
+            step += 1
+
+        train_data = SupervisionDataset(final_data)
+        return train_data
+
+
+    def rl_train(self):
+        max_test_accuracy = 0
+        running_loss = 0
+        total = 0
+        correct = nearest_accuracy = pointing_accuracy = 0
+
+        dataset = self.generate_rl_data()
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+
+        self.model.train()
+        for i, data in enumerate(dataloader):
+            reward, model_action, supervised_action = data
+
+            # ic(softmax(model_action).log())
+            # ic(softmax(model_action).log().shape)
+            # model_action = model_action.squeeze(2)
+            # ic(reward.shape)
+            # ic(softmax(model_action).log().sum(-1).shape)
+            loss = - torch.mean(reward.to(self.device) * softmax(model_action).log().sum(-1).to(self.device))
+
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+
+            total += reward.size(0)
+            correct += 0#np.sum((model_action.squeeze(1).argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
+            running_loss += loss.item()
+
+        acc = 100 * correct/total
+        print('-> Réussite: ', acc, '%')
+        print('-> Loss:', 100*running_loss/total)
+        self.scheduler.step(running_loss)
+
+        if self.sacred :
+            self.sacred.get_logger().report_scalar(title='Train stats',
+                series='train loss', value=100*running_loss/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='Train stats',
+                series='Train accuracy', value=acc, iteration=self.current_epoch)
+
+
+
     def run(self):
-        dataset = self.generate_supervision_data()
+        """
+            Just the main training loop
+            (Eventually generate data)
+            Train and evaluate
+        """
+        if self.rl :
+            dataset = self.generate_supervision_data()
+            supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+
         print('\t ** Learning START ! **')
+
         done = True
-
-        supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
-
         for epoch in range(self.epochs):
             self.current_epoch = epoch
-            self.train(supervision_data)
+            if self.rl <= epoch:
+                self.rl_train()
+            else :
+                self.train(supervision_data)
+
             self.evaluate()
 
         print('\t ** Learning DONE ! **')
@@ -390,6 +505,8 @@ class SupervisedTrainer():
 
     def evaluate(self):
         correct = total = running_loss = total_reward = 0
+        delivered = 0
+        gap = 0
         fit_sol = 0
         self.supervision.env = self.eval_env
 
@@ -438,26 +555,46 @@ class SupervisedTrainer():
                 correct += (chosen_action == supervised_action).cpu().numpy()
                 running_loss += 0 #loss.item()
 
+
                 if self.eval_env.time_step > last_time :
                     # last_time = self.eval_env.time_step
                     to_save.append(self.eval_env.get_image_representation())
                     save_rewards.append(correct)
 
 
-            fit_sol += self.eval_env.is_fit_solution()
+            fit_sol += info['fit_solution'] #self.eval_env.is_fit_solution()
+            delivered += info['delivered']
+            gap += info['GAP']
 
         # To spare time, only the last example is saved
+        eval_acc = 100 * correct[0]/total
 
-        self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
-        print('\t--> Test Réussite: ', 100 * correct[0]/total, '%')
+        # self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+        print('\t--> Test Réussite: ', eval_acc, '%')
         print('\t--> Test Loss:', running_loss/total)
+
+        # Model saving
+        if eval_acc > self.best_eval_accuracy:
+            self.best_eval_accuracy = eval_acc
+            if self.checkpoint_type == 'best':
+                model_name = self.path_name + '/models/best_model.pt'
+            else :
+                model_name = self.path_name + '/models/model_' + str(self.current_epoch) + '.pt'
+            os.makedirs(self.path_name + '/models/', exist_ok=True)
+            print('\t New Best Accuracy Model <3')
+            print('\tSaving as:', model_name)
+            torch.save(self.model, model_name)
 
         if self.sacred :
             self.sacred.get_logger().report_scalar(title='Test stats',
-                series='reussite %', value=100*correct[0]/total, iteration=self.current_epoch)
+                series='reussite %', value=eval_acc, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title='Test stats',
                 series='Loss', value=running_loss/total, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title='Test stats',
                 series='Fit solution %', value=100*fit_sol/self.eval_episodes, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='Test stats',
+                series='Average delivered', value=delivered/self.eval_episodes, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='Test stats',
+                series='Average gap', value=gap/self.eval_episodes, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title='Test stats',
                 series='Step Reward', value=total_reward/total, iteration=self.current_epoch)
