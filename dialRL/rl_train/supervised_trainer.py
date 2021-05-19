@@ -284,10 +284,10 @@ class SupervisedTrainer():
         if self.dataset:
             self.eval_episodes = 1
             data_type = self.dataset.split('/')[-1].split('.')[0]
-            saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}.pt'.format(s=str(size),
+            saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}.pt'.format(s=str(self.data_size),
                                                                                                                 tt=str(self.timeless))
         else :
-            saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}.pt'.format(s=str(size),
+            saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}.pt'.format(s=str(self.data_size),
                                                                                                               t=str(self.nb_target),
                                                                                                               d=str(self.nb_drivers),
                                                                                                               i=str(self.image_size),
@@ -499,27 +499,33 @@ class SupervisedTrainer():
                 self.train(supervision_data)
 
             self.evaluate()
+            if self.dataset:
+                self.evaluate(full_test=False)
 
         print('\t ** Learning DONE ! **')
 
 
-    def evaluate(self):
+    def evaluate(self, full_test=True):
         correct = total = running_loss = total_reward = 0
         delivered = 0
         gap = 0
         fit_sol = 0
         self.supervision.env = self.eval_env
+        if full_test :
+            eval_name = 'Test stats'
+        else :
+            eval_name = 'Supervised Test stats'
 
         self.model.eval()
         for eval_step in range(self.eval_episodes):
             done = False
             observation = self.eval_env.reset()
 
-            to_save = [self.eval_env.get_image_representation()]
+            to_save = [self.eval_env.get_image_representation() if full_test else 0]
             save_rewards = [0]
             last_time = 0
 
-            while not done :
+            while not done:
                 world, targets, drivers, positions, time_contraints = observation
                 w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
                 t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
@@ -546,20 +552,26 @@ class SupervisedTrainer():
 
                 chosen_action = model_action[:, 0].argmax(-1).cpu().item()
 
-                observation, reward, done, info = self.eval_env.step(chosen_action)
-                # self.env.render()
-                # loss = self.criterion(model_action[0], supervised_action)
+                if full_test :
+                    observation, reward, done, info = self.eval_env.step(chosen_action)
+                else :
+                    observation, reward, done, info = self.eval_env.step(supervised_action)
+
+                self.eval_env.render()
+                loss = self.criterion(model_action[:,0], supervised_action)
 
                 total_reward += reward
                 total += 1
                 correct += (chosen_action == supervised_action).cpu().numpy()
-                running_loss += 0 #loss.item()
+                running_loss += loss.item()
+
+                ic(done)
 
 
-                if self.eval_env.time_step > last_time :
-                    # last_time = self.eval_env.time_step
+                if self.eval_env.time_step > last_time and full_test:
+                    last_time = self.eval_env.time_step
                     to_save.append(self.eval_env.get_image_representation())
-                    save_rewards.append(correct)
+                    save_rewards.append(reward)
 
 
             fit_sol += info['fit_solution'] #self.eval_env.is_fit_solution()
@@ -569,12 +581,13 @@ class SupervisedTrainer():
         # To spare time, only the last example is saved
         eval_acc = 100 * correct[0]/total
 
-        # self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
-        print('\t--> Test Réussite: ', eval_acc, '%')
-        print('\t--> Test Loss:', running_loss/total)
+        if full_test :
+            self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+        print('\t-->' + eval_name + 'Réussite: ', eval_acc, '%')
+        print('\t-->' + eval_name + 'Loss:', running_loss/total)
 
         # Model saving
-        if eval_acc > self.best_eval_accuracy:
+        if eval_acc > self.best_eval_accuracy and full_test:
             self.best_eval_accuracy = eval_acc
             if self.checkpoint_type == 'best':
                 model_name = self.path_name + '/models/best_model.pt'
@@ -585,16 +598,17 @@ class SupervisedTrainer():
             print('\tSaving as:', model_name)
             torch.save(self.model, model_name)
 
+        # Statistics on clearml saving
         if self.sacred :
-            self.sacred.get_logger().report_scalar(title='Test stats',
+            self.sacred.get_logger().report_scalar(title=eval_name,
                 series='reussite %', value=eval_acc, iteration=self.current_epoch)
-            self.sacred.get_logger().report_scalar(title='Test stats',
+            self.sacred.get_logger().report_scalar(title=eval_name,
                 series='Loss', value=running_loss/total, iteration=self.current_epoch)
-            self.sacred.get_logger().report_scalar(title='Test stats',
+            self.sacred.get_logger().report_scalar(title=eval_name,
                 series='Fit solution %', value=100*fit_sol/self.eval_episodes, iteration=self.current_epoch)
-            self.sacred.get_logger().report_scalar(title='Test stats',
+            self.sacred.get_logger().report_scalar(title=eval_name,
                 series='Average delivered', value=delivered/self.eval_episodes, iteration=self.current_epoch)
-            self.sacred.get_logger().report_scalar(title='Test stats',
+            self.sacred.get_logger().report_scalar(title=eval_name,
                 series='Average gap', value=gap/self.eval_episodes, iteration=self.current_epoch)
-            self.sacred.get_logger().report_scalar(title='Test stats',
+            self.sacred.get_logger().report_scalar(title=eval_name,
                 series='Step Reward', value=total_reward/total, iteration=self.current_epoch)

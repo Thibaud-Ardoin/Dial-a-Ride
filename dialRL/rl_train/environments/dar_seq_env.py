@@ -19,7 +19,7 @@ from dialRL.rl_train.environments import DarEnv
 class DarSeqEnv(DarEnv):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, size, target_population, driver_population, reward_function, rep_type='block', dataset=None, test_env=False, time_end=1400, timeless=False, max_step=10, verbose=0):
+    def __init__(self, size, target_population, driver_population, reward_function, rep_type='block', dataset=None, test_env=False, time_end=1400, timeless=False, max_step=1000, verbose=0):
 
         self.timeless = timeless
         self.rep_type = rep_type
@@ -29,6 +29,7 @@ class DarSeqEnv(DarEnv):
         self.max_step = max_step
         self.verbose = verbose
         if self.dataset :
+            self.max_step = time_end * 3
             self.best_cost = tabu_parse_best(self.dataset)
             if self.test_env :
                 super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=time_end, max_step=self.max_step)
@@ -283,6 +284,7 @@ class DarSeqEnv(DarEnv):
         self.total_distance = 0
         self.current_step = 0
         self.cumulative_reward = 0
+        self.aiming_loop_nb = 0
         self.world = self.representation()
         self.last_aim = None
         self.last_cell = None
@@ -319,17 +321,18 @@ class DarSeqEnv(DarEnv):
         #In case we aim an empty box
         if action == 0 :
             self.distance = 0
+            self.last_aim = 0
             self.short_log = 'Just do nothing'
             aiming_driver.set_target(None, self.time_step)
 
         elif action > 0 and action <= self.target_population :
             aimed_target = self.targets[action - 1]
+            old_last_aim = self.last_aim
             self.last_aim = aimed_target.identity
 
             if aimed_target.state == 2 :
                 self.distance = -3
                 self.short_log = 'Aimed target already delivered'
-
             elif aimed_target.state == -2:
                 result = aiming_driver.set_target(aimed_target, self.time_step)
                 # Managed to load the target
@@ -339,19 +342,25 @@ class DarSeqEnv(DarEnv):
                 else :
                     self.distance = -4
                     self.short_log = 'Aimed free target but couldn"t load target (driver full, or wrong time window)'
-
             elif aimed_target.state == 0:
                 result = aiming_driver.set_target(aimed_target, self.time_step)
                 if result :
                     self.distance = distance(aiming_driver.position, aiming_driver.destination)
                     self.short_log = 'Aimed right, and goiong for dropoff !'
-
                 else :
                     self.distance = -5
                     self.short_log = 'Aimed right BUT driver doesnt contain that target'
             else :
                 self.distance = -6
                 self.short_log = 'That target is already been taken care of'
+
+            # Check if actions are diferent from one loop to another
+            if  aimed_target.identity == old_last_aim :
+                self.aiming_loop_nb += 1
+            else :
+                self.aiming_loop_nb = 0
+            ic(aimed_target, action, old_last_aim, self.aiming_loop_nb)
+
 
         else :
             self.distance = -2
@@ -457,6 +466,9 @@ class DarSeqEnv(DarEnv):
         if self.targets_states()[4] == self.target_population :
             done = True
         if self.current_step >= self.max_step or self.time_step >= self.time_end :
+            done = True
+        if self.aiming_loop_nb > self.driver_population + 1:
+            print('/!\ Avorted simulation. Looping on same action, without success - ')
             done = True
 
         reward = self.reward_function.compute(self.distance, done, self)
