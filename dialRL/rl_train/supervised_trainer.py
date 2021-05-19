@@ -565,8 +565,6 @@ class SupervisedTrainer():
                 correct += (chosen_action == supervised_action).cpu().numpy()
                 running_loss += loss.item()
 
-                ic(done)
-
 
                 if self.eval_env.time_step > last_time and full_test:
                     last_time = self.eval_env.time_step

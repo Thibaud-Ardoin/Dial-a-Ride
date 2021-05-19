@@ -359,8 +359,6 @@ class DarSeqEnv(DarEnv):
                 self.aiming_loop_nb += 1
             else :
                 self.aiming_loop_nb = 0
-            ic(aimed_target, action, old_last_aim, self.aiming_loop_nb)
-
 
         else :
             self.distance = -2
