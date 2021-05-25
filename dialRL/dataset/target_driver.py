@@ -180,6 +180,12 @@ class Driver():
                 return True
         return False
 
+
+    def get_trunk(self):
+        loaded_target_id = [self.loaded[i].identity for i in range(len(self.loaded))]
+        return loaded_target_id + [0.] * (self.max_capacity - len(self.loaded))
+
+
     def get_info_vector(self):
         vector = [self.identity, coord2int(self.position[0]), coord2int(self.position[1])]
         loaded_target_id = [self.loaded[i].identity for i in range(len(self.loaded))]

@@ -116,7 +116,7 @@ class SupervisedTrainer():
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           reward_function=reward_function,
-                          rep_type='trans28',
+                          rep_type='trans29',
                           max_step=self.max_step,
                           test_env=False,
                           timeless=self.timeless,
@@ -128,7 +128,7 @@ class SupervisedTrainer():
                                   target_population=self.nb_target,
                                   driver_population=self.nb_drivers,
                                   reward_function=reward_function,
-                                  rep_type='trans28',
+                                  rep_type='trans29',
                                   max_step=self.max_step,
                                   timeless=self.timeless,
                                   test_env=True,
@@ -557,7 +557,7 @@ class SupervisedTrainer():
                 else :
                     observation, reward, done, info = self.eval_env.step(supervised_action)
 
-                self.eval_env.render()
+                # self.eval_env.render()
                 loss = self.criterion(model_action[:,0], supervised_action)
 
                 total_reward += reward
