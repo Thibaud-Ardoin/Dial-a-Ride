@@ -293,10 +293,16 @@ class SupervisedTrainer():
                                                                                                               i=str(self.image_size),
                                                                                                               tt=str(self.timeless))
         done = True
+        action_counter = np.zeros(self.env.target_population + 1)
 
         if os.path.isfile(saving_name) :
             print('This data is already out there !')
             dataset = torch.load(saving_name)
+            for data in dataset:
+                o, a = data
+                action_counter[a] += 1
+
+            self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
             return dataset
 
         # Generate a Memory batch
@@ -311,13 +317,17 @@ class SupervisedTrainer():
             data.append([observation, supervised_action])
             observation, reward, done, info = self.env.step(supervised_action)
 
+            action_counter[a-1] += 1
+
             if element % 1000 == 0:
                 print('Generating data... [{i}/{ii}]'.format(i=element, ii=size))
 
         print('Done Generating !')
         train_data = SupervisionDataset(data)
         torch.save(train_data, saving_name)
+        self.criterion.weight = action_counter
         return train_data
+
 
 
     def train(self, dataloader):
