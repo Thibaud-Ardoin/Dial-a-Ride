@@ -223,6 +223,13 @@ class SupervisedTrainer():
         elif self.scheduler == 'step':
             self.scheduler = MultiStepLR(self.optimizer, milestones=self.milestones, gamma=self.gamma)
 
+        # Checkpoint
+        if self.checkpoint_dir :
+            try :
+                self.model.load_state_dict(torch.load(self.rootdir + '/data/rl_experiments/' + self.checkpoint_dir))
+            except :
+                ic('No model managed to be loaded from:', self.checkpoint_dir)
+
         # number of elements passed throgh the model for each epoch
         self.testing_size = self.batch_size * (10000 // self.batch_size)    #About 10k
         self.training_size = self.batch_size * (100000 // self.batch_size)   #About 100k
@@ -317,7 +324,7 @@ class SupervisedTrainer():
             data.append([observation, supervised_action])
             observation, reward, done, info = self.env.step(supervised_action)
 
-            action_counter[a-1] += 1
+            action_counter[supervised_action-1] += 1
 
             if element % 1000 == 0:
                 print('Generating data... [{i}/{ii}]'.format(i=element, ii=size))
@@ -325,7 +332,7 @@ class SupervisedTrainer():
         print('Done Generating !')
         train_data = SupervisionDataset(data)
         torch.save(train_data, saving_name)
-        self.criterion.weight = action_counter
+        self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
         return train_data
 
 
