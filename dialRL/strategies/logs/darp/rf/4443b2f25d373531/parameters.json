@@ -1,0 +1,20 @@
+{
+	"cut_violate": 0.01,
+	"filter_rf": true,
+	"triad_cuts": true,
+	"FA_cuts": true,
+	"AF_cuts": true,
+	"FF_cuts": true,
+	"domination": true,
+	"NS_heuristic": true,
+	"FR_heuristic": true,
+	"ap2c": false,
+	"heuristic_stop_gap": 0.01,
+	"rc_frac": 0.1,
+	"rc_fix": true,
+	"param_name": "",
+	"timelimit": 3600.0,
+	"gurobi": {},
+	"cpus": 4,
+	"debug": false
+}

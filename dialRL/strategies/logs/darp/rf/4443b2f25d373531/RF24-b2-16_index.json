@@ -1,0 +1,10 @@
+{
+	"info": "RF24-b2-16_info.json",
+	"solution": "RF24-b2-16_soln.json",
+	"sdarp": false,
+	"index": 24,
+	"extend": 0,
+	"ridetime": 1,
+	"instance": "b2-16",
+	"data_id": "b2-16"
+}

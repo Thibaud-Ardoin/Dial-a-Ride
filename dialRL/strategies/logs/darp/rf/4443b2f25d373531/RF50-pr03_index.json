@@ -1,0 +1,10 @@
+{
+	"info": "RF50-pr03_info.json",
+	"solution": "RF50-pr03_soln.json",
+	"sdarp": false,
+	"index": 50,
+	"extend": 0,
+	"ridetime": 1,
+	"instance": "pr03",
+	"data_id": "pr03"
+}

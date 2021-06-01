@@ -1,0 +1,10 @@
+{
+	"info": "RF25-b2-20_info.json",
+	"solution": "RF25-b2-20_soln.json",
+	"sdarp": false,
+	"index": 25,
+	"extend": 0,
+	"ridetime": 1,
+	"instance": "b2-20",
+	"data_id": "b2-20"
+}

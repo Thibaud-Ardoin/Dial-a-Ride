@@ -1,0 +1,10 @@
+{
+	"info": "RF21-a8-64_info.json",
+	"solution": "RF21-a8-64_soln.json",
+	"sdarp": false,
+	"index": 21,
+	"extend": 0,
+	"ridetime": 1,
+	"instance": "a8-64",
+	"data_id": "a8-64"
+}

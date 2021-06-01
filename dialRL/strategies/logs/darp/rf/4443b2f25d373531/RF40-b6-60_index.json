@@ -1,0 +1,10 @@
+{
+	"info": "RF40-b6-60_info.json",
+	"solution": "RF40-b6-60_soln.json",
+	"sdarp": false,
+	"index": 40,
+	"extend": 0,
+	"ridetime": 1,
+	"instance": "b6-60",
+	"data_id": "b6-60"
+}

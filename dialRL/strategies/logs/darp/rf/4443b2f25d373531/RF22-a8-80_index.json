@@ -1,0 +1,10 @@
+{
+	"info": "RF22-a8-80_info.json",
+	"solution": "RF22-a8-80_soln.json",
+	"sdarp": false,
+	"index": 22,
+	"extend": 0,
+	"ridetime": 1,
+	"instance": "a8-80",
+	"data_id": "a8-80"
+}

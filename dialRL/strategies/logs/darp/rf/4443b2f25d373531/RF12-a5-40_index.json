@@ -1,0 +1,10 @@
+{
+	"info": "RF12-a5-40_info.json",
+	"solution": "RF12-a5-40_soln.json",
+	"sdarp": false,
+	"index": 12,
+	"extend": 0,
+	"ridetime": 1,
+	"instance": "a5-40",
+	"data_id": "a5-40"
+}

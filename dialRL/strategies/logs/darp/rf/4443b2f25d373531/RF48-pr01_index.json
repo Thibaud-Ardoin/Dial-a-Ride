@@ -1,0 +1,10 @@
+{
+	"info": "RF48-pr01_info.json",
+	"solution": "RF48-pr01_soln.json",
+	"sdarp": false,
+	"index": 48,
+	"extend": 0,
+	"ridetime": 1,
+	"instance": "pr01",
+	"data_id": "pr01"
+}

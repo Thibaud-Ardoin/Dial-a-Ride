@@ -186,7 +186,7 @@ class SupervisedTrainer():
                                                  typ=self.typ).to(self.device).double()
         elif self.model=='Trans28':
             self.model = globals()[self.model](src_vocab_size=50000,
-                                                 trg_vocab_size=self.nb_target + 1,
+                                                 trg_vocab_size=self.vocab_size + 1,
                                                  max_length=10,
                                                  src_pad_idx=-1,
                                                  trg_pad_idx=-1,
@@ -225,10 +225,11 @@ class SupervisedTrainer():
 
         # Checkpoint
         if self.checkpoint_dir :
-            try :
-                self.model.load_state_dict(torch.load(self.rootdir + '/data/rl_experiments/' + self.checkpoint_dir))
-            except :
-                ic('No model managed to be loaded from:', self.checkpoint_dir)
+            print(' -- -- -- -- -- Loading  -- -- -- -- -- --')
+            self.model.load_state_dict(torch.load(self.rootdir + '/data/rl_experiments/' + self.checkpoint_dir).state_dict())
+            print(' -- The model weights has been loaded ! --')
+            print(' -----------------------------------------')
+
 
         # number of elements passed throgh the model for each epoch
         self.testing_size = self.batch_size * (10000 // self.batch_size)    #About 10k
@@ -300,7 +301,7 @@ class SupervisedTrainer():
                                                                                                               i=str(self.image_size),
                                                                                                               tt=str(self.timeless))
         done = True
-        action_counter = np.zeros(self.env.target_population + 1)
+        action_counter = np.zeros(self.vocab_size + 1)
 
         if os.path.isfile(saving_name) :
             print('This data is already out there !')
