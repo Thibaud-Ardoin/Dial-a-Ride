@@ -6,3 +6,5 @@ experiments_obs/
 data_processing/
 *.pth
 *.zip
+external/
+logs/
