@@ -7,14 +7,15 @@ import json
 import numpy as np
 import math
 
-from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
-from stable_baselines.common import make_vec_env
-from stable_baselines import PPO2
-from stable_baselines.common.callbacks import EvalCallback
-from stable_baselines.common.evaluation import evaluate_policy
-from stable_baselines.common.vec_env import DummyVecEnv
+# from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
+# from stable_baselines.common import make_vec_env
+# from stable_baselines import PPO2
+# from stable_baselines.common.callbacks import EvalCallback
+# from stable_baselines.common.evaluation import evaluate_policy
+# from stable_baselines.common.vec_env import DummyVecEnv
 from clearml import Task
 from icecream import ic
+import drawSvg as draw
 
 from moviepy.editor import *
 from matplotlib.image import imsave
@@ -26,20 +27,21 @@ import torch.nn as nn
 from torch.nn.functional import softmax
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
 import torch.optim as optim
-from transformers import (GPT2Tokenizer,
-                          GPT2Config,
-                          GPT2Model,
-                          PretrainedConfig,
-                          BertConfig,
-                          BertModel,
-                          pipeline)
+
+# from transformers import (GPT2Tokenizer,
+#                           GPT2Config,
+#                           GPT2Model,
+#                           PretrainedConfig,
+#                           BertConfig,
+#                           BertModel,
+#                           pipeline)
 
 from dialRL.models import *
 from dialRL.rl_train.reward_functions import *
 from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device, trans25_coord2int
-from dialRL.rl_train.callback import MonitorCallback
-from dialRL.strategies import NNStrategy
+# from dialRL.rl_train.callback import MonitorCallback
+# from dialRL.strategies import NNStrategy
 
 torch.autograd.set_detect_anomaly(True)
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
@@ -230,7 +232,6 @@ class SupervisedTrainer():
             print(' -- The model weights has been loaded ! --')
             print(' -----------------------------------------')
 
-
         # number of elements passed throgh the model for each epoch
         self.testing_size = self.batch_size * (10000 // self.batch_size)    #About 10k
         self.training_size = self.batch_size * (100000 // self.batch_size)   #About 100k
@@ -281,6 +282,25 @@ class SupervisedTrainer():
                                                   local_path=video_name)
         del concat_clip
         del clips
+
+    def save_svg_example(self, observations, rewards, number, time_step):
+        dir = self.path_name + '/example/' + str(time_step) + '/ex_number' + str(number)
+        video_name = dir + '/Strat_res.gif'
+        if dir is not None:
+            os.makedirs(dir, exist_ok=True)
+
+        with draw.animate_video(video_name, duration=0.1) as anim:
+            # Add each frame to the animation
+            for i, s in enumerate(observations):
+                anim.draw_frame(s)
+                if i==len(observations)-1 or i==0:
+                    for i in range(5):
+                        anim.draw_frame(s)
+
+        if self.sacred :
+            self.sacred.get_logger().report_media('Gif', 'Res_' + str(number) + '_Rwd=' + str(np.sum(rewards)),
+                                                  iteration=time_step,
+                                                  local_path=video_name)
 
 
     def generate_supervision_data(self):
@@ -539,7 +559,10 @@ class SupervisedTrainer():
             done = False
             observation = self.eval_env.reset()
 
-            to_save = [self.eval_env.get_image_representation() if full_test else 0]
+            if self.example_format == 'svg':
+                to_save = [self.eval_env.get_svg_representation() if full_test else 0]
+            else :
+                to_save = [self.eval_env.get_image_representation() if full_test else 0]
             save_rewards = [0]
             last_time = 0
 
@@ -586,7 +609,10 @@ class SupervisedTrainer():
 
                 if self.eval_env.time_step > last_time and full_test:
                     last_time = self.eval_env.time_step
-                    to_save.append(self.eval_env.get_image_representation())
+                    if self.example_format == 'svg':
+                        to_save.append(self.eval_env.get_svg_representation())
+                    else :
+                        to_save.append(self.eval_env.get_image_representation())
                     save_rewards.append(reward)
 
 
@@ -598,7 +624,10 @@ class SupervisedTrainer():
         eval_acc = 100 * correct[0]/total
 
         if full_test :
-            self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            if self.example_format == 'svg':
+                self.save_svg_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            else :
+                self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
         print('\t-->' + eval_name + 'Réussite: ', eval_acc, '%')
         print('\t-->' + eval_name + 'Loss:', running_loss/total)
 

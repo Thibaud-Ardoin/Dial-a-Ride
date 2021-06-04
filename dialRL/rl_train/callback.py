@@ -7,9 +7,9 @@ from matplotlib.image import imsave
 import matplotlib
 matplotlib.use('Agg')
 
-import tensorflow as tf
-from stable_baselines.common.callbacks import BaseCallback, EvalCallback
-from stable_baselines.common.vec_env import DummyVecEnv
+# import tensorflow as tf
+# from stable_baselines.common.callbacks import BaseCallback, EvalCallback
+# from stable_baselines.common.vec_env import DummyVecEnv
 
 class MonitorCallback(EvalCallback):
     """

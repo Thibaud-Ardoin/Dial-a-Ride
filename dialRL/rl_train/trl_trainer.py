@@ -12,7 +12,7 @@ from stable_baselines import PPO2
 from stable_baselines.common.callbacks import EvalCallback
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.vec_env import DummyVecEnv
-import tensorflow as tf
+# import tensorflow as tf
 from clearml import Task
 
 import torch
@@ -34,7 +34,7 @@ from dialRL.rl_train.callback import MonitorCallback
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
 logging.getLogger('tensorflow').setLevel(logging.FATAL)
 
-tf.enable_eager_execution()
+# tf.enable_eager_execution()
 
 
 class TrlTrainer():

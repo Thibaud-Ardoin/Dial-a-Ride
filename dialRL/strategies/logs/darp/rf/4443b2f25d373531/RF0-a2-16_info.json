@@ -19,7 +19,7 @@
   "min_var_bnd": 1.0,
   "model_name": "",
   "model_sense": 1,
-  "model_time": 0.10113000869750977,
+  "model_time": 0.08362388610839844,
   "num_bin_vars": 195,
   "num_constr": 52,
   "num_gen_constr": 0,
@@ -75,13 +75,13 @@
     "final_size_nodes": 36
   },
   "time": {
-    "data_preprocess": 0.008043289184570312,
-    "network_build": 0.022657155990600586,
-    "model_build": 0.2471013069152832,
-    "rootcut": 0.12735819816589355,
-    "rc_mip": 0.024514436721801758,
-    "main_mip": 0.11288118362426758,
-    "total": 0.542555570602417
+    "data_preprocess": 0.008427858352661133,
+    "network_build": 0.025771617889404297,
+    "model_build": 0.19446778297424316,
+    "rootcut": 0.16179537773132324,
+    "rc_mip": 0.04380989074707031,
+    "main_mip": 0.08628344535827637,
+    "total": 0.5205559730529785
   },
   "bounds": {
     "lb_root_lp": 294.2479501424915,

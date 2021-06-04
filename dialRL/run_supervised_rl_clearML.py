@@ -5,7 +5,7 @@ import numpy as np
 from clearml import Task
 
 from dialRL.utils import objdict
-from dialRL.rl_train import PPOTrainer, TrlTrainer, SupervisedTrainer
+from dialRL.rl_train import SupervisedTrainer
 
 
 
@@ -35,6 +35,7 @@ def get_args(args):
     parser.add_argument('--total_timesteps', default=10000, type=int)
     parser.add_argument('--monitor_freq', default=1000, type=int)
     parser.add_argument('--example_freq', default=100000, type=int)
+    parser.add_argument('--example_format', default='svg', type=str)
     parser.add_argument('--eval_episodes', default=4, type=int)
     parser.add_argument('--verbose', default=1, type=int)
     parser.add_argument('--max_step', default=5000, type=int)

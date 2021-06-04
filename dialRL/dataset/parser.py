@@ -62,7 +62,9 @@ def tabu_parse_best(file_name):
     elif len(file_name_itself) == 10:
         nb = int(file_name_itself[4:6])
     else :
-        raise 'Error finding result data from : ' + file_name
+        print('Error finding result data from : ' + file_name)
+        return None
+        
     res_file = '/'.join(file_name.split('/')[:-1]) + '/res/res' + str(nb) + '.txt'
     print(' -> Going for dataset nb: ', nb, res_file)
     try :

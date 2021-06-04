@@ -42,7 +42,7 @@ if __name__ == '__main__':
                         time_end=1400,
                         max_step=5000,
                         timeless=False,
-                        dataset='/home/tibo/Documents/Prog/EPFL/own/data/instances/cordeau2003/tabu1.txt',
-                        test_env=False)
+                        dataset='/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/data/DARP_cordeau/cas1.txt',
+                        test_env=True)
 
     strat.run()

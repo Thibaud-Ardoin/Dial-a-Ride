@@ -9,7 +9,6 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 get_device,
                                 objdict,
                                 visualize,
-                                instance2Image_rep,
                                 GAP_function,
                                 float_equality,
                                 obs2int,
@@ -18,6 +17,7 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 plotting,
                                 trans25_coord2int,
                                 quinconx)
+from dialRL.utils.representation import instance2Image_rep
 
 __all__ = ['coord2int',
            'quinconx',

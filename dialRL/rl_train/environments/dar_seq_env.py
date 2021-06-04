@@ -46,8 +46,8 @@ class DarSeqEnv(DarEnv):
             x = np.random.uniform(-self.size, self.size)
             y = np.random.uniform(-self.size, self.size)
             # # TODO: Remove this
-            # self.depot_position = np.array((x, y)) #, dtype=np.float16)
-            self.depot_position = np.array((0.1, 0.1))
+            self.depot_position = np.array((x, y)) #, dtype=np.float16)
+            # self.depot_position = np.array((0.1, 0.1))
 
         #self.driver_population*2 + self.target_population
 
@@ -266,10 +266,17 @@ class DarSeqEnv(DarEnv):
                                 'loaded': [lo.identity for lo in driver.loaded]} for driver in self.drivers] }
             return dic
 
+    def show(self, time=0):
+        image = self.get_image_representation()
+        plt.imshow(image)
+
+    def get_svg_representation(self):
+        svg = instance2Image_rep(self.targets, self.drivers, self.size, time_step=self.time_step, time_end=self.time_end, out='svg')
+        return svg
 
 
     def get_image_representation(self):
-        image = instance2Image_rep(self.targets, self.drivers, self.size, time_step=self.time_step)
+        image = instance2Image_rep(self.targets, self.drivers, self.size, time_step=self.time_step, time_end=self.time_end, out='array')
         return image
 
 
@@ -396,6 +403,14 @@ class DarSeqEnv(DarEnv):
     def update_time_step(self):
         # Should other types of events be added here ?
             # Such as the end of the game event
+        # Time where a target gets availbe
+        """
+            Different time steps where a decision could be taken.
+            - All target times ? (Really ?)
+            - current time-step + time to arrive to destination
+            - target time - distance(any resting driver to that target)
+        """
+
         events_in = []
         for driver in self.drivers:
             if driver.destination is not None :

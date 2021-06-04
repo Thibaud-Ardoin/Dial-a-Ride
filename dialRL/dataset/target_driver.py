@@ -1,3 +1,4 @@
+from icecream import ic
 from dialRL.utils import distance, float_equality, coord2int
 
 
@@ -79,7 +80,9 @@ class Driver():
 
 
     def can_load(self, target, current_time):
-        if target.weight + self.capacity() > self.max_capacity :
+        if target.state > -2 :
+            return False
+        elif target.weight + self.capacity() > self.max_capacity :
             return False
         else :
             if target.start_in_time(current_time + distance(target.pickup, self.position)):

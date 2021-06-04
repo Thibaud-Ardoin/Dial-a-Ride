@@ -3,6 +3,7 @@ import numpy as np
 
 from moviepy.editor import *
 from matplotlib.image import imsave
+import drawSvg as draw
 
 from dialRL.rl_train.environments.dar_seq_env import DarSeqEnv
 from dialRL.rl_train.reward_functions import *
@@ -18,10 +19,12 @@ class BaseStrategy():
                  timeless=False,
                  env=None,
                  dataset='./data/instances/cordeau2003/tabu1.txt',
-                 test_env=False):
+                 test_env=False,
+                 recording=False):
 
         self.data = dataset
         self.rwd_fun =  globals()[reward_function]()
+        self.recording = recording
         if env is None:
             self.env = DarSeqEnv(size=size,
                             target_population=target_population,
@@ -58,6 +61,16 @@ class BaseStrategy():
         del concat_clip
         del clips
 
+
+    def save_svg_video(self, dir, svgs):
+        video_name = dir + '/Strat_res.gif'
+
+        with draw.animate_video(video_name, duration=0.05) as anim:
+            # Add each frame to the animation
+            for s in svgs:
+                anim.draw_frame(s)
+
+
     def save_image(self, dir, t, image):
         image = self.norm_image(image, scale=1)
         save_name = dir + '/' + \
@@ -65,6 +78,13 @@ class BaseStrategy():
                'b.png'
         imsave(save_name, image)
         return save_name
+
+    def save_svg(self, dir, t, svg):
+        save_name = dir + '/' + \
+               str(t) + \
+               'b.svg'
+        svg.saveSvg(save_name)
+        return svg
 
 
     def run(self):
@@ -74,8 +94,8 @@ class BaseStrategy():
         os.makedirs(dir, exist_ok=True)
         cumulative_reward = 0
         observation = self.env.reset()
-        images = []
-        last_time = 0
+        svgs = []
+        last_time = -1
         self.env.render()
         for t in range(self.max_step):
             action = self.action_choice(observation)
@@ -86,14 +106,15 @@ class BaseStrategy():
 
             # If time updataed, save image
             if self.env.time_step > last_time :
-                last_time = self.env.time_step
-                images.append(self.save_image(dir, t, self.env.get_image_representation()))
+                # last_time = self.env.time_step
+                svgs.append(self.save_svg(dir, t, self.env.get_svg_representation()))
 
             if done:
                 print("\n ** \t Episode finished after {} time steps".format(t+1))
                 break
 
-        self.save_video(dir, images)
+        # self.save_video(dir, images)
+        self.save_svg_video(dir, svgs)
         self.env.close()
 
 
