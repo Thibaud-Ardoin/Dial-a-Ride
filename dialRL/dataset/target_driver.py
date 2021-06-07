@@ -3,24 +3,28 @@ from dialRL.utils import distance, float_equality, coord2int
 
 
 class Target():
-    def __init__(self, pickup, dropoff, start, end, identity, weight=1):
+    def __init__(self, pickup, dropoff, start, end, identity, service_time=10, max_ride_time=90, weight=1):
         self.pickup = pickup
         self.dropoff = dropoff
         self.start_fork = start
         self.end_fork = end
         self.weight = weight
         self.identity = identity
+        self.service_time = service_time
+        self.max_ride_time = max_ride_time
 
         # State is in [-2, -1, 0, 1, 2] for
         # [wait pick up, getting picked up, In car, getting dropped, done]
         self.state = -2
         self.available = 0
+        self.pickup_time = None
 
     def __repr__(self):
-        return "Target: " + str(self.pickup) + ' to ' + str(self.dropoff)
+        return "Target N°" + str(self.identity) + ' status: ' + str(self.state)
 
     def __str__(self):
-        return "Target: " + str(self.pickup) + ' to ' + str(self.dropoff)
+        return "Target N°" + str(self.identity) + ' status: ' + str(self.state)
+
 
     def start_in_time(self, current_time):
         if float_equality(current_time, self.start_fork[0]) or float_equality(current_time, self.start_fork[1]) :
@@ -31,6 +35,9 @@ class Target():
         return False
 
     def end_in_time(self, current_time):
+        if current_time - self.pickup_time > self.max_ride_time :
+            print('Max Ride time passed.....')
+            return False
         if float_equality(current_time, self.end_fork[0]) or float_equality(current_time, self.end_fork[1]) :
             return True
         if self.end_fork[0] <= current_time :
@@ -64,19 +71,38 @@ class Driver():
         self.target = None
         self.order = 'waiting'
         self.history_move = [position]
+        self.next_available_time = 0
         self.loaded = [] #Target list
 
     def __repr__(self):
-        return "Driver at : " + str(self.position) + ' he is ' + self.order
+        return "Driver N°" + str(self.identity) + ' - status ' + self.order
 
     def __str__(self):
-        return "Driver at : " + str(self.position) + ' he is ' + self.order
+        return "Driver N°" + str(self.identity) + ' - status ' + self.order
 
-    def next_available(self, current_time):
+
+    def update_next_available(self, current_time):
         if self.destination is None:
-            return current_time
-        else :
-            return current_time + distance(self.destination, self.position)
+            self.next_available_time = current_time
+
+        else:
+            if self.next_available_time <= current_time:
+                self.next_available_time = current_time
+                if self.order == 'service':
+                    print('Finishes out of service')
+                    # Set to waiting
+                    self.set_target(None, current_time)
+
+
+        # if self.next_available_time <= current_time :
+        #     self.set_target(None, current_time)
+        #
+        # if self.destination is None:
+        #     self.next_available_time = current_time
+        #     return self.next_available_time
+        # else :
+        #     self.next_available_time = current_time + distance(self.destination, self.position) + self.target.service_time
+        #     return self.next_available_time
 
 
     def can_load(self, target, current_time):
@@ -100,6 +126,12 @@ class Driver():
                 else :
                     return False
         return False
+
+    def is_available(self, current_time):
+        if self.next_available_time <= current_time:
+            return True
+        else :
+            return False
 
 
     def set_target(self, target, current_time):
@@ -160,7 +192,11 @@ class Driver():
                 return False
             else :
                 target.state = 0
+                target.pickup_time = current_time
+                target.end_fork = (target.end_fork[0], min(target.pickup_time + target.max_ride_time, target.end_fork[1]))
                 self.loaded.append(target)
+                self.order = 'service'
+                self.next_available_time = current_time + target.service_time
                 return True
 
     def unload(self, target, current_time):
@@ -170,6 +206,8 @@ class Driver():
                 if t.end_in_time(current_time):
                     target.state = 2
                     del self.loaded[i]
+                    self.order = 'service'
+                    self.next_available_time = current_time + target.service_time
                     return True
                 else :
                     print(current_time, target.start_fork, target.end_fork)

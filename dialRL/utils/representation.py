@@ -66,22 +66,37 @@ arrow.append(draw.Lines(-0.1, -0.5, -0.1, 0.5, 0.9, 0, fill='red', close=True))
 def instance2Image_rep(targets, drivers, size, time_step, time_end, out='svg'):
     # Return an image gathered from svg data
     default_size = 300
-
-    data_panel = Hyperlink() #draw.Drawing(0.5, 2, origin=(0,0))
-    data_panel.append(draw.Rectangle(0, 0, 0.5, 2, fill=colors.beige))
-
     time_margin = 0.01
     time_hight = 0.05 * len(targets)
-    time_table = Hyperlink(x=2, y=time_hight, origin=(0,0)) #draw.Drawing(2, time_hight, origin=(0,0), fill=colors.white)
+
+    final = draw.Drawing(2.5, 2+time_hight, origin=(0,0))
+
+    data_panel = draw.Group(id='data', origin=(0,0), transform='translate(2, 0)') #draw.Drawing(0.5, 2, origin=(0,0))
+    data_panel.append(draw.Rectangle(0, 0, 0.5, 2, fill=colors.beige))
+
+    time_table = draw.Group(id='time', origin=(0,0), transform='translate(0, -2)') #draw.Drawing(2, time_hight, origin=(0,0), fill=colors.white)
     time_table.append(draw.Rectangle(0, 0, 2, time_hight, fill=colors.beige))
 
-    corner_info = draw.Drawing(0.5, time_hight, origin=(0,0))
+    corner_info = draw.Group(id='info', origin=(0,0), transform='translate(2, -2)')
     corner_info.append(draw.Rectangle(0, 0, 0.5, time_hight, fill=colors.beige))
     text_lines = ['- DARP Simulation -', 'Time: ' + str(time_step)]
     corner_info.append(draw.Text(text_lines, 0.05, 0, time_hight/2, fill=colors.dark_beige, text_anchor='start'))
 
-    d = draw.Drawing(2, 2, origin='center', fill=colors.white, id='map')
+    d = draw.Group(id='map', origin=(0,0), x=0, y=0, transform='translate(1, -1)')
     d.append(draw.Rectangle(-1, -1, 2, 2, fill=colors.beige))
+    # Map box
+    d.append(draw.Lines(1, 1,
+                        1, -1,
+                        stroke_width=0.02,
+                        close=False,
+                        fille=colors.dark_beige,
+                        stroke=colors.dark_beige))
+    d.append(draw.Lines(-1, 1,
+                        1, 1,
+                        stroke_width=0.02,
+                        close=False,
+                        fille=colors.dark_beige,
+                        stroke=colors.dark_beige))
     # Center cross
     d.append(draw.Lines(0.04,0,
                         -0.04, 0,
@@ -121,6 +136,7 @@ def instance2Image_rep(targets, drivers, size, time_step, time_end, out='svg'):
 
         d.append(draw.Circle(target.pickup[0]/size,target.pickup[1]/size, 0.03,
                 fill=pick_fill_col, stroke_width=0.008, stroke=pick_strok_col))
+        d.append(draw.Text(str(target.identity), 0.05, target.pickup[0]/size,target.pickup[1]/size, fill=colors.dark_beige, text_anchor='end', valign='middle'))
 
         if target.state < 1 :
             drop_fill_col = colors.blue
@@ -137,19 +153,20 @@ def instance2Image_rep(targets, drivers, size, time_step, time_end, out='svg'):
 
         d.append(draw.Circle(target.dropoff[0]/size,target.dropoff[1]/size, 0.03,
             fill=drop_fill_col, stroke_width=0.008, stroke=drop_strok_col))
+        d.append(draw.Text(str(target.identity), 0.05, target.dropoff[0]/size,target.dropoff[1]/size, fill=colors.dark_beige, text_anchor='end', valign='middle'))
         d.append(draw.Line(target.pickup[0]/size,target.pickup[1]/size,
                            target.dropoff[0]/size,target.dropoff[1]/size,
                            stroke=line_col, stroke_width=0.008, fill='none'))
 
         # Target time schedule
         time_table.append(draw.Rectangle(time_margin + 1.9 * target.start_fork[0]/time_end,
-                                         target.identity * time_hight / len(targets) - (time_hight / len(targets)) / 2,
+                                         (target.identity-1) * time_hight / len(targets) + (time_hight / len(targets)) / 2,
                                          1.9 * (target.start_fork[1] - target.start_fork[0])/time_end,
                                          time_hight / (2*len(targets)),
                                         fill=pick_fill_col))
 
         time_table.append(draw.Rectangle(time_margin + 1.9 * target.end_fork[0]/time_end,
-                                         target.identity * time_hight / len(targets),
+                                         (target.identity-1) * time_hight / len(targets),
                                          1.9 * (target.end_fork[1] - target.end_fork[0])/time_end,
                                          time_hight / (2*len(targets)),
                                         fill=drop_fill_col))
@@ -158,7 +175,7 @@ def instance2Image_rep(targets, drivers, size, time_step, time_end, out='svg'):
         target_text_color = colors.dark_red
         if target.state == 2:
             target_text_color = colors.green
-        time_table.append(draw.Text(target_text, 0.05, 1.90 + time_margin, target.identity * time_hight / len(targets), fill=target_text_color, text_anchor='start'))
+        time_table.append(draw.Text(target_text, 0.05, 1.90 + time_margin, (target.identity-1) * time_hight / len(targets), fill=target_text_color, text_anchor='start'))
 
     base_hight = 1.90
     driver_space = base_hight / len(drivers)
@@ -167,10 +184,12 @@ def instance2Image_rep(targets, drivers, size, time_step, time_end, out='svg'):
         if driver.target is None :
             data_panel.append(draw.Text(str(driver.identity) + ': -| (Zzz)', 0.05, 0.15, driver_space*driver.identity, fill=colors.dark_beige, text_anchor='start'))
         else :
-            if driver.target.state == -1 :
+            if driver.order == 'picking' :
                 data_panel.append(draw.Text(str(driver.identity) + ': -< (' + str(driver.target.identity) + ')', 0.05, 0.15, driver_space*driver.identity, fill=colors.dark_beige, text_anchor='start'))
-            else :
+            elif driver.order == 'dropping' :
                 data_panel.append(draw.Text(str(driver.identity) + ': -> (' + str(driver.target.identity) + ')', 0.05, 0.15, driver_space*driver.identity, fill=colors.dark_beige, text_anchor='start'))
+            elif driver.order == 'service' :
+                data_panel.append(draw.Text(str(driver.identity) + ': -/\ (' + str(driver.target.identity) + ')', 0.05, 0.15, driver_space*driver.identity, fill=colors.dark_beige, text_anchor='start'))
 
 
         for i_pos in range(1, len(driver.history_move)) :
@@ -192,14 +211,13 @@ def instance2Image_rep(targets, drivers, size, time_step, time_end, out='svg'):
         data_panel.append(draw.Text(loaded, 0.05, 0, driver_space*driver.identity - 0.1, fill=colors.dark_beige, text_anchor='start'))
 
     # Curent time line
-    time_table.append(draw.Line(time_margin + 2 * time_step / time_end, time_hight,
-                                time_margin + 2 * time_step / time_end, 0,
+    time_table.append(draw.Line(time_margin + 1.9 * time_step / time_end, time_hight,
+                                time_margin + 1.9 * time_step / time_end, 0,
                                 stroke=colors.red, stroke_width=0.01, fill=colors.red))
     time_table.append(draw.Line(0, time_hight,
                                 0, 0, stroke=colors.orange, stroke_width=0.01, fill=colors.orange))
 
     #d.setPixelScale(2)  # Set number of pixels per geometry unit
-    d.setRenderSize(default_size, default_size)
     # data_panel.setRenderSize(default_size/4, default_size)
     # corner_info.setRenderSize(default_size/4,(default_size/2)*time_hight)
     # time_table.setRenderSize(default_size, (default_size/2)*time_hight)
@@ -215,6 +233,12 @@ def instance2Image_rep(targets, drivers, size, time_step, time_end, out='svg'):
     # g.append(data_panel)
     # g.append(time_table)
     # g.append(corner_info)
+    final.append(d)
+    final.append(data_panel)
+    final.append(corner_info)
+    final.append(time_table)
+    final.setRenderSize(default_size*(2.5), default_size*(2+time_hight))
+
 
     if out=='array':
         fo = tempfile.NamedTemporaryFile()
@@ -235,4 +259,4 @@ def instance2Image_rep(targets, drivers, size, time_step, time_end, out='svg'):
         return array_image
 
     elif out=='svg':
-        return d
+        return final

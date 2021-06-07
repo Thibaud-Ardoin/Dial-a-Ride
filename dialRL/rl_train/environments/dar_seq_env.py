@@ -197,7 +197,7 @@ class DarSeqEnv(DarEnv):
 
             time_constraint = [float(self.time_step),
                                [np.concatenate([target.start_fork, target.end_fork]) for target in self.targets],
-                               [float(driver.next_available(self.time_step)) for driver in self.drivers]]
+                               [float(driver.next_available_time) for driver in self.drivers]]
 
             world = list(map(float, [self.current_player,
                                      self.current_player]))
@@ -217,7 +217,7 @@ class DarSeqEnv(DarEnv):
 
             time_constraint = [float(self.time_step),
                                [np.concatenate([target.start_fork, target.end_fork]) for target in self.targets],
-                               [float(driver.next_available(self.time_step)) for driver in self.drivers]]
+                               [float(driver.next_available_time) for driver in self.drivers]]
 
             world = list(map(float, [self.current_player,
                                      self.current_player]))
@@ -301,10 +301,10 @@ class DarSeqEnv(DarEnv):
             #in order to let possibility for driver to wake up after waiting
         self.target_times = []
         for target in self.targets :
-            self.target_times.append(target.start_fork[0])
-            self.target_times.append(target.start_fork[1])
-            self.target_times.append(target.end_fork[0])
-            self.target_times.append(target.end_fork[1])
+            self.target_times.append([target.start_fork[0], target.pickup])
+            # self.target_times.append(target.start_fork[1])
+            self.target_times.append([target.end_fork[0], target.dropoff])
+            # self.target_times.append(target.end_fork[1])
 
         self.next_players = [i for i in range(2, self.driver_population+1)]
         self.current_player = 1
@@ -411,14 +411,21 @@ class DarSeqEnv(DarEnv):
             - target time - distance(any resting driver to that target)
         """
 
-        events_in = []
+        events_in = [0, self.time_end]
         for driver in self.drivers:
+            # Time step when taks finished
             if driver.destination is not None :
+                events_in.append(driver.next_available_time)
                 events_in.append(self.time_step + distance(driver.position, driver.destination))
-        events_in = events_in + self.target_times
+
+            # Time step when able to leave for target
+            if driver.destination is None :
+                events_in = events_in + [t_fork - distance(driver.position, t_pos) for t_fork, t_pos in self.target_times]
+        # events_in = events_in + [t_fork for t_fork, t_pos in self.target_times]
         events_in = [t for t in events_in if t>self.time_step]
         self.last_time_gap = min(events_in) - self.time_step
         self.time_step = min(events_in)
+        ic(self.time_step)
 
 
     def update_drivers_positions(self):
@@ -440,8 +447,10 @@ class DarSeqEnv(DarEnv):
                                 raise "Error while unloading the target, it is intended to be droppable"
 
                         # reset the driver on waiting list
-                        driver.set_target(None, self.time_step)
+                        # driver.set_target(None, self.time_step)
                         # self.next_players.append(driver.identity)
+                    elif driver.order == 'service':
+                        ic('Just servicing easily:', driver)
 
                     elif self.last_time_gap < d:
                         # lx + (1-l)x with l=d'/d
@@ -453,8 +462,10 @@ class DarSeqEnv(DarEnv):
                         driver.move(new_pos)
 
                     else :
-                        raise "Error in updating drivers position. distance to destination:" + \
-                        str(d) + "last time gap:" + str(self.last_time_gap)
+                        raise ValueError("Error in updating drivers position. distance to destination:" + str(d) + "last time gap:" + str(self.last_time_gap))
+
+                # update time disponibility every timestep for every driver
+                driver.update_next_available(self.time_step)
 
 
     def step(self, action):
@@ -475,7 +486,7 @@ class DarSeqEnv(DarEnv):
                     image = self.get_image_representation()
                     imsave('./data/rl_experiments/test/' + str(env.current_step) + 'b.png', image)
                 for driver in self.drivers :
-                    if driver.destination is None :
+                    if driver.order == 'waiting':
                         # Charge all players that may need a new destination
                         self.next_players.append(driver.identity)
 

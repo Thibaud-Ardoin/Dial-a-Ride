@@ -94,7 +94,7 @@ class BaseStrategy():
         os.makedirs(dir, exist_ok=True)
         cumulative_reward = 0
         observation = self.env.reset()
-        svgs = []
+        svgs = [self.save_svg(dir, 0, self.env.get_svg_representation())]
         last_time = -1
         self.env.render()
         for t in range(self.max_step):
@@ -107,7 +107,7 @@ class BaseStrategy():
             # If time updataed, save image
             if self.env.time_step > last_time :
                 # last_time = self.env.time_step
-                svgs.append(self.save_svg(dir, t, self.env.get_svg_representation()))
+                svgs.append(self.save_svg(dir, t+1, self.env.get_svg_representation()))
 
             if done:
                 print("\n ** \t Episode finished after {} time steps".format(t+1))

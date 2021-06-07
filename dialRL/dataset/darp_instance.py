@@ -17,7 +17,7 @@ from dialRL.dataset import tabu_parse, Driver, Target, tabu_parse_info
 class DarPInstance():
     """ 2 Dimentional insance of the NN problem
     """
-    def __init__(self, size, population, drivers, extremas=None, depot_position=None, time_end=1400, verbose=False):
+    def __init__(self, size, population, drivers, max_ride_time=90, time_bounderies=[60, 480], service_time=10, extremas=None, depot_position=None, time_end=1400, verbose=False):
         # Ground definition
         self.size = size
         self.nb_targets = population
@@ -25,6 +25,9 @@ class DarPInstance():
         self.verbose = verbose
         self.time_end = time_end
         self.extremas = extremas
+        self.max_ride_time = max_ride_time
+        self.time_bounderies = time_bounderies
+        self.service_time = service_time
 
         # 2nd grade attributes
         self.drivers = []
@@ -78,17 +81,21 @@ class DarPInstance():
             if timeless :
                 tp1, tp2 = 0, self.time_end
             else :
-                # Generate 50% of free dropof conditions, and 50% of free pickup time conditions
-                intermediate_margin = 20
-                tp1 = np.random.randint(intermediate_margin, self.time_end - intermediate_margin*2 - 1)
-                tp2 = np.random.randint(tp1 + intermediate_margin, self.time_end - intermediate_margin)
+                # Generate ei in time_bounderies then li in [ei + 15, ei + 45]
+                ei = np.random.randint(self.time_bounderies[0], self.time_bounderies[1])
+                li = np.random.randint(ei + 15, ei + 45)
 
-            if j > self.nb_targets // 2 :
-                start_fork = (0, self.time_end)
-                end_fork = (tp1, tp2)
+            # Generate 50% of free dropof conditions, and 50% of free pickup time conditions
+            if j < self.nb_targets // 2 :
+                print(self.nb_targets, j)
+                start_fork = (max(0, ei - self.max_ride_time),
+                              li)
+                end_fork = (ei, li)
             else :
-                start_fork = (tp1, tp2)
-                end_fork = (0, self.time_end)
+                print('other', self.nb_targets, j)
+                start_fork = (ei, li)
+                end_fork = (ei,
+                            min(self.time_end, li+ self.max_ride_time))
 
             target = Target(pickup, dropoff, start_fork, end_fork,
                             identity=j + 1)
