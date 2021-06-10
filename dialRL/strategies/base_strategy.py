@@ -63,9 +63,9 @@ class BaseStrategy():
 
 
     def save_svg_video(self, dir, svgs):
-        video_name = dir + '/Strat_res.gif'
+        video_name = dir + '/Strat_res.mp4'
 
-        with draw.animate_video(video_name, duration=0.05) as anim:
+        with draw.animate_video(video_name) as anim:
             # Add each frame to the animation
             for s in svgs:
                 anim.draw_frame(s)

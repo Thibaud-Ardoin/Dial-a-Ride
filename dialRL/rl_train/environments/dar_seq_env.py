@@ -19,7 +19,13 @@ from dialRL.rl_train.environments import DarEnv
 class DarSeqEnv(DarEnv):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, size, target_population, driver_population, reward_function, rep_type='block', dataset=None, test_env=False, time_end=1400, timeless=False, max_step=1000, verbose=0):
+    def __init__(self, size, target_population, driver_population, reward_function, rep_type='block', dataset=None, test_env=False, max_step=1000, verbose=0,
+                 time_end=1400,
+                 timeless=False,
+                 time_limit=480,
+                 max_capacity=6,
+                 max_ride_time=90,
+                 service_time=10):
 
         self.timeless = timeless
         self.rep_type = rep_type
@@ -28,16 +34,20 @@ class DarSeqEnv(DarEnv):
         self.test_env = test_env
         self.max_step = max_step
         self.verbose = verbose
+        self.time_limit = time_limit
+        self.max_capacity = max_capacity
+        self.max_ride_time = max_ride_time
+        self.service_time = service_time
         if self.dataset :
             self.max_step = time_end * 3
             self.best_cost = tabu_parse_best(self.dataset)
             if self.test_env :
                 super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=time_end, max_step=self.max_step)
-                self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size = tabu_parse_info(self.dataset)
+                self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size, self.time_limit, self.max_capacity, self.max_ride_time, self.service_time = tabu_parse_info(self.dataset)
             else :
                 # Get info from dataset, to construct artificial data with those parameters
                 super(DarSeqEnv, self).__init__(size, target_population, driver_population, time_end=time_end, max_step=self.max_step)
-                self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size = tabu_parse_info(self.dataset)
+                self.extremas, self.target_population, self.driver_population, self.time_end, self.depot_position, self.size, self.time_limit, self.max_capacity, self.max_ride_time, self.service_time = tabu_parse_info(self.dataset)
 
         else :
             self.best_cost = 1000
@@ -50,7 +60,6 @@ class DarSeqEnv(DarEnv):
             # self.depot_position = np.array((0.1, 0.1))
 
         #self.driver_population*2 + self.target_population
-
         choix_id_target = True
         if not choix_id_target :
             self.action_space = spaces.Box(low=[self.extremas[0], self.extremas[1]],
@@ -60,6 +69,7 @@ class DarSeqEnv(DarEnv):
         else :
             self.action_space = spaces.Discrete(self.target_population + 1)
 
+        self.time_bounderies = [60, self.time_limit]
         self.max_bloc_size = max(3 + self.target_population, 11)
         max_obs_value = max(self.target_population, self.extremas[2], self.extremas[3])
         self.obs_shape = 4 + 11*self.target_population + (3 + 6)*self.driver_population
@@ -216,8 +226,10 @@ class DarSeqEnv(DarEnv):
                          [driver.position for driver in self.drivers]]
 
             time_constraint = [float(self.time_step),
-                               [np.concatenate([target.start_fork, target.end_fork]) for target in self.targets],
+                               [np.concatenate([target.start_fork, target.end_fork]).astype(np.float) for target in self.targets],
                                [float(driver.next_available_time) for driver in self.drivers]]
+            # ic(time_constraint[1])
+            # exit()
 
             world = list(map(float, [self.current_player,
                                      self.current_player]))
@@ -287,8 +299,14 @@ class DarSeqEnv(DarEnv):
                                     depot_position=self.depot_position,
                                     extremas=self.extremas,
                                     time_end=self.time_end,
+                                    max_ride_time=self.max_ride_time,
+                                    time_bounderies=self.time_bounderies,
+                                    service_time=self.service_time,
+                                    max_capacity=self.max_capacity,
                                     verbose=False)
-        if self.test_env and self.dataset:
+        if self.test_env and self.dataset and False:
+            self.instance.exact_dataset_generation(self.dataset)
+        elif self.test_env and self.dataset:
             self.instance.dataset_generation(self.dataset)
         else :
             self.instance.random_generation(timeless=self.timeless)
@@ -425,7 +443,7 @@ class DarSeqEnv(DarEnv):
         events_in = [t for t in events_in if t>self.time_step]
         self.last_time_gap = min(events_in) - self.time_step
         self.time_step = min(events_in)
-        ic(self.time_step)
+        # ic(self.time_step)
 
 
     def update_drivers_positions(self):
@@ -450,7 +468,9 @@ class DarSeqEnv(DarEnv):
                         # driver.set_target(None, self.time_step)
                         # self.next_players.append(driver.identity)
                     elif driver.order == 'service':
-                        ic('Just servicing easily:', driver)
+                        if self.verbose:
+                            ic('Just servicing easily:', driver)
+
 
                     elif self.last_time_gap < d:
                         # lx + (1-l)x with l=d'/d
@@ -466,6 +486,23 @@ class DarSeqEnv(DarEnv):
 
                 # update time disponibility every timestep for every driver
                 driver.update_next_available(self.time_step)
+
+    def retour_au_bercail(self):
+        if self.verbose:
+            print(' FINAL MOVE - Return to depot ')
+        max_distance = 0
+        for driver in self.drivers:
+            d = distance(driver.position, self.depot_position)
+            self.total_distance += d
+            if driver.destination is not None:
+                d += driver.target.service_time
+                driver.set_target(None, self.time_step)
+            driver.move(self.depot_position)
+            if d > max_distance:
+                max_distance = d
+
+        self.time_step += max_distance
+
 
 
     def step(self, action):
@@ -512,6 +549,7 @@ class DarSeqEnv(DarEnv):
 
         if self.targets_states()[4] == self.target_population :
             done = True
+            self.retour_au_bercail()
         if self.current_step >= self.max_step or self.time_step >= self.time_end :
             done = True
         if self.aiming_loop_nb > self.driver_population + 1:

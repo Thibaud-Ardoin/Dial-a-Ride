@@ -34,10 +34,14 @@ class Target():
                 return True
         return False
 
-    def end_in_time(self, current_time):
-        if current_time - self.pickup_time > self.max_ride_time :
-            print('Max Ride time passed.....')
-            return False
+    def end_in_time(self, current_time, potential_pickup_time=None):
+        if potential_pickup_time is not None :
+            if current_time - potential_pickup_time > self.max_ride_time:
+                return False
+        # elif current_time - self.pickup_time > self.max_ride_time :
+        #     print('Max Ride time passed.....')
+        #     return False
+
         if float_equality(current_time, self.end_fork[0]) or float_equality(current_time, self.end_fork[1]) :
             return True
         if self.end_fork[0] <= current_time :
@@ -89,7 +93,7 @@ class Driver():
             if self.next_available_time <= current_time:
                 self.next_available_time = current_time
                 if self.order == 'service':
-                    print('Finishes out of service')
+                    # print('Finishes out of service')
                     # Set to waiting
                     self.set_target(None, current_time)
 
@@ -193,7 +197,7 @@ class Driver():
             else :
                 target.state = 0
                 target.pickup_time = current_time
-                target.end_fork = (target.end_fork[0], min(target.pickup_time + target.max_ride_time, target.end_fork[1]))
+                # target.end_fork = (target.end_fork[0], min(target.pickup_time + target.max_ride_time + target.service_time, target.end_fork[1]))
                 self.loaded.append(target)
                 self.order = 'service'
                 self.next_available_time = current_time + target.service_time

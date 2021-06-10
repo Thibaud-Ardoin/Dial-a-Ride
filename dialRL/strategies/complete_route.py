@@ -11,17 +11,25 @@ class CompleteRoute(BaseStrategy):
 
 
     def action_choice(self, observation=None):
+        # # test shit
+        # if self.env.time_step > 102 :
+        #     exit()
         player_id = self.env.current_player
         player = self.env.drivers[player_id - 1]
-        ic(self.routes[player_id - 1])
-        ic(self.routes_status)
+        ic(player_id)
+        ic(player.loaded)
+        if player_id > len(self.routes):
+            return 0
+        if self.routes_status[player_id - 1] >= len(self.routes[player_id - 1]) :
+            return 0
+
         next_node = self.routes[player_id - 1][self.routes_status[player_id - 1]]
         target_id = self.node2target(next_node)
         target = self.env.targets[target_id - 1]
 
+        ic(next_node)
+        ic(target_id)
 
-        ic(player.can_load(target, self.env.time_step))
-        ic(player.can_unload(target, self.env.time_step))
         if player.can_load(target, self.env.time_step) :
             self.routes_status[player_id - 1] += 1
             return target_id
@@ -55,14 +63,16 @@ class CompleteRoute(BaseStrategy):
 
 if __name__ == '__main__':
     strat = CompleteRoute(
-        solution_file='/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/461847ee430896a3/RF4-simple3_soln.json',
+        solution_file='/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-0_soln.json',
+        #'/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF11-pr01_soln.json',
+        #/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF7-service_test3_soln.json',
         size=4,
         target_population=2,
         driver_population=2,
         reward_function='HybridProportionalReward',
         time_end=1400,
         max_step=5000,
-        dataset='/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/data/DARP_cordeau/simple3.txt',
+        dataset='/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/data/DARP_cordeau/0.txt',
         test_env=True,
         recording=True)
 

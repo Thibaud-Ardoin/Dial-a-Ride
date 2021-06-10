@@ -54,6 +54,7 @@ def get_args(args):
     parser.add_argument('--embed_size', default=128, type=int)
     parser.add_argument('--rl', default=10000, type=int)
     parser.add_argument('--vocab_size', default=24, type=int)
+    parser.add_argument('--supervision_function', default='nn', type=str)
 
 
     return parser.parse_known_args(args)[0]

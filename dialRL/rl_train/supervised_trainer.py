@@ -41,7 +41,7 @@ from dialRL.rl_train.reward_functions import *
 from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device, trans25_coord2int
 # from dialRL.rl_train.callback import MonitorCallback
-# from dialRL.strategies import NNStrategy
+from dialRL.strategies import NNStrategy, NNStrategyV2
 
 torch.autograd.set_detect_anomaly(True)
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
@@ -142,8 +142,14 @@ class SupervisedTrainer():
         self.nb_drivers = self.env.driver_population
         self.image_size = self.env.size
 
-        self.supervision = NNStrategy(reward_function=self.reward_function,
+        if self.supervision_function == 'nn':
+            self.supervision = NNStrategy(reward_function=self.reward_function,
                                       env=self.env)
+        elif self.supervision_function == 'nnV2':
+            self.supervision = NNStrategyV2(reward_function=self.reward_function,
+                                      env=self.env)
+        else :
+            raise ValueError('Could not find the supervision function demanded: '+ self.supervision)
 
         # Model Choice
         if self.model=='MlpPolicy':
@@ -285,11 +291,11 @@ class SupervisedTrainer():
 
     def save_svg_example(self, observations, rewards, number, time_step):
         dir = self.path_name + '/example/' + str(time_step) + '/ex_number' + str(number)
-        video_name = dir + '/Strat_res.gif'
+        video_name = dir + '/Strat_res.mp4'
         if dir is not None:
             os.makedirs(dir, exist_ok=True)
 
-        with draw.animate_video(video_name, duration=0.1) as anim:
+        with draw.animate_video(video_name, align_right) as anim:
             # Add each frame to the animation
             for i, s in enumerate(observations):
                 anim.draw_frame(s)
@@ -312,15 +318,17 @@ class SupervisedTrainer():
         if self.dataset:
             self.eval_episodes = 1
             data_type = self.dataset.split('/')[-1].split('.')[0]
-            saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}.pt'.format(s=str(self.data_size),
-                                                                                                                tt=str(self.timeless))
+            saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}_fun{sf}.pt'.format(s=str(self.data_size),
+                                                                                                                tt=str(self.timeless),
+                                                                                                                sf=str(self.supervision_function))
         else :
-            saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}.pt'.format(s=str(self.data_size),
+            saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}.pt'.format(s=str(self.data_size),
                                                                                                               t=str(self.nb_target),
                                                                                                               d=str(self.nb_drivers),
                                                                                                               i=str(self.image_size),
-                                                                                                              tt=str(self.timeless))
-        done = True
+                                                                                                              tt=str(self.timeless),
+                                                                                                              sf=str(self.supervision_function))
+
         action_counter = np.zeros(self.vocab_size + 1)
 
         if os.path.isfile(saving_name) :
@@ -329,23 +337,35 @@ class SupervisedTrainer():
             for data in dataset:
                 o, a = data
                 action_counter[a] += 1
-
             self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
             return dataset
+
+        done = True
+        sub_data = []
+        sub_action_counter = np.zeros(self.vocab_size + 1)
+        observation = self.env.reset()
 
         # Generate a Memory batch
         for element in range(size):
 
             if done :
+                if self.env.is_fit_solution():
+                    data = data + sub_data
+                    action_counter = action_counter + sub_action_counter
+                else :
+                    print('/!\ Found a non feasable solution. It is not saved')
                 observation = self.env.reset()
+                sub_data = []
+                sub_action_counter = np.zeros(self.vocab_size + 1)
+
 
             supervised_action = self.supervision.action_choice()
             supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
 
-            data.append([observation, supervised_action])
+            sub_data.append([observation, supervised_action])
             observation, reward, done, info = self.env.step(supervised_action)
 
-            action_counter[supervised_action-1] += 1
+            sub_action_counter[supervised_action-1] += 1
 
             if element % 1000 == 0:
                 print('Generating data... [{i}/{ii}]'.format(i=element, ii=size))

@@ -72,4 +72,5 @@ for n in range(params['data_size']):
 with open(params['out_dir'] + '/INDEX.txt', 'w') as write_file:
     for n in range(params['data_size']):
         write_file.write(str(n) + '\n')
- write_file.close()
+
+write_file.close()

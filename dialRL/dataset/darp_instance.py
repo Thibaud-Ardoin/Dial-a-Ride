@@ -17,7 +17,7 @@ from dialRL.dataset import tabu_parse, Driver, Target, tabu_parse_info
 class DarPInstance():
     """ 2 Dimentional insance of the NN problem
     """
-    def __init__(self, size, population, drivers, max_ride_time=90, time_bounderies=[60, 480], service_time=10, extremas=None, depot_position=None, time_end=1400, verbose=False):
+    def __init__(self, size, population, drivers, max_ride_time=90, time_bounderies=[60, 480], service_time=10, extremas=None, depot_position=None, time_end=1400, verbose=False, max_capacity=6):
         # Ground definition
         self.size = size
         self.nb_targets = population
@@ -28,6 +28,7 @@ class DarPInstance():
         self.max_ride_time = max_ride_time
         self.time_bounderies = time_bounderies
         self.service_time = service_time
+        self.max_capacity = max_capacity
 
         # 2nd grade attributes
         self.drivers = []
@@ -47,6 +48,22 @@ class DarPInstance():
             y = np.random.uniform(self.extremas[1], self.extremas[3])
             pt = np.array((x, y))
         return pt
+
+    def tight_window(self, target):
+        target.start_fork[1] = min(self.time_end, target.start_fork[1] + target.service_time)
+        target.end_fork[0] = max(0, target.end_fork[0] - target.service_time)
+
+        target.start_fork[0] = max(target.start_fork[0],
+                                   target.end_fork[0] - target.max_ride_time,
+                                   distance(self.depot_position, target.pickup))
+
+        target.end_fork[1] = min(target.end_fork[1],
+                                 target.start_fork[1] + target.max_ride_time,
+                                 self.time_end + distance(self.depot_position, target.dropoff))
+
+        target.start_fork[1] = min(target.start_fork[1], target.end_fork[1] - distance(target.pickup, target.dropoff))
+        target.end_fork[0] = max(target.end_fork[0], target.start_fork[0] + distance(target.pickup, target.dropoff))
+        return target
 
 
     def random_generation(self, timeless=False, seed=None):
@@ -87,18 +104,19 @@ class DarPInstance():
 
             # Generate 50% of free dropof conditions, and 50% of free pickup time conditions
             if j < self.nb_targets // 2 :
-                print(self.nb_targets, j)
-                start_fork = (max(0, ei - self.max_ride_time),
-                              li)
-                end_fork = (ei, li)
+                start_fork = [max(0, ei - self.max_ride_time),
+                              li]
+                end_fork = [ei, li]
             else :
-                print('other', self.nb_targets, j)
-                start_fork = (ei, li)
-                end_fork = (ei,
-                            min(self.time_end, li+ self.max_ride_time))
+                start_fork = [ei, li]
+                end_fork = [ei,
+                            min(self.time_end, li+ self.max_ride_time)]
 
             target = Target(pickup, dropoff, start_fork, end_fork,
                             identity=j + 1)
+
+            target = self.tight_window(target)
+
             self.targets.append(target)
 
         if self.verbose:
@@ -112,10 +130,35 @@ class DarPInstance():
         self.depot_position = drivers[0].position
         self.drivers = drivers
         self.targets = targets
+        for target in self.targets:
+            target = self.tight_window(target)
+
+        #     # Add permissive time window for scervice time
+            # target.start_fork[0] = max(0, target.start_fork[0] - target.service_time)
+            # target.start_fork[1] = min(self.time_end, target.start_fork[1] + target.service_time)
+            # target.end_fork[0] = max(0, target.end_fork[0] - target.service_time)
+            # target.end_fork[1] = min(self.time_end, target.end_fork[1] + target.service_time)
+
+            # if target.start_fork[0] == 0:
+            #     ei, li = target.end_fork
+            #     target.start_fork = (max(0, ei - target.max_ride_time), li)
+            # else :
+            #     ei, li = target.start_fork
+            #     target.end_fork = (ei, min(self.time_end, li+ self.max_ride_time))
 
         if self.verbose:
             print('Dataset loaded as DARP instance')
 
+    def exact_dataset_generation(self, data_name):
+        """ Basicly populating the instance
+        """
+        targets, drivers = tabu_parse(data_name)
+        self.depot_position = drivers[0].position
+        self.drivers = drivers
+        self.targets = targets
+
+        if self.verbose:
+            print('Dataset loaded as DARP instance')
 
     def reveal(self):
         for item in vars(self):
@@ -142,7 +185,7 @@ class DarPInstance():
 if __name__ == '__main__':
     while 1 :
         data = './data/instances/cordeau2003/tabu1.txt'
-        extremas, target_population, driver_population, time_end, depot_position, size = tabu_parse_info(data)
+        extremas, target_population, driver_population, time_end, depot_position, size, time_limit, max_capacity, max_ride_time, service_time = tabu_parse_info(data)
         # instance = DarPInstance(size=500, population=10, drivers=2, time_end=1400, verbose=True)
         instance = DarPInstance(size=size,
                                 population=target_population,
@@ -150,6 +193,10 @@ if __name__ == '__main__':
                                 depot_position=depot_position,
                                 extremas=extremas,
                                 time_end=time_end,
+                                max_ride_time=max_ride_time,
+                                time_bounderies=[60, time_limit],
+                                service_time=service_time,
+                                max_capacity=max_capacity,
                                 verbose=True)
         instance.random_generation()
         instance.reveal()

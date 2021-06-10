@@ -1,6 +1,7 @@
 from dialRL.strategies.base_strategy import BaseStrategy
 from dialRL.strategies.random_strategy import RandomStrategy
 from dialRL.strategies.nn_strategy import NNStrategy
+from dialRL.strategies.nn_strategyV2 import NNStrategyV2
 
 
 __all__ = ['BaseStrategy',

@@ -37,9 +37,10 @@ def check_extrema(extremas, X, Y):
     return mx, my, Mx, My
 
 def tabu_parse_info(file_name):
+    # 3 48 480 6 90
     extremas = [0, 0, 0, 0]
     with open(file_name, 'r') as file :
-        nb_drivers, number_line, c, e, f = list(map(int, file.readline().split()))
+        nb_drivers, number_line, time_limit, max_capacity, max_ride_time = list(map(int, file.readline().split()))
         identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
 
         # Compute Infos
@@ -50,10 +51,11 @@ def tabu_parse_info(file_name):
 
         extremas = check_extrema(extremas, X, Y)
         for l in range(number_line) :
-            identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
+            # 1 3.442 -1.227 10 1 192 298
+            identity, X, Y, service_time, ty, st, en = list(map(float, file.readline().split()))
             extremas = check_extrema(extremas, X, Y)
     size = max(abs(extremas[2] - extremas[0]), abs(extremas[3] - extremas[1]))
-    return extremas, target_population, driver_population, time_end, depot_position, size
+    return extremas, target_population, driver_population, time_end, depot_position, size, time_limit, max_capacity, max_ride_time, service_time
 
 def tabu_parse_best(file_name):
     file_name_itself = file_name.split('/')[-1]
@@ -64,7 +66,7 @@ def tabu_parse_best(file_name):
     else :
         print('Error finding result data from : ' + file_name)
         return None
-        
+
     res_file = '/'.join(file_name.split('/')[:-1]) + '/res/res' + str(nb) + '.txt'
     print(' -> Going for dataset nb: ', nb, res_file)
     try :
