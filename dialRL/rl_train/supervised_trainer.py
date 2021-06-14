@@ -41,7 +41,7 @@ from dialRL.rl_train.reward_functions import *
 from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device, trans25_coord2int
 # from dialRL.rl_train.callback import MonitorCallback
-from dialRL.strategies import NNStrategy, NNStrategyV2
+# from dialRL.strategies import NNStrategy, NNStrategyV2
 
 torch.autograd.set_detect_anomaly(True)
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL

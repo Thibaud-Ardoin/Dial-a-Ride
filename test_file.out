@@ -1,0 +1,72 @@
+---------------------------------------------------------------------------------
+                         Input Value                                             
+---------------------------------------------------------------------------------
+                        extend 0                                                 
+                         index 1                                                 
+                      instance 1                                                 
+                      ridetime 1                                                 
+                         sdarp 0                                                 
+---------------------------------------------------------------------------------
+                     Parameter Value                                             
+---------------------------------------------------------------------------------
+                       AF_cuts 1                                                 
+                       FA_cuts 1                                                 
+                       FF_cuts 1                                                 
+                  FR_heuristic 1                                                 
+                  NS_heuristic 1                                                 
+                          ap2c 0                                                 
+                          cpus 4                                                 
+                   cut_violate 0.01                                              
+                         debug 0                                                 
+                    domination 1                                                 
+                     filter_rf 1                                                 
+                        gurobi {}                                                
+            heuristic_stop_gap 0.01                                              
+                    param_name                                                   
+                        rc_fix 1                                                 
+                       rc_frac 0.10                                              
+                     timelimit 3600.00                                           
+                    triad_cuts 1                                                 
+---------------------------------------------------------------------------------
+                        Output Value                                             
+---------------------------------------------------------------------------------
+                     indexfile /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF1-1_index.json
+                          info /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF1-1_info.json
+                      solution /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF1-1_soln.json
+---------------------------------------------------------------------------------
+Generating fragments...
+316,122 fragments generated from 26,826 parent paths.
+Filtering fragments with partial loads...
+20,194/316,122 are minimal fragments.
+12,686/20,194 of minimal fragments were removed.
+ Has start load    Has end load          Inital         Removed       Remaining       Removed %
+              o               o          159750          126678           33072           79.3%
+              o                           65655           34103           31552           51.9%
+                              o           63891           37476           26415           58.7%
+                                          26826               -               -               -
+         total:                          316122          198257          117865           62.7%
+Dominating fragments...
+43,092 (36.6%) fragments removed.
+74,773 fragments remain.
+Final network size:         
+         Start Arcs       24
+           End Arcs       24
+            DP Arcs     3813
+               Arcs     3861
+          Fragments    74773
+            D Nodes     1034
+            P Nodes     1079
+              Nodes     2115
+Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (linux64)
+Thread count: 4 physical cores, 8 logical processors, using up to 4 threads
+Optimize a model with 2139 rows, 78660 columns and 473676 nonzeros
+Model fingerprint: 0xe390bf8b
+Coefficient statistics:
+  Matrix range     [2e-01, 6e+01]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 3e+00]
+  RHS range        [1e+00, 1e+00]
+
+Concurrent LP optimizer: dual simplex and barrier
+Showing barrier log only...
+

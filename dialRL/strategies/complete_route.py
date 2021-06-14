@@ -16,8 +16,7 @@ class CompleteRoute(BaseStrategy):
         #     exit()
         player_id = self.env.current_player
         player = self.env.drivers[player_id - 1]
-        ic(player_id)
-        ic(player.loaded)
+
         if player_id > len(self.routes):
             return 0
         if self.routes_status[player_id - 1] >= len(self.routes[player_id - 1]) :
@@ -26,9 +25,6 @@ class CompleteRoute(BaseStrategy):
         next_node = self.routes[player_id - 1][self.routes_status[player_id - 1]]
         target_id = self.node2target(next_node)
         target = self.env.targets[target_id - 1]
-
-        ic(next_node)
-        ic(target_id)
 
         if player.can_load(target, self.env.time_step) :
             self.routes_status[player_id - 1] += 1
