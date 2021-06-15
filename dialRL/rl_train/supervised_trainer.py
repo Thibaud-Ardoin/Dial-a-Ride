@@ -41,7 +41,7 @@ from dialRL.rl_train.reward_functions import *
 from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device, trans25_coord2int
 # from dialRL.rl_train.callback import MonitorCallback
-# from dialRL.strategies import NNStrategy, NNStrategyV2
+from dialRL.strategies import NNStrategy, NNStrategyV2
 
 torch.autograd.set_detect_anomaly(True)
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
@@ -137,7 +137,7 @@ class SupervisedTrainer():
                                   dataset=self.dataset)
                           # dataset=self.dataset) for i in range(1)])
 
-        self.best_eval_accuracy = 0
+        self.best_eval_metric = [0, 1000] # accuracy + loss
         self.nb_target = self.env.target_population
         self.nb_drivers = self.env.driver_population
         self.image_size = self.env.size
@@ -148,6 +148,8 @@ class SupervisedTrainer():
         elif self.supervision_function == 'nnV2':
             self.supervision = NNStrategyV2(reward_function=self.reward_function,
                                       env=self.env)
+        elif self.supervision_function == 'rf':
+            self.supervision = RFGenerator(params=vars(self))
         else :
             raise ValueError('Could not find the supervision function demanded: '+ self.supervision)
 
@@ -295,7 +297,7 @@ class SupervisedTrainer():
         if dir is not None:
             os.makedirs(dir, exist_ok=True)
 
-        with draw.animate_video(video_name, align_right) as anim:
+        with draw.animate_video(video_name, align_right=True, align_bottom=True) as anim:
             # Add each frame to the animation
             for i, s in enumerate(observations):
                 anim.draw_frame(s)
@@ -642,18 +644,15 @@ class SupervisedTrainer():
 
         # To spare time, only the last example is saved
         eval_acc = 100 * correct[0]/total
+        eval_loss = running_loss/total
 
-        if full_test :
-            if self.example_format == 'svg':
-                self.save_svg_example(to_save, save_rewards, 0, time_step=self.current_epoch)
-            else :
-                self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
         print('\t-->' + eval_name + 'Réussite: ', eval_acc, '%')
         print('\t-->' + eval_name + 'Loss:', running_loss/total)
 
-        # Model saving
-        if eval_acc > self.best_eval_accuracy and full_test:
-            self.best_eval_accuracy = eval_acc
+        # Model saving. Condition: Better accuracy and better loss
+        if eval_acc >= self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] and full_test:
+            self.best_eval_metric[0] = eval_acc
+            self.best_eval_metric[1] = eval_loss
             if self.checkpoint_type == 'best':
                 model_name = self.path_name + '/models/best_model.pt'
             else :
@@ -662,6 +661,13 @@ class SupervisedTrainer():
             print('\t New Best Accuracy Model <3')
             print('\tSaving as:', model_name)
             torch.save(self.model, model_name)
+
+            # Saving an example
+            if self.example_format == 'svg':
+                self.save_svg_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            else :
+                self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+
 
         # Statistics on clearml saving
         if self.sacred :
