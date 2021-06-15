@@ -1,5 +1,5 @@
 import numpy as np
-from dialRL.dataset import Target, Driver
+from dialRL.environments.target_driver import Target, Driver
 
 
 def tabu_parse(file_name):

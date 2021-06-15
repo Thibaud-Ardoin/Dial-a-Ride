@@ -37,11 +37,12 @@ import torch.optim as optim
 #                           pipeline)
 
 from dialRL.models import *
-from dialRL.rl_train.reward_functions import *
-from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
+from dialRL.utils.reward_functions import *
+from dialRL.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device, trans25_coord2int
 # from dialRL.rl_train.callback import MonitorCallback
-from dialRL.strategies import NNStrategy, NNStrategyV2
+# from dialRL.strategies import NNStrategy, NNStrategyV2
+from dialRL.dataset import RFGenerator
 
 torch.autograd.set_detect_anomaly(True)
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
@@ -49,33 +50,7 @@ torch.autograd.set_detect_anomaly(True)
 #
 # tf.enable_eager_execution()
 
-class MemoryDataset(Dataset):
-    """ Customed Dataset class for our Instances data
-    """
-    def __init__(self, data_list):
-        self.data = data_list
 
-    def __len__(self):
-        return len(self.data)
-
-
-    def __getitem__(self, idx):
-        """ Returns a couple (image, neares 1hot)"""
-        instance = self.data[idx]
-        return instance
-
-class SupervisionDataset(Dataset):
-    """ Customed Dataset class for our Instances data
-    """
-    def __init__(self, data_list):
-        self.data = data_list
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        """ simple idx """
-        return self.data[idx]
 
 
 class SupervisedTrainer():

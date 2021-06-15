@@ -36,22 +36,6 @@ def norm_image(self, image, type=None, scale=1):
     return (255 * (image - np.min(image)) / (np.max(image) - np.min(image))).astype(np.uint8)
 
 
-class objdict(dict):
-    def __getattr__(self, name):
-        if name in self:
-            return self[name]
-        else:
-            raise AttributeError("No such attribute: " + name)
-
-    def __setattr__(self, name, value):
-        self[name] = value
-
-    def __delattr__(self, name):
-        if name in self:
-            del self[name]
-        else:
-            raise AttributeError("No such attribute: " + name)
-
 def heatmap2image_coord(heatmap):
     coord = np.where(heatmap == heatmap.max())
     return coord

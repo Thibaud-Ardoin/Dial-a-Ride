@@ -3,7 +3,7 @@ import numpy as np
 import gym
 from gym import spaces
 
-from dialRL.dataset import PixelInstance
+from dialRL.environments import PixelInstance
 from dialRL.utils import instance2world, indice2image_coordonates, distance
 
 class TspEnv(gym.Env):

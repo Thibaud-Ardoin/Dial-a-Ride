@@ -5,8 +5,8 @@ from moviepy.editor import *
 from matplotlib.image import imsave
 import drawSvg as draw
 
-from dialRL.rl_train.environments.dar_seq_env import DarSeqEnv
-from dialRL.rl_train.reward_functions import *
+from dialRL.environments.dar_seq_env import DarSeqEnv
+from dialRL.utils.reward_functions import *
 
 class BaseStrategy():
     def __init__(self,

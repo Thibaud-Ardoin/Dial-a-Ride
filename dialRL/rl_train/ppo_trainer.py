@@ -17,7 +17,7 @@ from clearml import Task
 
 from dialRL.models import *
 from dialRL.rl_train.reward_functions import *
-from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
+from dialRL.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device
 from dialRL.rl_train.callback import MonitorCallback
 

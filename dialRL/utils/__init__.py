@@ -1,3 +1,4 @@
+from dialRL.utils.objects import SupervisionDataset,MemoryDataset, objdict
 from dialRL.utils import utils
 from dialRL.utils.utils import (image_coordonates2indices,
                                 indice2image_coordonates,
@@ -7,7 +8,6 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 indice_map2image,
                                 distance,
                                 get_device,
-                                objdict,
                                 visualize,
                                 GAP_function,
                                 float_equality,
@@ -18,6 +18,7 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 trans25_coord2int,
                                 quinconx)
 from dialRL.utils.representation import instance2Image_rep
+from dialRL.utils.reward_functions import ConstantReward, ProportionalReward, NoNegativeProportionalReward, EndReward, NoNegativeEndReward
 
 __all__ = ['coord2int',
            'quinconx',

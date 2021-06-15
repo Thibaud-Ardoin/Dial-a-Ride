@@ -35,7 +35,7 @@ from transformers import (GPT2Tokenizer,
 
 from dialRL.models import *
 from dialRL.rl_train.reward_functions import *
-from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
+from dialRL.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device, trans25_coord2int
 from dialRL.rl_train.callback import MonitorCallback
 from dialRL.strategies import NNStrategy

@@ -10,7 +10,7 @@ import os
 import pickle
 
 from dialRL.utils import image_coordonates2indices, indice2image_coordonates, distance, instance2Image_rep
-from dialRL.dataset import tabu_parse, Driver, Target, tabu_parse_info
+from dialRL.environments import Driver, Target, tabu_parse, tabu_parse_info
 
 
 

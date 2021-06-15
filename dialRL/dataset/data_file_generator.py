@@ -2,7 +2,7 @@ import numpy as np
 import os
 from icecream import ic
 
-from dialRL.rl_train.environments import DarSeqEnv
+from dialRL.environments import DarSeqEnv
 # from dialRL.utils import get_device, trans25_coord2int
 # from dialRL.strategies import NNStrategy
 

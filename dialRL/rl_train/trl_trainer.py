@@ -27,7 +27,7 @@ from transformers import (GPT2Tokenizer,
 from dialRL.models import *
 from dialRL.rl_train.trl.ppo_trl import PPOTrainer
 from dialRL.rl_train.trl.GPT2_trl import GPT2HeadWithValueModel, respond_to_batch
-from dialRL.rl_train.environments import DarEnv, DarPixelEnv, DarSeqEnv
+from dialRL.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device, obs2int, coord2int
 from dialRL.rl_train.callback import MonitorCallback
 

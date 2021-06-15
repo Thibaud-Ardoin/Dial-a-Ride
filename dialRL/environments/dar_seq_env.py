@@ -10,11 +10,10 @@ import matplotlib.pyplot as plt
 from matplotlib.image import imsave
 from icecream import ic
 
-from dialRL.dataset import tabu_parse_info, tabu_parse_best
-from dialRL.dataset import DarPInstance
-from dialRL.rl_train.reward_functions import *
+from dialRL.environments import DarPInstance,  tabu_parse_info, tabu_parse_best
+# from dialRL.rl_train.reward_functions import *
 from dialRL.utils import instance2world, indice2image_coordonates, distance, instance2Image_rep, GAP_function, float_equality, coord2int, time2int
-from dialRL.rl_train.environments import DarEnv
+from dialRL.environments import DarEnv
 
 class DarSeqEnv(DarEnv):
     """Custom Environment that follows gym interface"""
@@ -602,7 +601,7 @@ class DarSeqEnv(DarEnv):
 if __name__ == '__main__':
     data = './data/instances/cordeau2003/tabu1.txt'
     # data = None
-    rwd_fun = ConstantDistributionReward()
+    # rwd_fun = ConstantDistributionReward()
     env = DarSeqEnv(size=4,
                     target_population=2,
                     driver_population=2,

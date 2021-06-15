@@ -13,7 +13,6 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 import torch.optim as optim
 
-from dialRL.dataset import PixelInstance
 from dialRL.utils import get_device, visualize
 
 
