@@ -20,8 +20,7 @@ import drawSvg as draw
 from moviepy.editor import *
 from matplotlib.image import imsave
 
-from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, SubsetRandomSampler, Dataset
 import torch
 import torch.nn as nn
 from torch.nn.functional import softmax
@@ -523,9 +522,24 @@ class SupervisedTrainer():
         if self.rl :
             if self.supervision_function == 'rf':
                 dataset = self.supervision.generate_dataset()
+                dataset_size = len(dataset)
+                indices = list(range(dataset_size))
+                split = int(np.floor(0.1 * dataset_size))
+                if self.shuffle :
+                    np.random.shuffle(indices)
+                train_indices, val_indices = indices[split:], indices[:split]
+
+                # Creating PT data samplers and loaders:
+                train_sampler = SubsetRandomSampler(train_indices)
+                valid_sampler = SubsetRandomSampler(val_indices)
+
+                supervision_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+                                                           sampler=train_sampler)
+                validation_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+                                                                sampler=valid_sampler)
             else :
                 dataset = self.generate_supervision_data()
-            supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+                supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
 
         print('\t ** Learning START ! **')
 
@@ -538,16 +552,110 @@ class SupervisedTrainer():
                 self.train(supervision_data)
 
             if self.supervision_function == 'rf':
-                pass
+                self.offline_evaluation(validation_data)
             else :
-                self.evaluate()
+                self.online_evaluation()
                 if self.dataset:
-                    self.evaluate(full_test=False)
+                    self.online_evaluation(full_test=False)
 
         print('\t ** Learning DONE ! **')
 
 
-    def evaluate(self, full_test=True):
+
+    def offline_evaluation(self, dataloader, full_test=True):
+        """
+            Use a dataloader as a validation set to verify the models ability to find the supervision strategy.
+            As there is no online interaction with out ennvironement. The nomber of data metrics is minimal.
+        """
+        max_test_accuracy = 0
+        running_loss = 0
+        total = 0
+        correct = nearest_accuracy = pointing_accuracy = 0
+        if full_test :
+            eval_name = 'Test stats'
+        else :
+            eval_name = 'Supervised Test stats'
+
+
+        self.model.eval()
+        for i, data in enumerate(dataloader):
+            observation, supervised_action = data
+
+            world, targets, drivers, positions, time_constraints = observation
+            info_block = [world, targets, drivers]
+            # Current player as trg elmt
+            target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
+            # target_tensor = torch.tensor([0 for _ in range(self.batch_size)]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+            # coord_int = trans25_coord2int(positions[1][supervised_action])
+
+            model_action = self.model(info_block,
+                                      target_tensor,
+                                      positions=positions,
+                                      times=time_constraints)
+
+            # model_action = model_action[:,0]
+            supervised_action = supervised_action.to(self.device)
+
+            # loss = self.criterion(model_action, supervised_action.squeeze(-1))
+            loss = self.criterion(model_action.squeeze(1), supervised_action.squeeze(-1))
+
+            total += supervised_action.size(0)
+            correct += np.sum((model_action.squeeze(1).argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
+            running_loss += loss.item()
+
+            # Limit train passage to 20 rounds
+            if i == 20:
+                break
+
+        eval_acc = 100 * correct/total
+        eval_loss = running_loss/total
+
+        print('\t-->' + eval_name + 'Réussite: ', eval_acc, '%')
+        print('\t-->' + eval_name + 'Loss:', running_loss/total)
+
+        # Model saving. Condition: Better accuracy and better loss
+        if eval_acc >= self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] and full_test:
+            self.best_eval_metric[0] = eval_acc
+            self.best_eval_metric[1] = eval_loss
+            if self.checkpoint_type == 'best':
+                model_name = self.path_name + '/models/best_model.pt'
+            else :
+                model_name = self.path_name + '/models/model_' + str(self.current_epoch) + '.pt'
+            os.makedirs(self.path_name + '/models/', exist_ok=True)
+            print('\t New Best Accuracy Model <3')
+            print('\tSaving as:', model_name)
+            torch.save(self.model, model_name)
+
+            # # Saving an example
+            # if self.example_format == 'svg':
+            #     self.save_svg_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            # else :
+            #     self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+
+        # Statistics on clearml saving
+        if self.sacred :
+            self.sacred.get_logger().report_scalar(title=eval_name,
+                series='reussite %', value=eval_acc, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=eval_name,
+                series='Loss', value=running_loss/total, iteration=self.current_epoch)
+            # self.sacred.get_logger().report_scalar(title=eval_name,
+            #     series='Fit solution %', value=100*fit_sol/self.eval_episodes, iteration=self.current_epoch)
+            # self.sacred.get_logger().report_scalar(title=eval_name,
+            #     series='Average delivered', value=delivered/self.eval_episodes, iteration=self.current_epoch)
+            # self.sacred.get_logger().report_scalar(title=eval_name,
+            #     series='Average gap', value=gap/self.eval_episodes, iteration=self.current_epoch)
+            # self.sacred.get_logger().report_scalar(title=eval_name,
+            #     series='Step Reward', value=total_reward/total, iteration=self.current_epoch)
+
+
+
+
+
+    def online_evaluation(self, full_test=True):
+        """
+            Online evaluation of the model according to the supervision method.
+            As it is online, we  can maximise the testing informtion about the model.
+        """
         correct = total = running_loss = total_reward = 0
         delivered = 0
         gap = 0
