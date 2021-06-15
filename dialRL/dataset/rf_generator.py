@@ -2,7 +2,8 @@ from dialRL.strategies import CompleteRoute
 from dialRL.dataset import DataFileGenerator
 from dialRL.environments import DarSeqEnv
 from dialRL.strategies.external.darp_rf.run_rf_algo import run_rf_algo
-from dialRL.utils import get_device, objdict, SupervisionDataset, ConstantReward
+from dialRL.utils import get_device, objdict, SupervisionDataset
+from dialRL.utils.reward_functions import  *
 
 
 import os
@@ -31,10 +32,10 @@ class RFGenerator():
         self.nb_target= params.nb_target
         self.nb_drivers = params.nb_drivers
         self.device = params.device
-        self.reward_function = params.reward_function
         self.rep_type = params.rep_type #'trans29'
         self.dataset_name = params.dataset
         self.rootdir = params.rootdir
+        self.reward_function =  globals()[params.reward_function]()
 
         self.gen_env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
                         rep_type=self.rep_type, reward_function=self.reward_function)
@@ -53,10 +54,6 @@ class RFGenerator():
                                                                                                               i=str(self.image_size),
                                                                                                               tt=str(self.timeless),
                                                                                                               sf=str(self.supervision_function))
-        if os.path.isfile(self.saving_name) :
-            print('This data is already out there !')
-            dataset = torch.load(self.saving_name)
-            return dataset
 
 
 
@@ -67,6 +64,11 @@ class RFGenerator():
             This solution is finally read by a CompleteRoute strategie wrapper.
             Iterating on the instance environement, we can capture all the action at the disired time of observation.
         """
+        if os.path.isfile(self.saving_name) :
+            print('This data is already out there !')
+            dataset = torch.load(self.saving_name)
+            return dataset
+
         print('Going to generate a max of', self.instances_number, ' instances. Aiming to get a total of ', self.data_size, ' datapoints')
 
         data = []
@@ -120,19 +122,20 @@ class RFGenerator():
             print('Generating data... [{i}/{ii}]'.format(i=len(data), ii=self.data_size))
 
 
-        if len(data) < data_size :
+        if len(data) < self.data_size :
             print('***************************************************************')
             print(' * incomplete generation... possibly an unfeasible situation * ')
             print('***************************************************************')
 
         print('Done Generating !')
         train_data = SupervisionDataset(data)
-        torch.save(train_data, saving_name)
-        print(saving_name)
+        torch.save(train_data, self.saving_name)
+        print('Saving the data as: ', self.saving_name)
+        return train_data
 
 if __name__ == '__main__':
     rf_gen = RFGenerator(params=objdict({
-        'data_size': 10000,
+        'data_size': 100,
         'timeless': False,
         'supervision_function': 'rf',
         'image_size': 4,

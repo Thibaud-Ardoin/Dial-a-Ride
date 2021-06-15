@@ -39,7 +39,7 @@ import torch.optim as optim
 from dialRL.models import *
 from dialRL.utils.reward_functions import *
 from dialRL.environments import DarEnv, DarPixelEnv, DarSeqEnv
-from dialRL.utils import get_device, trans25_coord2int
+from dialRL.utils import get_device, trans25_coord2int, objdict
 # from dialRL.rl_train.callback import MonitorCallback
 # from dialRL.strategies import NNStrategy, NNStrategyV2
 from dialRL.dataset import RFGenerator
@@ -87,13 +87,14 @@ class SupervisedTrainer():
         #### RL elements
 
         reward_function = globals()[self.reward_function]()
+        self.rep_type = 'trans29'
 
         ## TODO: Add globals()[self.env]
         self.env = DarSeqEnv(size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
                           reward_function=reward_function,
-                          rep_type='trans29',
+                          rep_type=self.rep_type,
                           max_step=self.max_step,
                           test_env=False,
                           timeless=self.timeless,
@@ -105,7 +106,7 @@ class SupervisedTrainer():
                                   target_population=self.nb_target,
                                   driver_population=self.nb_drivers,
                                   reward_function=reward_function,
-                                  rep_type='trans29',
+                                  rep_type=self.rep_type,
                                   max_step=self.max_step,
                                   timeless=self.timeless,
                                   test_env=True,
@@ -124,9 +125,9 @@ class SupervisedTrainer():
             self.supervision = NNStrategyV2(reward_function=self.reward_function,
                                       env=self.env)
         elif self.supervision_function == 'rf':
-            self.supervision = RFGenerator(params=vars(self))
+            self.supervision = RFGenerator(params=objdict(vars(self)))
         else :
-            raise ValueError('Could not find the supervision function demanded: '+ self.supervision)
+            raise ValueError('Could not find the supervision function demanded: '+ self.supervision_function)
 
         # Model Choice
         if self.model=='MlpPolicy':
@@ -520,7 +521,10 @@ class SupervisedTrainer():
             Train and evaluate
         """
         if self.rl :
-            dataset = self.generate_supervision_data()
+            if self.supervision_function == 'rf':
+                dataset = self.supervision.generate_dataset()
+            else :
+                dataset = self.generate_supervision_data()
             supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
 
         print('\t ** Learning START ! **')
@@ -533,9 +537,12 @@ class SupervisedTrainer():
             else :
                 self.train(supervision_data)
 
-            self.evaluate()
-            if self.dataset:
-                self.evaluate(full_test=False)
+            if self.supervision_function == 'rf':
+                pass
+            else :
+                self.evaluate()
+                if self.dataset:
+                    self.evaluate(full_test=False)
 
         print('\t ** Learning DONE ! **')
 

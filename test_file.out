@@ -35,47 +35,47 @@
                       solution /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-0_soln.json
 ---------------------------------------------------------------------------------
 Generating fragments...
-2 fragments generated from 2 parent paths.
+6 fragments generated from 3 parent paths.
 Filtering fragments with partial loads...
-2/2 are minimal fragments.
-0/2 of minimal fragments were removed.
+4/6 are minimal fragments.
+2/4 of minimal fragments were removed.
  Has start load    Has end load          Inital         Removed       Remaining       Removed %
-              o               o               0               0               0            0.0%
-              o                               0               0               0            0.0%
-                              o               0               0               0            0.0%
-                                              2               -               -               -
-         total:                               2               0               2            0.0%
+              o               o               1               1               0          100.0%
+              o                               1               1               0          100.0%
+                              o               1               1               0          100.0%
+                                              3               -               -               -
+         total:                               6               3               3           50.0%
 Dominating fragments...
 0 (0.0%) fragments removed.
-2 fragments remain.
+3 fragments remain.
 Final network size:         
          Start Arcs        2
            End Arcs        2
             DP Arcs        1
                Arcs        5
-          Fragments        2
+          Fragments        3
             D Nodes        2
             P Nodes        2
               Nodes        6
 Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (linux64)
 Thread count: 4 physical cores, 8 logical processors, using up to 4 threads
-Optimize a model with 8 rows, 11 columns and 23 nonzeros
-Model fingerprint: 0xa2b01058
+Optimize a model with 8 rows, 12 columns and 28 nonzeros
+Model fingerprint: 0xdedaece4
 Coefficient statistics:
-  Matrix range     [4e-01, 6e+00]
+  Matrix range     [1e+00, 2e+01]
   Objective range  [1e+00, 1e+00]
   Bounds range     [1e+00, 1e+00]
   RHS range        [1e+00, 1e+00]
-Presolve removed 8 rows and 11 columns
+Presolve removed 8 rows and 12 columns
 Presolve time: 0.00s
 Presolve: All rows and columns removed
 Iteration    Objective       Primal Inf.    Dual Inf.      Time
-       0    1.5250166e+01   0.000000e+00   0.000000e+00      0s
+       0    2.3823652e+01   0.000000e+00   0.000000e+00      0s
 
 Solved in 0 iterations and 0.00 seconds
-Optimal objective  1.525016645e+01
+Optimal objective  2.382365241e+01
 objective
-    15.25
+    23.82
 Changed value of parameter OutputFlag to 1
    Prev: 0  Min: 0  Max: 1  Default: 1
 Changed value of parameter LazyConstraints to 1
@@ -88,20 +88,21 @@ Changed value of parameter VarBranch to 1
    Prev: -1  Min: -1  Max: 3  Default: -1
 Changed value of parameter MIRCuts to 2
    Prev: -1  Min: -1  Max: 2  Default: -1
-Changed value of parameter TimeLimit to 1799.998168349266
+Changed value of parameter TimeLimit to 1799.9977378845215
    Prev: inf  Min: 0.0  Max: inf  Default: inf
 Changed value of parameter MIPGap to 0.01
    Prev: 0.0001  Min: 0.0  Max: inf  Default: 0.0001
 Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (linux64)
 Thread count: 4 physical cores, 8 logical processors, using up to 4 threads
-Optimize a model with 9 rows, 11 columns and 25 nonzeros
-Model fingerprint: 0x2979eeda
-Variable types: 1 continuous, 10 integer (9 binary)
+Optimize a model with 9 rows, 12 columns and 31 nonzeros
+Model fingerprint: 0xd3c1ef38
+Variable types: 1 continuous, 11 integer (10 binary)
 Coefficient statistics:
-  Matrix range     [4e-01, 6e+00]
+  Matrix range     [1e+00, 2e+01]
   Objective range  [1e+00, 1e+00]
   Bounds range     [1e+00, 1e+00]
   RHS range        [1e+00, 1e+00]
+Presolve removed 0 rows and 3 columns
 Presolve time: 0.00s
 
 Explored 0 nodes (0 simplex iterations) in 0.00 seconds
@@ -112,47 +113,67 @@ Solution count 0
 Model is infeasible
 Best objective -, best bound -, gap -
 
-User-callback calls 21, time in user-callback 0.00 sec
+User-callback calls 24, time in user-callback 0.00 sec
 Changed value of parameter TimeLimit to inf
-   Prev: 1799.998168349266  Min: 0.0  Max: inf  Default: inf
+   Prev: 1799.9977378845215  Min: 0.0  Max: inf  Default: inf
 Changed value of parameter MIPGap to 0.0001
    Prev: 0.01  Min: 0.0  Max: inf  Default: 0.0001
 Adding 0 constraints as hard constraints.
-Changed value of parameter TimeLimit to 3599.995171070099
+Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (linux64)
+Thread count: 4 physical cores, 8 logical processors, using up to 4 threads
+Optimize a model with 8 rows, 12 columns and 28 nonzeros
+Model fingerprint: 0x9bb24e93
+Coefficient statistics:
+  Matrix range     [1e+00, 2e+01]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Presolve removed 6 rows and 7 columns
+Presolve time: 0.00s
+Presolved: 2 rows, 5 columns, 5 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    2.0372707e+01   2.000000e+00   0.000000e+00      0s
+       1    2.3823652e+01   0.000000e+00   0.000000e+00      0s
+
+Solved in 1 iterations and 0.00 seconds
+Optimal objective  2.382365241e+01
+1.00000 (2,{})--(4,{})                 (1,{})--(3,{})                
+Changed value of parameter TimeLimit to 3599.993227005005
    Prev: inf  Min: 0.0  Max: inf  Default: inf
 Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (linux64)
 Thread count: 4 physical cores, 8 logical processors, using up to 4 threads
-Optimize a model with 8 rows, 11 columns and 23 nonzeros
-Model fingerprint: 0x508f2de8
-Variable types: 1 continuous, 10 integer (9 binary)
+Optimize a model with 8 rows, 12 columns and 28 nonzeros
+Model fingerprint: 0xde5953de
+Variable types: 1 continuous, 11 integer (10 binary)
 Coefficient statistics:
-  Matrix range     [4e-01, 6e+00]
+  Matrix range     [1e+00, 2e+01]
   Objective range  [1e+00, 1e+00]
   Bounds range     [1e+00, 1e+00]
   RHS range        [1e+00, 1e+00]
 Presolve removed 8 rows and 8 columns
 Presolve time: 0.00s
-Presolved: 0 rows, 3 columns, 0 nonzeros
-Variable types: 0 continuous, 3 integer (3 binary)
-Found heuristic solution: objective 15.2501664
+Presolved: 0 rows, 4 columns, 0 nonzeros
+Variable types: 0 continuous, 4 integer (4 binary)
+Found heuristic solution: objective 23.8236524
 
 Explored 0 nodes (0 simplex iterations) in 0.00 seconds
 Thread count was 4 (of 8 available processors)
 
-Solution count 1: 15.2502 
+Solution count 1: 23.8237 
 
 Optimal solution found (tolerance 1.00e-04)
-Best objective 1.525016644829e+01, best bound 1.525016644829e+01, gap 0.0000%
+Best objective 2.382365241487e+01, best bound 2.382365241487e+01, gap 0.0000%
 
 User-callback calls 35, time in user-callback 0.00 sec
 Changed value of parameter TimeLimit to inf
-   Prev: 3599.995171070099  Min: 0.0  Max: inf  Default: inf
+   Prev: 3599.993227005005  Min: 0.0  Max: inf  Default: inf
 Vehicle 0
-(1,{})--(3,{}) (2,{})--(4,{})
-   O+    [36m   1P   [39m [35m   1D   [39m [36m   2P   [39m [35m   2D   [39m    O-   
-   0.000  250.000  330.000  470.000  483.184    0.000
- 248.662  250.000  330.000  470.000  483.184  499.204
-1400.000  350.601  361.000  502.000  582.000 1400.000
+(2,{})--(4,{}) (1,{})--(3,{})
+   O+    [36m   2P   [39m [35m   2D   [39m [36m   1P   [39m [35m   1D   [39m    O-   
+   0.000  221.000  237.293  278.000  358.000    0.000
+ 215.832  221.000  237.293  278.000  358.000  372.502
+1400.000  269.000  349.000  396.590  411.000 1400.000
 
                  Section                 Time (s)
          data_preprocess                     0.00
