@@ -38,7 +38,7 @@ import torch.optim as optim
 from dialRL.models import *
 from dialRL.utils.reward_functions import *
 from dialRL.environments import DarEnv, DarPixelEnv, DarSeqEnv
-from dialRL.utils import get_device, trans25_coord2int, objdict
+from dialRL.utils import get_device, trans25_coord2int, objdict, SupervisionDataset
 # from dialRL.rl_train.callback import MonitorCallback
 # from dialRL.strategies import NNStrategy, NNStrategyV2
 from dialRL.dataset import RFGenerator
@@ -522,21 +522,60 @@ class SupervisedTrainer():
         if self.rl :
             if self.supervision_function == 'rf':
                 dataset = self.supervision.generate_dataset()
+
+                if False :#True :
+                    # Balance the dataset
+                    action_counter = np.zeros(self.vocab_size + 1)
+                    data_list = []
+                    for i in range(self.vocab_size + 1):
+                        data_list.append([])
+                    for data in dataset:
+                        o, a = data
+                        action_counter[a] += 1
+                        data_list[a].append(data)
+
+                    min_nb = int(min(action_counter[action_counter > 0]))
+                    fin_data = []
+                    for i in range(len(action_counter)):
+                        if action_counter[i] > 0:
+                            fin_data = fin_data + data_list[i][:min_nb]
+
+                    dataset = SupervisionDataset(fin_data)
+
+                    # Only for control
+                    # action_counter = np.zeros(self.vocab_size + 1)
+                    # for data in dataset:
+                    #     o, a = data
+                    #     action_counter[a] += 1
+                else :
+                    action_counter = np.zeros(self.vocab_size + 1)
+                    for data in dataset:
+                        o, a = data
+                        action_counter[a] += 1
+                    self.criterion.weight = torch.from_numpy(1/action_counter).to(self.device)
+
+
                 dataset_size = len(dataset)
                 indices = list(range(dataset_size))
                 split = int(np.floor(0.1 * dataset_size))
-                if self.shuffle :
+                if self.shuffle and False :
                     np.random.shuffle(indices)
                 train_indices, val_indices = indices[split:], indices[:split]
+                if self.shuffle :
+                    np.random.shuffle(train_indices)
+                    np.random.shuffle(val_indices)
+
 
                 # Creating PT data samplers and loaders:
                 train_sampler = SubsetRandomSampler(train_indices)
                 valid_sampler = SubsetRandomSampler(val_indices)
 
+
+
                 supervision_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                            sampler=train_sampler)
                 validation_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
-                                                                sampler=valid_sampler)
+                                                            sampler=valid_sampler)
             else :
                 dataset = self.generate_supervision_data()
                 supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
