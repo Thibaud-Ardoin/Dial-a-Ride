@@ -40,7 +40,7 @@ from dialRL.utils.reward_functions import *
 from dialRL.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device, trans25_coord2int, objdict, SupervisionDataset
 # from dialRL.rl_train.callback import MonitorCallback
-# from dialRL.strategies import NNStrategy, NNStrategyV2
+from dialRL.strategies import NNStrategy, NNStrategyV2
 from dialRL.dataset import RFGenerator
 
 torch.autograd.set_detect_anomaly(True)
@@ -523,8 +523,7 @@ class SupervisedTrainer():
             if self.supervision_function == 'rf':
                 dataset = self.supervision.generate_dataset()
 
-                if False :#True :
-                    # Balance the dataset
+                if self.balanced_dataset :
                     action_counter = np.zeros(self.vocab_size + 1)
                     data_list = []
                     for i in range(self.vocab_size + 1):
@@ -542,35 +541,31 @@ class SupervisedTrainer():
 
                     dataset = SupervisionDataset(fin_data)
 
-                    # Only for control
-                    # action_counter = np.zeros(self.vocab_size + 1)
-                    # for data in dataset:
-                    #     o, a = data
-                    #     action_counter[a] += 1
+                # If not balanced, weight the cross entropy respectivly to min_size/size
                 else :
                     action_counter = np.zeros(self.vocab_size + 1)
                     for data in dataset:
                         o, a = data
                         action_counter[a] += 1
-                    self.criterion.weight = torch.from_numpy(1/action_counter).to(self.device)
+                    min_nb = int(min(action_counter[action_counter > 0]))
+                    action_counter[action_counter == 0] = min_nb
+                    ic(min_nb/action_counter)
+                    self.criterion.weight = torch.from_numpy(min_nb/action_counter).to(self.device)
 
-
+                # Divide the dataset into a validation and a training set.
                 dataset_size = len(dataset)
                 indices = list(range(dataset_size))
                 split = int(np.floor(0.1 * dataset_size))
-                if self.shuffle and False :
-                    np.random.shuffle(indices)
+                # if self.shuffle and False :
+                #     np.random.shuffle(indices)
                 train_indices, val_indices = indices[split:], indices[:split]
                 if self.shuffle :
                     np.random.shuffle(train_indices)
                     np.random.shuffle(val_indices)
 
-
                 # Creating PT data samplers and loaders:
                 train_sampler = SubsetRandomSampler(train_indices)
                 valid_sampler = SubsetRandomSampler(val_indices)
-
-
 
                 supervision_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                            sampler=train_sampler)
@@ -591,7 +586,8 @@ class SupervisedTrainer():
                 self.train(supervision_data)
 
             if self.supervision_function == 'rf':
-                self.offline_evaluation(validation_data)
+                self.offline_evaluation(validation_data, saving=False)
+                self.online_evaluation(full_test=True, supervision=False, saving=True)
             else :
                 self.online_evaluation()
                 if self.dataset:
@@ -601,7 +597,7 @@ class SupervisedTrainer():
 
 
 
-    def offline_evaluation(self, dataloader, full_test=True):
+    def offline_evaluation(self, dataloader, full_test=True, saving=True):
         """
             Use a dataloader as a validation set to verify the models ability to find the supervision strategy.
             As there is no online interaction with out ennvironement. The nomber of data metrics is minimal.
@@ -611,7 +607,7 @@ class SupervisedTrainer():
         total = 0
         correct = nearest_accuracy = pointing_accuracy = 0
         if full_test :
-            eval_name = 'Test stats'
+            eval_name = 'Offline Test'
         else :
             eval_name = 'Supervised Test stats'
 
@@ -653,7 +649,7 @@ class SupervisedTrainer():
         print('\t-->' + eval_name + 'Loss:', running_loss/total)
 
         # Model saving. Condition: Better accuracy and better loss
-        if eval_acc >= self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] and full_test:
+        if saving and eval_acc >= self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] and full_test:
             self.best_eval_metric[0] = eval_acc
             self.best_eval_metric[1] = eval_loss
             if self.checkpoint_type == 'best':
@@ -687,10 +683,7 @@ class SupervisedTrainer():
             #     series='Step Reward', value=total_reward/total, iteration=self.current_epoch)
 
 
-
-
-
-    def online_evaluation(self, full_test=True):
+    def online_evaluation(self, full_test=True, supervision=True, saving=True):
         """
             Online evaluation of the model according to the supervision method.
             As it is online, we  can maximise the testing informtion about the model.
@@ -739,24 +732,29 @@ class SupervisedTrainer():
                                           positions=positions,
                                           times=time_contraints)
 
-                supervised_action = self.supervision.action_choice()
-                supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
+                if supervision :
+                    supervised_action = self.supervision.action_choice()
+                    supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
 
                 chosen_action = model_action[:, 0].argmax(-1).cpu().item()
 
                 if full_test :
                     observation, reward, done, info = self.eval_env.step(chosen_action)
-                else :
+                elif supervision :
                     observation, reward, done, info = self.eval_env.step(supervised_action)
 
                 # self.eval_env.render()
-                loss = self.criterion(model_action[:,0], supervised_action)
+                if supervision :
+                    loss = self.criterion(model_action[:,0], supervised_action)
+                    running_loss += loss.item()
+                    correct += (chosen_action == supervised_action).cpu().numpy()[0]
+                else :
+                    correct += 0
+                    running_loss += 0
+                    loss = 0
 
                 total_reward += reward
                 total += 1
-                correct += (chosen_action == supervised_action).cpu().numpy()
-                running_loss += loss.item()
-
 
                 if self.eval_env.time_step > last_time and full_test:
                     last_time = self.eval_env.time_step
@@ -772,14 +770,17 @@ class SupervisedTrainer():
             gap += info['GAP']
 
         # To spare time, only the last example is saved
-        eval_acc = 100 * correct[0]/total
+        eval_acc = 100 * correct/total
         eval_loss = running_loss/total
 
         print('\t-->' + eval_name + 'Réussite: ', eval_acc, '%')
         print('\t-->' + eval_name + 'Loss:', running_loss/total)
+        print('\t-->' + eval_name + 'Fit solution: ', 100*fit_sol/self.eval_episodes, '%')
+        print('\t-->' + eval_name + 'Average delivered', delivered/self.eval_episodes)
+        print('\t-->' + eval_name + 'Step Reward ', total_reward/total)
 
         # Model saving. Condition: Better accuracy and better loss
-        if eval_acc >= self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] and full_test:
+        if saving and eval_acc >= self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] and full_test:
             self.best_eval_metric[0] = eval_acc
             self.best_eval_metric[1] = eval_loss
             if self.checkpoint_type == 'best':

@@ -1,5 +1,5 @@
 import numpy as np
-
+from icecream import ic
 import gym
 from gym import spaces
 
@@ -17,10 +17,10 @@ class DarEnv(gym.Env):
         self.time_end = time_end
         self.target_population = target_population
         self.driver_population = driver_population
-        self.action_space = spaces.Discrete(size**2)
+        self.action_space = spaces.Discrete(target_population + 1)
         #spaces.Discrete(size**2)
-        self.observation_space = spaces.Box(low=-self.target_population,
-                high=self.target_population + self.driver_population,
+        self.observation_space = spaces.Box(low=-self.size,
+                high=self.size,
                 shape=(self.size+1, self.size+1),
                 dtype=np.int16)
         self.max_reward = int(1.5 * self.size)

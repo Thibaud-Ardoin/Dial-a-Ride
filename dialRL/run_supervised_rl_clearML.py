@@ -38,7 +38,7 @@ def get_args(args):
     parser.add_argument('--example_format', default='svg', type=str)
     parser.add_argument('--eval_episodes', default=4, type=int)
     parser.add_argument('--verbose', default=1, type=int)
-    parser.add_argument('--max_step', default=5000, type=int)
+    parser.add_argument('--max_step', default=10000, type=int)
     parser.add_argument('--nb_target', default=5, type=int)
     parser.add_argument('--image_size', default=4, type=int)
     parser.add_argument('--nb_drivers', default=1, type=int)
@@ -55,6 +55,7 @@ def get_args(args):
     parser.add_argument('--rl', default=10000, type=int)
     parser.add_argument('--vocab_size', default=24, type=int)
     parser.add_argument('--supervision_function', default='nn', type=str)
+    parser.add_argument('--balanced_dataset', default=0, type=bool)
 
 
     return parser.parse_known_args(args)[0]

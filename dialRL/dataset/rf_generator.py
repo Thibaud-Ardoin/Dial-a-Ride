@@ -35,6 +35,7 @@ class RFGenerator():
         self.rep_type = params.rep_type #'trans29'
         self.dataset_name = params.dataset
         self.rootdir = params.rootdir
+        self.verbose = params.verbose
         self.reward_function =  globals()[params.reward_function]()
 
         self.gen_env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
@@ -80,12 +81,14 @@ class RFGenerator():
             instance_file_name = file_gen.generate_file()[0]
 
             print('\t ** Solution searching with RF Started for: ', instance_file_name)
-            sys.stdout = open('test_file.out', 'w')
+            if not self.verbose:
+                sys.stdout = open('test_file.out', 'w')
             solution_file = run_rf_algo('0')
-            sys.stdout = sys.__stdout__
+            if not self.verbose :
+                sys.stdout = sys.__stdout__
 
             supervision_strategie = CompleteRoute(solution_file=solution_file,
-                                                  size=self.data_size,
+                                                  size=self.image_size,
                                                   target_population=self.nb_target,
                                                   driver_population=self.nb_drivers,
                                                   reward_function='ConstantReward',

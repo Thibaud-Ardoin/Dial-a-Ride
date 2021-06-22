@@ -552,7 +552,7 @@ class DarSeqEnv(DarEnv):
         if self.current_step >= self.max_step or self.time_step >= self.time_end :
             done = True
         if self.aiming_loop_nb > self.driver_population + 1:
-            print('/!\ Avorted simulation. Looping on same action, without success - ')
+            print('/!\ Avorted simulation. Looping on same action, without success - The action is:', action)
             done = True
 
         reward = self.reward_function.compute(self.distance, done, self)
