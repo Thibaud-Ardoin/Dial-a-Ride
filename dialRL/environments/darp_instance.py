@@ -84,10 +84,12 @@ class DarPInstance():
         for j in range(self.nb_drivers):
             if self.depot_position is None :
                 driver = Driver(position=coordonates[j],
-                                identity=j+1)
+                                identity=j+1,
+                                max_capacity=self.max_capacity)
             else :
                 driver = Driver(position=self.depot_position,
-                                identity=j+1)
+                                identity=j+1,
+                                max_capacity=self.max_capacity)
             self.drivers.append(driver)
 
         # Populate Targets
@@ -113,7 +115,9 @@ class DarPInstance():
                             min(self.time_end, li+ self.max_ride_time)]
 
             target = Target(pickup, dropoff, start_fork, end_fork,
-                            identity=j + 1)
+                            identity=j + 1,
+                            service_time=self.service_time,
+                            max_ride_time=self.max_ride_time)
 
             target = self.tight_window(target)
 

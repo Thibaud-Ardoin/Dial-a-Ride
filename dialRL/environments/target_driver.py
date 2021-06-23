@@ -3,7 +3,7 @@ from dialRL.utils import distance, float_equality, coord2int
 
 
 class Target():
-    def __init__(self, pickup, dropoff, start, end, identity, service_time=10, max_ride_time=90, weight=1):
+    def __init__(self, pickup, dropoff, start, end, identity, service_time=3, max_ride_time=30, weight=1):
         self.pickup = pickup
         self.dropoff = dropoff
         self.start_fork = start
@@ -65,7 +65,7 @@ class Target():
 
 
 class Driver():
-    def __init__(self, position, identity, max_capacity=6, speed=1, verbose=False):
+    def __init__(self, position, identity, max_capacity=3, speed=1, verbose=False):
         self.position = position
         self.max_capacity = max_capacity
         self.speed = speed

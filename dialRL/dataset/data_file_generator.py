@@ -61,12 +61,12 @@ class DataFileGenerator():
             observation = self.env.reset()
             text_lists = []
 
-            text_lists.append([self.env.driver_population, 2 * self.env.target_population, 480, self.env.drivers[0].max_capacity, 90])
+            text_lists.append([self.env.driver_population, 2 * self.env.target_population, self.env.time_limit, self.env.drivers[0].max_capacity, self.env.max_ride_time])
             text_lists.append([0, self.env.depot_position[0], self.env.depot_position[1], 0, 0, 0, int(self.env.time_end)])
             for target in self.env.targets:
-                text_lists.append([target.identity, target.pickup[0], target.pickup[1], 10, 1, int(target.start_fork[0]), int(target.start_fork[1])])
+                text_lists.append([target.identity, target.pickup[0], target.pickup[1], target.service_time, 1, int(target.start_fork[0]), int(target.start_fork[1])])
             for target in self.env.targets:
-                text_lists.append([target.identity + len(self.env.targets), target.dropoff[0], target.dropoff[1], 10, -1, int(target.end_fork[0]), int(target.end_fork[1])])
+                text_lists.append([target.identity + len(self.env.targets), target.dropoff[0], target.dropoff[1], target.service_time, -1, int(target.end_fork[0]), int(target.end_fork[1])])
             self.env.close()
 
             # Join the text info into 1 file data

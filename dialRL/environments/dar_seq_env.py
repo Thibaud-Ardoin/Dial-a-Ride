@@ -18,7 +18,7 @@ from dialRL.environments import DarEnv
 class DarSeqEnv(DarEnv):
     """Custom Environment that follows gym interface"""
 
-    def __init__(self, size, target_population, driver_population, reward_function, rep_type='block', dataset=None, test_env=False, max_step=1000, verbose=0,
+    def __init__(self, size, target_population, driver_population, reward_function, rep_type='block', dataset=None, test_env=False, max_step=10000, verbose=0,
                  time_end=1400,
                  timeless=False,
                  time_limit=480,
