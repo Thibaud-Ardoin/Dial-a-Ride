@@ -586,8 +586,8 @@ class SupervisedTrainer():
                 self.train(supervision_data)
 
             if self.supervision_function == 'rf':
-                self.offline_evaluation(validation_data, saving=False)
-                self.online_evaluation(full_test=True, supervision=False, saving=True)
+                self.offline_evaluation(validation_data, saving=True)
+                self.online_evaluation(full_test=True, supervision=False, saving=False)
             else :
                 self.online_evaluation()
                 if self.dataset:

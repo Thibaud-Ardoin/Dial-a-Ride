@@ -17,7 +17,7 @@ from dialRL.environments import Driver, Target, tabu_parse, tabu_parse_info
 class DarPInstance():
     """ 2 Dimentional insance of the NN problem
     """
-    def __init__(self, size, population, drivers, max_ride_time=90, time_bounderies=[60, 480], service_time=10, extremas=None, depot_position=None, time_end=1400, verbose=False, max_capacity=6):
+    def __init__(self, size, population, drivers, max_ride_time=30, time_bounderies=[60, 480], service_time=3, extremas=None, depot_position=None, time_end=1400, verbose=False, max_capacity=3):
         # Ground definition
         self.size = size
         self.nb_targets = population

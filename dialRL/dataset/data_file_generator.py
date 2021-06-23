@@ -18,6 +18,8 @@ class DataFileGenerator():
       <id> <x> <y> <service time> <demand> <TW start> <TW end>
       1   -2.973    6.414 10  1    0 1440
       ....
+
+      Changement to A&B dataset cordeau 2006 !
     '''
 
     def __init__(self, env=None,  out_dir=None, data_size=None):

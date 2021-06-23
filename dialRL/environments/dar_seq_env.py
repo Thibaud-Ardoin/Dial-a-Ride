@@ -22,9 +22,9 @@ class DarSeqEnv(DarEnv):
                  time_end=1400,
                  timeless=False,
                  time_limit=480,
-                 max_capacity=6,
-                 max_ride_time=90,
-                 service_time=10):
+                 max_capacity=3,
+                 max_ride_time=30,
+                 service_time=3):
 
         self.timeless = timeless
         self.rep_type = rep_type
