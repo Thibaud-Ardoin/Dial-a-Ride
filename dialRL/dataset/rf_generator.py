@@ -89,6 +89,7 @@ class RFGenerator():
             # Generate 1 txt instance after an other
             file_gen = DataFileGenerator(env=self.gen_env, out_dir=self.dir_path, data_size=1)
             instance_file_name = file_gen.generate_file()[0]
+            solution_file = ''
 
             print('\t ** Solution N° ', i,' searching with RF Started for: ', instance_file_name)
             if not self.verbose:
@@ -100,48 +101,49 @@ class RFGenerator():
             if not self.verbose :
                 sys.stdout = sys.__stdout__
 
-            supervision_strategie = CompleteRoute(solution_file=solution_file,
-                                                  size=self.image_size,
-                                                  target_population=self.nb_target,
-                                                  driver_population=self.nb_drivers,
-                                                  reward_function='ConstantReward',
-                                                  time_end=1400,
-                                                  max_step=5000,
-                                                  dataset=instance_file_name,
-                                                  test_env=True,
-                                                  recording=True)
+            if solution_file :
+                supervision_strategie = CompleteRoute(solution_file=solution_file,
+                                                      size=self.image_size,
+                                                      target_population=self.nb_target,
+                                                      driver_population=self.nb_drivers,
+                                                      reward_function='ConstantReward',
+                                                      time_end=1400,
+                                                      max_step=5000,
+                                                      dataset=instance_file_name,
+                                                      test_env=True,
+                                                      recording=True)
 
 
-            env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
-                            rep_type=self.rep_type, reward_function=self.reward_function, test_env=True, dataset=instance_file_name)
+                env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
+                                rep_type=self.rep_type, reward_function=self.reward_function, test_env=True, dataset=instance_file_name)
 
-            done = False
-            sub_data = []
-            observation = env.reset()
-            supervision_strategie.env = env
+                done = False
+                sub_data = []
+                observation = env.reset()
+                supervision_strategie.env = env
 
-            while not done:
-                supervised_action = supervision_strategie.action_choice()
-                supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
-                sub_data.append([observation, supervised_action])
-                observation, reward, done, info = env.step(supervised_action)
+                while not done:
+                    supervised_action = supervision_strategie.action_choice()
+                    supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
+                    sub_data.append([observation, supervised_action])
+                    observation, reward, done, info = env.step(supervised_action)
 
-            if env.is_fit_solution():
-                data = data + sub_data
-            else :
-                print('/!\ Found a non feasable solution. It is not saved', env.targets_states())
+                if env.is_fit_solution():
+                    data = data + sub_data
+                else :
+                    print('/!\ Found a non feasable solution. It is not saved', env.targets_states())
 
-            # If current data list is big enough, just save it.
-            if len(data) - self.last_save_size > 500000:
-                self.last_save_size = len(data)
-                train_data = SupervisionDataset(data)
-                torch.save(train_data, self.partial_name(size=len(data)))
-                # autoremove the old version
-                print('Saving data status')
+                # If current data list is big enough, just save it.
+                if len(data) - self.last_save_size > 500000:
+                    self.last_save_size = len(data)
+                    train_data = SupervisionDataset(data)
+                    torch.save(train_data, self.partial_name(size=len(data)))
+                    # autoremove the old version
+                    print('Saving data status')
 
 
-            i += 1
-            print('Generating data... [{i}/{ii}]'.format(i=len(data), ii=self.data_size))
+                i += 1
+                print('Generating data... [{i}/{ii}]'.format(i=len(data), ii=self.data_size))
 
 
         if len(data) < self.data_size :
