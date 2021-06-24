@@ -64,8 +64,8 @@ def tabu_parse_best(file_name):
     elif len(file_name_itself) == 10:
         nb = int(file_name_itself[4:6])
     else :
-        print('Error finding result data from : ' + file_name)
-        print('Will have no BKS for this data')
+        # print('Error finding result data from : ' + file_name)
+        # print('Will have no BKS for this data')
         return None
 
     res_file = '/'.join(file_name.split('/')[:-1]) + '/res/res' + str(nb) + '.txt'

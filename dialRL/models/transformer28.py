@@ -322,7 +322,7 @@ class Trans28(nn.Module):
             self.ind_embedding1 = nn.Embedding(100, self.embed_size)
             self.ind_embedding2 = nn.Embedding(100, self.embed_size // 2)
             self.ind_embedding3 = nn.Embedding(100, self.embed_size // 2)
-            self.ind_embedding4 = nn.Linear(4 + 6, self.embed_size)
+            self.ind_embedding4 = nn.Linear(4 + 3, self.embed_size)         # 4 pour info et 3 pour le trunk
         elif self.typ in [7]:
             self.ind_embedding1 = nn.Embedding(100, 8)
             self.ind_embedding11 = nn.Linear(8, self.embed_size)

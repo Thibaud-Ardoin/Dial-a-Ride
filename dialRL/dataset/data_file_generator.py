@@ -25,29 +25,29 @@ class DataFileGenerator():
     def __init__(self, env=None,  out_dir=None, data_size=None):
         if env is None :
             self.params = {
-                'size': 4,
-                'target_population': 5,
+                'size': 10,
+                'target_population': 16,
                 'driver_population': 2,
                 'reward_function': 'ConstantReward',
                 'time_end': 1400,
                 'max_step': 2000,
                 'timeless' : False,
-                'dataset': '/home/tibo/Documents/Prog/EPFL/own/data/instances/cordeau2003/tabu1.txt',
+                'dataset': '', #'/home/tibo/Documents/Prog/EPFL/own/data/instances/cordeau2006/a2-16.txt',
                 'test_env': False,
-                'out_dir': './data/formated/1',
-                'data_size': 2
+                'out_dir': './dialRL/strategies/data/DARP_cordeau/',
+                'data_size': 1
             }
             self.data_size = self.params['data_size']
             self.out_dir = self.params['out_dir']
-            self.env = DarSeqEnv(size=params['size'],
-                            target_population=params['target_population'],
-                            driver_population=params['driver_population'],
-                            reward_function=params['reward_function'],
-                            time_end=params['time_end'],
-                            max_step=params['max_step'],
-                            timeless=params['timeless'],
-                            dataset=params['dataset'],
-                            test_env=params['test_env'])
+            self.env = DarSeqEnv(size=self.params['size'],
+                            target_population=self.params['target_population'],
+                            driver_population=self.params['driver_population'],
+                            reward_function=self.params['reward_function'],
+                            time_end=self.params['time_end'],
+                            max_step=self.params['max_step'],
+                            timeless=self.params['timeless'],
+                            dataset=self.params['dataset'],
+                            test_env=self.params['test_env'])
         else :
             self.env = env
             self.out_dir = out_dir

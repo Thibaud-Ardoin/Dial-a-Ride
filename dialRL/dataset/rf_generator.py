@@ -37,6 +37,7 @@ class RFGenerator():
         self.rootdir = params.rootdir
         self.verbose = params.verbose
         self.reward_function =  globals()[params.reward_function]()
+        self.last_save_size = 0
 
         self.gen_env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
                         rep_type=self.rep_type, reward_function=self.reward_function)
@@ -56,6 +57,15 @@ class RFGenerator():
                                                                                                               tt=str(self.timeless),
                                                                                                               sf=str(self.supervision_function))
 
+
+    def partial_name(self, size):
+        saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}.pt'.format(s=str(size),
+                                                                                                          t=str(self.nb_target),
+                                                                                                          d=str(self.nb_drivers),
+                                                                                                          i=str(self.image_size),
+                                                                                                          tt=str(self.timeless),
+                                                                                                          sf=str(self.supervision_function))
+        return saving_name
 
 
     def generate_dataset(self):
@@ -80,10 +90,13 @@ class RFGenerator():
             file_gen = DataFileGenerator(env=self.gen_env, out_dir=self.dir_path, data_size=1)
             instance_file_name = file_gen.generate_file()[0]
 
-            print('\t ** Solution searching with RF Started for: ', instance_file_name)
+            print('\t ** Solution N° ', i,' searching with RF Started for: ', instance_file_name)
             if not self.verbose:
                 sys.stdout = open('test_file.out', 'w')
-            solution_file = run_rf_algo('0')
+            try :
+                solution_file = run_rf_algo('0')
+            except:
+                print('ERROR in RUN RF ALGO. PASSING THROUGH')
             if not self.verbose :
                 sys.stdout = sys.__stdout__
 
@@ -107,9 +120,6 @@ class RFGenerator():
             observation = env.reset()
             supervision_strategie.env = env
 
-            print('- Instance n°', i, 'name:', instance_file_name)
-            print(' - Solution File:', solution_file)
-
             while not done:
                 supervised_action = supervision_strategie.action_choice()
                 supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
@@ -120,6 +130,15 @@ class RFGenerator():
                 data = data + sub_data
             else :
                 print('/!\ Found a non feasable solution. It is not saved', env.targets_states())
+
+            # If current data list is big enough, just save it.
+            if len(data) - self.last_save_size > 500000:
+                self.last_save_size = len(data)
+                train_data = SupervisionDataset(data)
+                torch.save(train_data, self.partial_name(size=len(data)))
+                # autoremove the old version
+                print('Saving data status')
+
 
             i += 1
             print('Generating data... [{i}/{ii}]'.format(i=len(data), ii=self.data_size))
