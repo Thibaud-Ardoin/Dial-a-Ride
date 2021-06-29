@@ -67,9 +67,10 @@ class RFGenerator():
 
     def load_dataset(self):
         files_names = os.listdir(self.saving_name)
-        print(files_names)
         datasets = []
         for file in files_names:
+            print('Datafile folder:', self.saving_name)
+            print(file)
             datasets.append(torch.load(self.saving_name + file))
         return ConcatDataset(datasets)
 

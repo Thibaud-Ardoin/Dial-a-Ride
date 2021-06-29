@@ -548,9 +548,11 @@ class SupervisedTrainer():
                         o, a = data
                         action_counter[a] += 1
                     min_nb = int(min(action_counter[action_counter > 0]))
+                    max_nb = int(max(action_counter[action_counter > 0]))
                     action_counter[action_counter == 0] = min_nb
-                    ic(min_nb/action_counter)
-                    self.criterion.weight = torch.from_numpy(min_nb/action_counter).to(self.device)
+                    ic(min_nb/max_nb)
+                    ic(max_nb/action_counter)
+                    self.criterion.weight = torch.from_numpy(max_nb/action_counter).to(self.device)
 
                 # Divide the dataset into a validation and a training set.
                 dataset_size = len(dataset)

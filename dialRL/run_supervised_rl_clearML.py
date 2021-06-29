@@ -1,6 +1,7 @@
 import sys
 import argparse
 import numpy as np
+import math
 
 from clearml import Task
 
@@ -60,6 +61,16 @@ def get_args(args):
 
     return parser.parse_known_args(args)[0]
 
+
+def millify(n):
+    millnames = ['',' k',' M',' B',' T']
+    n = float(n)
+    millidx = max(0,min(len(millnames)-1,
+                        int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
+
+    return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
+
+
 def goooo():
     # Get params
     parameters = objdict(vars(get_args(sys.argv[1:])))
@@ -68,7 +79,10 @@ def goooo():
     if parameters.clearml :
         n = np.random.randint(10000)
         task = Task.init(
-            project_name="DaRP", task_name="experiment" + str(n))
+            project_name="DaRP",
+            task_name="experiment" + str(n),
+            auto_connect_frameworks={'pytorch': False},
+            tags='Gp:d'+parameters.nb_drivers+'d'+parameters.nb_target+' '+millify(parameters.data_size))
 
     # Get the trainer object
     trainer = SupervisedTrainer(parameters, sacred=task)
