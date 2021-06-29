@@ -57,6 +57,7 @@ class RFGenerator():
                                                                                                               i=str(self.image_size),
                                                                                                               tt=str(self.timeless),
                                                                                                               sf=str(self.supervision_function))
+        self.tmp_name = self.saving_name.split('/')[-2]
 
 
     def partial_name(self, size):
@@ -96,7 +97,7 @@ class RFGenerator():
         while (self.last_save_size + len(data) < self.data_size) and i < self.instances_number: #len(data) < self.data_size and i < self.instances_number:
             # Generate 1 txt instance after an other
             file_gen = DataFileGenerator(env=self.gen_env, out_dir=self.dir_path, data_size=1)
-            instance_file_name = file_gen.generate_file()[0]
+            instance_file_name = file_gen.generate_file(tmp_name=self.tmp_name)[0]
             solution_file = ''
 
             print('\t ** Solution N° ', i,' searching with RF Started for: ', instance_file_name)

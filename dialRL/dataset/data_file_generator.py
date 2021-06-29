@@ -54,7 +54,7 @@ class DataFileGenerator():
             self.data_size = data_size
 
 
-    def generate_file(self):
+    def generate_file(self, tmp_name=None):
         file_names = []
         os.makedirs(self.out_dir, exist_ok=True)
         for n in range(self.data_size):
@@ -76,7 +76,12 @@ class DataFileGenerator():
                 text_lists2.append('\t'.join(map(str, map(lambda x: round(x, 3), text))))
             final_string = '\n'.join(text_lists2)
 
-            name = self.out_dir + '/' + str(n) + '.txt'
+            if tmp_name is None:
+                file_name = str(n)
+            else :
+                file_name = tmp_name
+
+            name = self.out_dir + '/' + file_name + '.txt'
             file_names.append(name)
             with open(name, 'w') as write_file:
                 write_file.write(final_string)
@@ -84,7 +89,7 @@ class DataFileGenerator():
 
         with open(self.out_dir + '/INDEX.txt', 'w') as write_file:
             for n in range(self.data_size):
-                write_file.write(str(n) + '\n')
+                write_file.write(file_name + '\n')
 
         write_file.close()
         return file_names
