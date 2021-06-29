@@ -108,6 +108,12 @@ class Driver():
         #     self.next_available_time = current_time + distance(self.destination, self.position) + self.target.service_time
         #     return self.next_available_time
 
+    def can_aim(self, target, current_time):
+        if self.can_load(target, current_time) or self.can_unload(target, current_time) :
+            return True
+        else :
+            return False
+
 
     def can_load(self, target, current_time):
         if target.state > -2 :

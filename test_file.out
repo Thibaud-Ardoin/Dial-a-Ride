@@ -3,7 +3,7 @@
 ---------------------------------------------------------------------------------
                         extend 0                                                 
                          index 0                                                 
-                      instance s40000_t16_d2_i10_tlessFalse_funrf                
+                      instance s25000_t16_d2_i10_tlessFalse_funrf                
                       ridetime 1                                                 
                          sdarp 0                                                 
 ---------------------------------------------------------------------------------
@@ -30,54 +30,54 @@
 ---------------------------------------------------------------------------------
                         Output Value                                             
 ---------------------------------------------------------------------------------
-                     indexfile /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-s40000_t16_d2_i10_tlessFalse_funrf_index.json
-                          info /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-s40000_t16_d2_i10_tlessFalse_funrf_info.json
-                      solution /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-s40000_t16_d2_i10_tlessFalse_funrf_soln.json
+                     indexfile /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-s25000_t16_d2_i10_tlessFalse_funrf_index.json
+                          info /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-s25000_t16_d2_i10_tlessFalse_funrf_info.json
+                      solution /home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-s25000_t16_d2_i10_tlessFalse_funrf_soln.json
 ---------------------------------------------------------------------------------
 Generating fragments...
-149 fragments generated from 48 parent paths.
+296 fragments generated from 75 parent paths.
 Filtering fragments with partial loads...
-80/149 are minimal fragments.
-36/80 of minimal fragments were removed.
+132/296 are minimal fragments.
+80/132 of minimal fragments were removed.
  Has start load    Has end load          Inital         Removed       Remaining       Removed %
-              o               o              35              31               4           88.6%
-              o                              33              17              16           51.5%
-                              o              33              21              12           63.6%
-                                             48               -               -               -
-         total:                             149              69              80           46.3%
+              o               o              85              81               4           95.3%
+              o                              67              51              16           76.1%
+                              o              69              49              20           71.0%
+                                             75               -               -               -
+         total:                             296             181             115           61.1%
 Dominating fragments...
-0 (0.0%) fragments removed.
-80 fragments remain.
+4 (3.5%) fragments removed.
+111 fragments remain.
 Final network size:         
          Start Arcs       16
            End Arcs       16
-            DP Arcs      143
-               Arcs      175
-          Fragments       80
-            D Nodes       27
+            DP Arcs      148
+               Arcs      180
+          Fragments      111
+            D Nodes       34
             P Nodes       32
-              Nodes       61
+              Nodes       68
 Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (linux64)
 Thread count: 4 physical cores, 8 logical processors, using up to 4 threads
-Optimize a model with 77 rows, 273 columns and 876 nonzeros
-Model fingerprint: 0xda0067bc
+Optimize a model with 84 rows, 309 columns and 1051 nonzeros
+Model fingerprint: 0x16f57c23
 Coefficient statistics:
-  Matrix range     [6e-01, 4e+01]
+  Matrix range     [7e-01, 4e+01]
   Objective range  [1e+00, 1e+00]
   Bounds range     [1e+00, 2e+00]
   RHS range        [1e+00, 1e+00]
-Presolve removed 31 rows and 51 columns
+Presolve removed 35 rows and 59 columns
 Presolve time: 0.00s
-Presolved: 46 rows, 222 columns, 552 nonzeros
+Presolved: 49 rows, 250 columns, 667 nonzeros
 
 Iteration    Objective       Primal Inf.    Dual Inf.      Time
-       0    1.5780888e+02   2.100000e+01   0.000000e+00      0s
-      52    2.7415972e+02   0.000000e+00   0.000000e+00      0s
+       0    1.1505024e+02   2.100000e+01   0.000000e+00      0s
+      48    2.2262123e+02   0.000000e+00   0.000000e+00      0s
 
-Solved in 52 iterations and 0.00 seconds
-Optimal objective  2.741597155e+02
+Solved in 48 iterations and 0.00 seconds
+Optimal objective  2.226212292e+02
 objective
-   274.16
+   222.62
 Changed value of parameter OutputFlag to 1
    Prev: 0  Min: 0  Max: 1  Default: 1
 Changed value of parameter LazyConstraints to 1
@@ -90,20 +90,21 @@ Changed value of parameter VarBranch to 1
    Prev: -1  Min: -1  Max: 3  Default: -1
 Changed value of parameter MIRCuts to 2
    Prev: -1  Min: -1  Max: 2  Default: -1
-Changed value of parameter TimeLimit to 1799.9705286026
+Changed value of parameter TimeLimit to 1799.8180023431778
    Prev: inf  Min: 0.0  Max: inf  Default: inf
 Changed value of parameter MIPGap to 0.01
    Prev: 0.0001  Min: 0.0  Max: inf  Default: 0.0001
 Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (linux64)
 Thread count: 4 physical cores, 8 logical processors, using up to 4 threads
-Optimize a model with 78 rows, 273 columns and 948 nonzeros
-Model fingerprint: 0xa3301e9a
-Variable types: 1 continuous, 272 integer (271 binary)
+Optimize a model with 85 rows, 309 columns and 1151 nonzeros
+Model fingerprint: 0xe7cf6e56
+Variable types: 1 continuous, 308 integer (307 binary)
 Coefficient statistics:
-  Matrix range     [6e-01, 4e+01]
+  Matrix range     [7e-01, 4e+01]
   Objective range  [1e+00, 1e+00]
   Bounds range     [1e+00, 2e+00]
   RHS range        [1e+00, 1e+00]
+Presolve removed 0 rows and 103 columns
 Presolve time: 0.00s
 
 Explored 0 nodes (0 simplex iterations) in 0.00 seconds
@@ -114,89 +115,124 @@ Solution count 0
 Model is infeasible
 Best objective -, best bound -, gap -
 
-User-callback calls 21, time in user-callback 0.00 sec
+User-callback calls 24, time in user-callback 0.00 sec
 Changed value of parameter TimeLimit to inf
-   Prev: 1799.9705286026  Min: 0.0  Max: inf  Default: inf
+   Prev: 1799.8180023431778  Min: 0.0  Max: inf  Default: inf
 Changed value of parameter MIPGap to 0.0001
    Prev: 0.01  Min: 0.0  Max: inf  Default: 0.0001
 Adding 0 constraints as hard constraints.
 Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (linux64)
 Thread count: 4 physical cores, 8 logical processors, using up to 4 threads
-Optimize a model with 77 rows, 273 columns and 876 nonzeros
-Model fingerprint: 0x9ceac76b
+Optimize a model with 84 rows, 309 columns and 1051 nonzeros
+Model fingerprint: 0x9103e6c8
 Coefficient statistics:
-  Matrix range     [6e-01, 4e+01]
+  Matrix range     [7e-01, 4e+01]
   Objective range  [1e+00, 1e+00]
   Bounds range     [1e+00, 2e+00]
   RHS range        [1e+00, 1e+00]
-Presolve removed 30 rows and 30 columns
+Presolve removed 34 rows and 34 columns
 Presolve time: 0.00s
-Presolved: 47 rows, 243 columns, 788 nonzeros
+Presolved: 50 rows, 275 columns, 961 nonzeros
 
 Iteration    Objective       Primal Inf.    Dual Inf.      Time
-       0    1.1152771e+02   2.967253e+01   0.000000e+00      0s
-      66    2.7415972e+02   0.000000e+00   0.000000e+00      0s
+       0    3.5048687e+01   3.716977e+01   0.000000e+00      0s
+      69    2.2262123e+02   0.000000e+00   0.000000e+00      0s
 
-Solved in 66 iterations and 0.00 seconds
-Optimal objective  2.741597155e+02
-1.00000 (6,{})--(22,{})                (14,{})--(30,{})               (2,{})--13--18--(29,{})        (7,{})--(23,{})                (16,{})--10--32--(26,{})       (9,{})--(25,{})               
-1.00000 (3,{})--(19,{})                (11,{})--1--(17,{11})          (12,{11})--(27,{12})           (4,{12})--28--(20,{})          (5,{})--(21,{})                (8,{})--(24,{})                (15,{})--(31,{})              
-Changed value of parameter TimeLimit to 3599.9339146614075
+Solved in 69 iterations and 0.00 seconds
+Optimal objective  2.226212292e+02
+1.00000 (14,{})--3--(30,{3})           (1,{3})--19--(17,{})           (13,{})--4--29--(20,{})       
+1.00000 (9,{})--11--27--(25,{})        (12,{})--2--28--(18,{})        (15,{})--(31,{})              
+Changed value of parameter TimeLimit to 3599.612195253372
    Prev: inf  Min: 0.0  Max: inf  Default: inf
 Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (linux64)
 Thread count: 4 physical cores, 8 logical processors, using up to 4 threads
-Optimize a model with 77 rows, 273 columns and 876 nonzeros
-Model fingerprint: 0x59f4e8bc
-Variable types: 1 continuous, 272 integer (271 binary)
+Optimize a model with 84 rows, 309 columns and 1051 nonzeros
+Model fingerprint: 0xc5aaa25c
+Variable types: 1 continuous, 308 integer (307 binary)
 Coefficient statistics:
-  Matrix range     [6e-01, 4e+01]
+  Matrix range     [7e-01, 4e+01]
   Objective range  [1e+00, 1e+00]
   Bounds range     [1e+00, 2e+00]
   RHS range        [1e+00, 1e+00]
-Presolve removed 31 rows and 31 columns
+Presolve removed 32 rows and 32 columns
 Presolve time: 0.00s
-Presolved: 46 rows, 242 columns, 750 nonzeros
-Variable types: 1 continuous, 241 integer (240 binary)
+Presolved: 52 rows, 277 columns, 912 nonzeros
+Variable types: 1 continuous, 276 integer (275 binary)
 
-Root relaxation: objective 2.741597e+02, 64 iterations, 0.00 seconds
+Root relaxation: objective 2.226212e+02, 67 iterations, 0.00 seconds
 
     Nodes    |    Current Node    |     Objective Bounds      |     Work
  Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
 
-*    0     0               0     274.1597155  274.15972  0.00%     -    0s
+     0     0  222.62123    0    4          -  222.62123      -     -    0s
+     0     0  222.64962    0   12          -  222.64962      -     -    0s
+     0     0  223.34325    0   12          -  223.34325      -     -    0s
+     0     0  224.72112    0   14          -  224.72112      -     -    0s
+     0     0  227.64882    0   33          -  227.64882      -     -    0s
+     0     0  228.12486    0   33          -  228.12486      -     -    0s
+     0     0  228.74599    0   36          -  228.74599      -     -    0s
+     0     0  228.79025    0   36          -  228.79025      -     -    0s
+     0     0  229.49610    0   35          -  229.49610      -     -    0s
+     0     0  230.03927    0   33          -  230.03927      -     -    0s
+     0     0  231.15141    0   24          -  231.15141      -     -    0s
+     0     0  231.31156    0   25          -  231.31156      -     -    0s
+     0     0  231.49188    0   25          -  231.49188      -     -    0s
+     0     0  231.51977    0   38          -  231.51977      -     -    0s
+     0     0  231.62019    0   28          -  231.62019      -     -    0s
+     0     0  233.54177    0   41          -  233.54177      -     -    0s
+     0     0  233.59057    0   42          -  233.59057      -     -    0s
+     0     0  233.93965    0   44          -  233.93965      -     -    0s
+     0     0  233.96896    0   44          -  233.96896      -     -    0s
+     0     0  233.97695    0   45          -  233.97695      -     -    0s
+     0     0  233.98168    0   46          -  233.98168      -     -    0s
+     0     0  234.24732    0   45          -  234.24732      -     -    0s
+     0     0  234.54855    0   56          -  234.54855      -     -    0s
+     0     0  234.86751    0   42          -  234.86751      -     -    0s
+     0     0  235.47203    0   45          -  235.47203      -     -    0s
+     0     0  235.71899    0   44          -  235.71899      -     -    0s
+     0     0  236.02446    0   45          -  236.02446      -     -    0s
+     0     0  236.02446    0   45          -  236.02446      -     -    0s
+     0     2  236.15796    0   45          -  236.15796      -     -    0s
+*   31    31               7     248.3677327  237.19638  4.50%   7.1    0s
+*   32    31               7     245.2354729  237.19638  3.28%   6.9    0s
+*  159    11               6     243.9594903  240.41335  1.45%   5.1    0s
 
 Cutting planes:
-  Lazy constraints: 4
+  Gomory: 1
+  Clique: 2
+  MIR: 16
+  Zero half: 3
+  Lazy constraints: 64
 
-Explored 0 nodes (64 simplex iterations) in 0.01 seconds
+Explored 207 nodes (1227 simplex iterations) in 0.18 seconds
 Thread count was 4 (of 8 available processors)
 
-Solution count 1: 274.16 
+Solution count 3: 243.959 245.235 248.368 
 
 Optimal solution found (tolerance 1.00e-04)
-Best objective 2.741597154810e+02, best bound 2.741597154810e+02, gap 0.0000%
+Best objective 2.439594903285e+02, best bound 2.439594903285e+02, gap 0.0000%
 
-User-callback calls 56, time in user-callback 0.00 sec
+User-callback calls 686, time in user-callback 0.05 sec
 Changed value of parameter TimeLimit to inf
-   Prev: 3599.9339146614075  Min: 0.0  Max: inf  Default: inf
+   Prev: 3599.612195253372  Min: 0.0  Max: inf  Default: inf
 Vehicle 0
-(6,{})--(22,{}) (14,{})--(30,{}) (2,{})--13--18--(29,{}) (7,{})--(23,{}) (16,{})--10--32--(26,{}) (9,{})--(25,{})
-   O+    [36m   6P   [39m [35m   6D   [39m [36m  14P   [39m [35m  14D   [39m [36m   2P   [39m [36m  13P   [39m [35m   2D   [39m [35m  13D   [39m [36m   7P   [39m [35m   7D   [39m [36m  16P   [39m [36m  10P   [39m [35m  16D   [39m [35m  10D   [39m [36m   9P   [39m [35m   9D   [39m    O-   
-   0.000   65.000   92.000  137.000  146.896  180.000  219.000  207.000  235.247  261.000  288.000  401.000  422.000  417.942  444.584  472.000  493.117    0.000
-  63.425   65.000   92.000  137.000  146.896  195.545  219.000  228.545  245.347  263.971  288.000  405.717  422.000  438.717  447.823  472.000  493.117  505.677
-1400.000  122.990  134.000  161.000  188.000  237.952  249.000  252.000  276.000  314.585  328.000  422.000  446.000  449.000  473.000  519.000  546.000 1400.000
+(8,{})--10--24--(26,{}) (5,{})--16--21--(32,{}) (13,{})--4--29--(20,{})
+   O+    [36m   8P   [39m [36m  10P   [39m [35m   8D   [39m [35m  10D   [39m [36m   5P   [39m [36m  16P   [39m [35m   5D   [39m [35m  16D   [39m [36m  13P   [39m [36m   4P   [39m [35m  13D   [39m [35m   4D   [39m    O-   
+   0.000  266.000  294.000  293.000  304.975  291.000  313.000  318.000  328.098  410.000  438.000  434.975  465.000    0.000
+ 262.539  269.252  294.000  302.252  308.220  319.133  329.949  337.338  348.220  418.938  438.000  451.938  465.000  486.385
+1400.000  332.781  335.000  337.000  362.000  353.205  334.000  361.000  361.000  438.000  485.570  465.000  499.000 1400.000
 Vehicle 1
-(3,{})--(19,{}) (11,{})--1--(17,{11}) (12,{11})--(27,{12}) (4,{12})--28--(20,{}) (5,{})--(21,{}) (8,{})--(24,{}) (15,{})--(31,{})
-   O+    [36m   3P   [39m [35m   3D   [39m [36m  11P   [39m [36m   1P   [39m [35m   1D   [39m [36m  12P   [39m [35m  11D   [39m [36m   4P   [39m [35m  12D   [39m [35m   4D   [39m [36m   5P   [39m [35m   5D   [39m [36m   8P   [39m [35m   8D   [39m [36m  15P   [39m [35m  15D   [39m    O-   
-   0.000   55.000   82.000   87.000   85.000  112.000  137.000  108.620  109.000  147.866  136.000  208.000  235.000  339.000  366.000  443.000  461.934    0.000
-  48.549   55.000   82.000  111.917  120.347  126.092  137.000  144.917  152.605  157.036  170.398  208.000  235.000  339.000  366.000  443.000  461.934  479.469
-1400.000   94.647  114.000  133.000  130.255  136.000  165.000  160.000  161.314  192.000  176.000  271.123  280.000  388.306  408.000  471.000  498.000 1400.000
+(14,{})--3--(30,{3}) (1,{3})--19--(17,{}) (9,{})--11--27--(25,{}) (12,{})--2--18--(28,{}) (7,{})--(23,{}) (6,{})--15--22--(31,{})
+   O+    [36m  14P   [39m [36m   3P   [39m [35m  14D   [39m [36m   1P   [39m [35m   3D   [39m [35m   1D   [39m [36m   9P   [39m [36m  11P   [39m [35m  11D   [39m [35m   9D   [39m [36m  12P   [39m [36m   2P   [39m [35m   2D   [39m [35m  12D   [39m [36m   7P   [39m [35m   7D   [39m [36m   6P   [39m [36m  15P   [39m [35m   6D   [39m [35m  15D   [39m    O-   
+   0.000   91.000  105.000  107.830  141.000  132.000  168.000  222.000  218.000  223.265  235.403  295.000  314.000  341.000  309.183  405.000  432.000  439.000  454.000  466.000  473.142    0.000
+  90.452   95.904  118.937  128.904  141.000  151.937  169.428  222.000  235.875  241.140  246.175  316.858  327.292  341.000  349.858  405.000  432.000  441.918  455.273  470.600  480.519  484.182
+1400.000  114.000  138.276  141.000  172.197  155.000  191.000  249.000  259.000  286.000  276.000  330.000  357.238  370.000  357.000  474.573  479.000  475.233  473.000  487.000  500.000 1400.000
 
                  Section                 Time (s)
-         data_preprocess                     0.01
-           network_build                     0.04
-             model_build                     0.00
+         data_preprocess                     0.30
+           network_build                     0.05
+             model_build                     0.01
                  rootcut                     0.00
                   rc_mip                     0.00
-                main_mip                     0.02
-                   total                     0.08
+                main_mip                     0.20
+                   total                     0.57

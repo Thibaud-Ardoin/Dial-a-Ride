@@ -86,7 +86,10 @@ class SupervisedTrainer():
         #### RL elements
 
         reward_function = globals()[self.reward_function]()
-        self.rep_type = 'trans29'
+        if self.typ==15:
+            self.rep_type = 'trans15'
+        else :
+            self.rep_type = 'trans29'
 
         ## TODO: Add globals()[self.env]
         self.env = DarSeqEnv(size=self.image_size,

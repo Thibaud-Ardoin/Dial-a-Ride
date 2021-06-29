@@ -82,7 +82,7 @@ def goooo():
             project_name="DaRP",
             task_name="experiment" + str(n),
             auto_connect_frameworks={'pytorch': False},
-            tags='Gp:d'+parameters.nb_drivers+'d'+parameters.nb_target+' '+millify(parameters.data_size))
+            tags='Gp: d'+str(parameters.nb_drivers)+'d'+str(parameters.nb_target)+ parameters.supervision_function +' '+millify(parameters.data_size))
 
     # Get the trainer object
     trainer = SupervisedTrainer(parameters, sacred=task)

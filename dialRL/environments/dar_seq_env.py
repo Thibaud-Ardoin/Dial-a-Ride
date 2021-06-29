@@ -243,6 +243,30 @@ class DarSeqEnv(DarEnv):
 
             return world, targets, drivers, positions, time_constraint
 
+        elif self.rep_type=='trans15':
+            # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
+            positions = [self.depot_position,
+                         [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
+                         [driver.position for driver in self.drivers]]
+
+            time_constraint = [float(self.time_step),
+                               [np.concatenate([target.start_fork, target.end_fork]).astype(np.float) for target in self.targets],
+                               [float(driver.next_available_time) for driver in self.drivers]]
+
+            world = list(map(float, [self.current_player,
+                                     self.current_player]))
+
+            targets = [list(map(float, [target.identity,
+                       target.state,
+                       self.drivers[self.current_player - 1].can_aim(target, self.time_step) ])) for target in self.targets]
+
+            drivers = [list(map(float, [driver.identity,
+                                        driver.max_capacity,
+                                        len(driver.loaded),
+                                        driver.max_capacity - len(driver.loaded)] + driver.get_trunk())) for driver in self.drivers]
+
+            return world, targets, drivers, positions, time_constraint
+
         elif self.rep_type=='trans3':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [self.depot_position,
