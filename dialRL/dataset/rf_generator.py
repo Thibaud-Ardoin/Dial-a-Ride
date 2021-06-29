@@ -47,16 +47,18 @@ class RFGenerator():
 
         if self.dataset_name:
             data_type = dataset_name.split('/')[-1].split('.')[0]
-            self.saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}_fun{sf}/'.format(s=str(self.data_size),
+            self.saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
                                                                                                                 tt=str(self.timeless),
-                                                                                                                sf=str(self.supervision_function))
+                                                                                                                sf=str(self.supervision_function),
+                                                                                                                ty=str(self.typ))
         else :
-            self.saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}/'.format(s=str(self.data_size),
+            self.saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
                                                                                                               t=str(self.nb_target),
                                                                                                               d=str(self.nb_drivers),
                                                                                                               i=str(self.image_size),
                                                                                                               tt=str(self.timeless),
-                                                                                                              sf=str(self.supervision_function))
+                                                                                                              sf=str(self.supervision_function),
+                                                                                                              ty=str(self.typ))
         self.tmp_name = self.saving_name.split('/')[-2]
 
 

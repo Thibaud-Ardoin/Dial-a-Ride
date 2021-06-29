@@ -298,16 +298,18 @@ class SupervisedTrainer():
         if self.dataset:
             self.eval_episodes = 1
             data_type = self.dataset.split('/')[-1].split('.')[0]
-            saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}_fun{sf}.pt'.format(s=str(self.data_size),
+            saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}_fun{sf}_typ{ty}.pt'.format(s=str(self.data_size),
                                                                                                                 tt=str(self.timeless),
-                                                                                                                sf=str(self.supervision_function))
+                                                                                                                sf=str(self.supervision_function),
+                                                                                                                ty=str(self.typ))
         else :
-            saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}.pt'.format(s=str(self.data_size),
+            saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}_typ{ty}.pt'.format(s=str(self.data_size),
                                                                                                               t=str(self.nb_target),
                                                                                                               d=str(self.nb_drivers),
                                                                                                               i=str(self.image_size),
                                                                                                               tt=str(self.timeless),
-                                                                                                              sf=str(self.supervision_function))
+                                                                                                              sf=str(self.supervision_function),
+                                                                                                              ty=str(self.typ))
 
         action_counter = np.zeros(self.vocab_size + 1)
 
