@@ -36,6 +36,7 @@ class RFGenerator():
         self.dataset_name = params.dataset
         self.rootdir = params.rootdir
         self.verbose = params.verbose
+        self.typ = params.typ
         self.reward_function =  globals()[params.reward_function]()
         self.last_save_size = 0
         self.data_part = 1
@@ -106,7 +107,7 @@ class RFGenerator():
             if not self.verbose:
                 sys.stdout = open('test_file.out', 'w')
             try :
-                solution_file = run_rf_algo('0')
+                solution_file, perf, l_bound = run_rf_algo('0')
             except:
                 print('ERROR in RUN RF ALGO. PASSING THROUGH')
             if not self.verbose :
@@ -145,7 +146,7 @@ class RFGenerator():
                     print('/!\ Found a non feasable solution. It is not saved', env.targets_states())
 
                 # If current data list is big enough, save it as a dataset_element.
-                if sys.getsizeof(data) > 200000: #200k bytes.
+                if sys.getsizeof(data) > 100000: #200k bytes.
                     self.last_save_size += len(data)
                     train_data = SupervisionDataset(data)
                     saving_name = self.partial_name(len(data))

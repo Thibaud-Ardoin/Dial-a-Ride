@@ -35,10 +35,12 @@ import torch.optim as optim
 #                           BertModel,
 #                           pipeline)
 
+from dialRL.strategies.external.darp_rf.run_rf_algo import run_rf_algo
 from dialRL.models import *
 from dialRL.utils.reward_functions import *
 from dialRL.environments import DarEnv, DarPixelEnv, DarSeqEnv
 from dialRL.utils import get_device, trans25_coord2int, objdict
+from dialRL.dataset import DataFileGenerator
 # from dialRL.rl_train.callback import MonitorCallback
 # from dialRL.strategies import NNStrategy, NNStrategyV2
 from dialRL.dataset import RFGenerator
@@ -85,13 +87,16 @@ class Tester():
         #### RL elements
 
         reward_function = globals()[self.reward_function]()
-        self.rep_type = 'trans29'
+        if self.typ == 15:
+            self.rep_type = 'trans15'
+        else :
+            self.rep_type = 'trans29'
 
-        ## TODO: Add globals()[self.env]
-        self.env = DarSeqEnv(size=self.image_size,
+        ## TODO: Add globals()[self.gen_env]
+        self.gen_env = DarSeqEnv(size=self.image_size,
                           target_population=self.nb_target,
                           driver_population=self.nb_drivers,
-                          reward_function=reward_function,
+                          reward_function=self.reward_function,
                           rep_type=self.rep_type,
                           max_step=self.max_step,
                           test_env=False,
@@ -103,7 +108,7 @@ class Tester():
         self.eval_env = DarSeqEnv(size=self.image_size,
                                   target_population=self.nb_target,
                                   driver_population=self.nb_drivers,
-                                  reward_function=reward_function,
+                                  reward_function=self.reward_function,
                                   rep_type=self.rep_type,
                                   max_step=self.max_step,
                                   timeless=self.timeless,
@@ -112,16 +117,16 @@ class Tester():
                           # dataset=self.dataset) for i in range(1)])
 
         self.best_eval_metric = [0, 1000] # accuracy + loss
-        self.nb_target = self.env.target_population
-        self.nb_drivers = self.env.driver_population
-        self.image_size = self.env.size
+        self.nb_target = self.gen_env.target_population
+        self.nb_drivers = self.gen_env.driver_population
+        self.image_size = self.gen_env.size
 
         if self.supervision_function == 'nn':
             self.supervision = NNStrategy(reward_function=self.reward_function,
-                                      env=self.env)
+                                      env=self.gen_env)
         elif self.supervision_function == 'nnV2':
             self.supervision = NNStrategyV2(reward_function=self.reward_function,
-                                      env=self.env)
+                                      env=self.gen_env)
         elif self.supervision_function == 'rf':
             self.supervision = RFGenerator(params=objdict(vars(self)))
         else :
@@ -147,7 +152,7 @@ class Tester():
                                                  src_pad_idx=self.image_size,
                                                  trg_pad_idx=self.image_size,
                                                  dropout=self.dropout,
-                                                 extremas=self.env.extremas,
+                                                 extremas=self.gen_env.extremas,
                                                  device=self.device).to(self.device).double()
         elif self.model=='Trans25':
             self.model = globals()[self.model](src_vocab_size=1000,
@@ -156,7 +161,7 @@ class Tester():
                                                  src_pad_idx=-1,
                                                  trg_pad_idx=-1,
                                                  dropout=self.dropout,
-                                                 extremas=self.env.extremas,
+                                                 extremas=self.gen_env.extremas,
                                                  device=self.device).to(self.device).double()
         elif self.model=='Trans27':
             self.model = globals()[self.model](src_vocab_size=50000,
@@ -165,7 +170,7 @@ class Tester():
                                                  src_pad_idx=-1,
                                                  trg_pad_idx=-1,
                                                  dropout=self.dropout,
-                                                 extremas=self.env.extremas,
+                                                 extremas=self.gen_env.extremas,
                                                  device=self.device,
                                                  typ=self.typ).to(self.device).double()
         elif self.model=='Trans28':
@@ -176,10 +181,10 @@ class Tester():
                                                  trg_pad_idx=-1,
                                                  embed_size=self.embed_size,
                                                  dropout=self.dropout,
-                                                 extremas=self.env.extremas,
+                                                 extremas=self.gen_env.extremas,
                                                  device=self.device,
                                                  typ=self.typ,
-                                                 max_time=int(self.env.time_end)).to(self.device).double()
+                                                 max_time=int(self.gen_env.time_end)).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
 
@@ -227,6 +232,9 @@ class Tester():
         #                               sacred=self.sacred)
         self.current_epoch = 0
 
+        #RF generation info
+        self.dir_path = self.rootdir + '/dialRL/strategies/data/DARP_cordeau/'
+        self.tmp_name = self.alias + time.strftime("%d-%H-%M")
 
         print(' *// What is this train about //* ')
         for item in vars(self):
@@ -241,7 +249,7 @@ class Tester():
 
             for i, obs in enumerate(observations):
                 save_name = dir + '/' + str(i) + '_r=' + str(rewards[i]) + '.png'  #[np.array(img) for i, img in enumerate(images)
-                # if self.env.__class__.__name__ == 'DummyVecEnv':
+                # if self.gen_env.__class__.__name__ == 'DummyVecEnv':
                 #     image = self.norm_image(obs[0], scale=1)
                 # else :
                 #     image = self.norm_image(obs, scale=1)
@@ -288,21 +296,24 @@ class Tester():
     def run(self):
         if self.supervision_function=='rf':
             supervision = False
+            self.online_evaluation(full_test=True, supervision=supervision, saving=False, rf=True)
         else :
             supervision = True
+            self.online_evaluation(full_test=True, supervision=supervision)
 
-        self.online_evaluation(full_test=True, supervision=supervision)
 
 
-    def online_evaluation(self, full_test=True, supervision=False):
+    def online_evaluation(self, full_test=True, supervision=False, saving=True, rf=False):
         """
             Online evaluation of the model according to the supervision method.
             As it is online, we  can maximise the testing informtion about the model.
         """
+        print(' ** Eval started ** ')
         correct = total = running_loss = total_reward = 0
         delivered = 0
         gap = 0
         fit_sol = 0
+        i=0
         self.supervision.env = self.eval_env
         if full_test :
             eval_name = 'Test stats'
@@ -312,12 +323,43 @@ class Tester():
         self.model.eval()
         for eval_step in range(self.eval_episodes):
             done = False
+
+            if rf :
+                # Generate solution and evironement instance.
+                file_gen = DataFileGenerator(env=self.gen_env, out_dir=self.dir_path, data_size=1)
+                instance_file_name = file_gen.generate_file(tmp_name=self.tmp_name)[0]
+                solution_file = ''
+
+                print('\t ** Solution N° ', i,' searching with RF Started for: ', instance_file_name)
+                solution_file = ''
+                while not solution_file :
+                    if not self.verbose:
+                        sys.stdout = open('test_file.out', 'w')
+                    try :
+                        solution_file, supervision_perf, l_bound = run_rf_algo('0')
+                        if not self.verbose :
+                            sys.stdout = sys.__stdout__
+                        if l_bound is None :
+                            print('Wrong solution ?')
+                            solution_file = ''
+                    except:
+                        if not self.verbose :
+                            sys.stdout = sys.__stdout__
+                        print('ERROR in RUN RF ALGO. PASSING THROUGH')
+
+                reward_function = globals()[self.reward_function]()
+
+                self.eval_env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
+                                          rep_type=self.rep_type, reward_function=reward_function, test_env=True, dataset=instance_file_name)
+                self.eval_env.best_cost = l_bound
+
             observation = self.eval_env.reset()
 
-            if self.example_format == 'svg':
-                to_save = [self.eval_env.get_svg_representation() if full_test else 0]
-            else :
-                to_save = [self.eval_env.get_image_representation() if full_test else 0]
+            if saving:
+                if self.example_format == 'svg':
+                    to_save = [self.eval_env.get_svg_representation() if full_test else 0]
+                else :
+                    to_save = [self.eval_env.get_image_representation() if full_test else 0]
             save_rewards = [0]
             last_time = 0
 
@@ -369,25 +411,29 @@ class Tester():
                 else :
                     correct += 0
 
-
-                if self.eval_env.time_step > last_time and full_test:
-                    last_time = self.eval_env.time_step
-                    if self.example_format == 'svg':
-                        to_save.append(self.eval_env.get_svg_representation())
-                    else :
-                        to_save.append(self.eval_env.get_image_representation())
-                    save_rewards.append(reward)
+                if saving:
+                    if self.eval_env.time_step > last_time and full_test:
+                        last_time = self.eval_env.time_step
+                        if self.example_format == 'svg':
+                            to_save.append(self.eval_env.get_svg_representation())
+                        else :
+                            to_save.append(self.eval_env.get_image_representation())
+                        save_rewards.append(reward)
 
 
             fit_sol += info['fit_solution'] #self.eval_env.is_fit_solution()
             delivered += info['delivered']
             gap += info['GAP']
+            print('- Supvi Total distance:', supervision_perf)
+            print('- Model Total distance:', self.eval_env.total_distance)
 
             # Saving an example
-            if self.example_format == 'svg':
-                self.save_svg_example(to_save, save_rewards, 0, time_step=self.current_epoch)
-            else :
-                self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            if saving :
+                if self.example_format == 'svg':
+                    self.save_svg_example(to_save, save_rewards, i, time_step=self.current_epoch)
+                else :
+                    self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            i += 1
 
 
         # To spare time, only the last example is saved
