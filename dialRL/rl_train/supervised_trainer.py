@@ -88,6 +88,8 @@ class SupervisedTrainer():
         reward_function = globals()[self.reward_function]()
         if self.typ==15:
             self.rep_type = 'trans15'
+        if self.typ==16:
+            self.rep_type = 'trans16'
         else :
             self.rep_type = 'trans29'
 
