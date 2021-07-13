@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
+from icecream import ic
 
 class MemoryDataset(Dataset):
     """ Customed Dataset class for our Instances data

@@ -9,7 +9,7 @@ import time
 import math
 
 def get_device():
-    if is_available(): #False: #
+    if False :#is_available(): #False: #
         device = 'cuda:0'
     else:
         device = 'cpu'

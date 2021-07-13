@@ -7,6 +7,7 @@ import json
 import numpy as np
 import math
 
+
 # from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 # from stable_baselines.common import make_vec_env
 # from stable_baselines import PPO2
@@ -336,7 +337,9 @@ class Tester():
                     if not self.verbose:
                         sys.stdout = open('test_file.out', 'w')
                     try :
+                        rf_time = time.time()
                         solution_file, supervision_perf, l_bound = run_rf_algo('0')
+                        rf_time = time.time() - rf_time
                         if not self.verbose :
                             sys.stdout = sys.__stdout__
                         if l_bound is None :
@@ -362,6 +365,9 @@ class Tester():
                     to_save = [self.eval_env.get_image_representation() if full_test else 0]
             save_rewards = [0]
             last_time = 0
+
+            round_counter = 0
+            trans_time = time.time()
 
             while not done:
                 world, targets, drivers, positions, time_contraints = observation
@@ -406,6 +412,7 @@ class Tester():
 
                 total_reward += reward
                 total += 1
+                round_counter += 1
                 if supervision:
                     correct += (chosen_action == supervised_action).cpu().numpy()
                 else :
@@ -420,12 +427,17 @@ class Tester():
                             to_save.append(self.eval_env.get_image_representation())
                         save_rewards.append(reward)
 
+            trans_time = time.time() - trans_time
 
             fit_sol += info['fit_solution'] #self.eval_env.is_fit_solution()
             delivered += info['delivered']
             gap += info['GAP']
             print('- Supvi Total distance:', supervision_perf)
             print('- Model Total distance:', self.eval_env.total_distance)
+
+            print('- - Supvi Time:', rf_time)
+            print('- - Model Time:', trans_time)
+            print('- - Passe Time:', trans_time/round_counter)
 
             # Saving an example
             if saving :

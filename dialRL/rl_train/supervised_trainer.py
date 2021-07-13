@@ -367,6 +367,7 @@ class SupervisedTrainer():
         correct = nearest_accuracy = pointing_accuracy = 0
 
         self.model.train()
+        # ic(dataloader[0])
         for i, data in enumerate(dataloader):
             # set the parameter gradients to zero
             self.optimizer.zero_grad()
@@ -573,6 +574,17 @@ class SupervisedTrainer():
                 # Creating PT data samplers and loaders:
                 train_sampler = SubsetRandomSampler(train_indices)
                 valid_sampler = SubsetRandomSampler(val_indices)
+                from itertools import chain
+                from iteration_utilities import deepflatten
+
+                # for d in dataset:
+                #     i=list(deepflatten(d[0][1]))
+                #     for elmt in i:
+                #         if type(elmt) == np.float64 :
+                #             pass
+                #         else :
+                #             ic(elmt)
+                #             ic(type(elmt))
 
                 supervision_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                            sampler=train_sampler)

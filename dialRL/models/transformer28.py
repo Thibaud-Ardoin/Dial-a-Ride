@@ -514,8 +514,8 @@ class Trans28(nn.Module):
 
         elif self.typ in [14, 15]:
             # em1 = [self.ind_embedding1(driver[0].long().to(self.device)) for driver in ds]
+
             drivers_emb = [self.ind_embedding4(torch.stack(driver, dim=-1).double().to(self.device)) for driver in ds]
-            # ic(em1)
             # drivers_emb = [self.quinconx(em1, em2)]
 
         elif self.typ in [7]:
@@ -527,6 +527,7 @@ class Trans28(nn.Module):
         else :
             raise "Nah"
 
+
         final_emb = torch.stack(world_emb + targets_emb + drivers_emb)
 
         return final_emb.permute(1, 0, 2)
@@ -535,7 +536,7 @@ class Trans28(nn.Module):
 
 
     def positional_encoding(self, position):
-        bsz = position[0].shape[-2]
+        # bsz = position[0][0].shape[-2]
         depot_position = position[0]
         targets_pickups = [pos[:, 0:2] for pos in position[1]]
         targets_dropoff = [pos[:, 2:] for pos in position[1]]

@@ -9,6 +9,9 @@ from torch.utils.data import ConcatDataset
 import os
 import torch
 import sys
+import numpy as np
+
+from icecream import ic
 
 '''
 - Generate random data with an env
@@ -76,7 +79,60 @@ class RFGenerator():
             print('Datafile folder:', self.saving_name)
             print(file)
             datasets.append(torch.load(self.saving_name + file))
+
+        # data, sup = datasets[0][0]
+        # world, targets, drivers, positions, time_constraints = data
+        # ic(world, targets, drivers, positions, time_constraints)
+        # data, sup = datasets[1][0]
+        # world, targets, drivers, positions, time_constraints = data
+        # ic(world, targets, drivers, positions, time_constraints)
+
+        datasets = self.refill_data(datasets)
+        # for i in range(len(datasets[0][0][0])):
+        #     ic(datasets[0][0][0][i])
+        #     ic(datasets[1][0][0][i])
+        # for i in range(len(datasets[0][0][0])):
+        #     ic(np.shape(datasets[0][0][0][i]))
+        #     ic(np.shape(datasets[1][0][0][i]))
         return ConcatDataset(datasets)
+
+    def refill_data(self, datasets):
+        new_datasets = []
+        for sub_dataset in datasets:
+            current_target_size = len(sub_dataset[0][0][1])
+            current_driver_size = len(sub_dataset[0][0][2])
+
+            target_to_add = self.nb_target - current_target_size
+            driver_to_add = self.nb_drivers - current_driver_size
+            if target_to_add > 0 or driver_to_add > 0:
+                new_data = []
+                # Add extra zeros to match desired size.
+                for data in sub_dataset:
+                    world, targets, drivers, positions, time_constraints = data[0]
+
+                    # Adding Zeros to targets
+                    targets = targets + list(map(list, list(np.zeros((target_to_add, 3), dtype=np.float64))))
+                    positions[1] = positions[1] + list(np.zeros((target_to_add, 4), dtype=np.float64))
+                    time_constraints[1] = time_constraints[1] + list(np.zeros((target_to_add, 4), dtype=np.float64))
+                    # Adding Zeros to drivers
+                    drivers = drivers + np.zeros((driver_to_add, len(drivers[-1])), dtype=np.float64).tolist()
+                    positions[2] = positions[2] + list(np.zeros((driver_to_add, 2), dtype=np.float64))
+                    time_constraints[2].append(np.float64(0))
+
+                    obs = world, targets, drivers, positions, time_constraints
+                    new_data.append([obs, data[1]])
+
+                new_datasets.append(new_data)
+
+            elif target_to_add < 0 :
+                # Undesired case
+                raise "Error of desired size < target size in the data"
+
+            elif target_to_add == 0:
+                # Perfect data. Don't tuch it
+                new_datasets.append(sub_dataset)
+
+        return new_datasets
 
 
     def generate_dataset(self):

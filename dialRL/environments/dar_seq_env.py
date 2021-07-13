@@ -245,22 +245,22 @@ class DarSeqEnv(DarEnv):
 
         elif self.rep_type=='trans15':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
-            positions = [self.depot_position,
-                         [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
-                         [driver.position for driver in self.drivers]]
+            positions = [np.float64(self.depot_position),
+                         [np.concatenate([target.pickup, target.dropoff]).astype(np.float64) for target in self.targets],
+                         [np.float64(driver.position) for driver in self.drivers]]
 
-            time_constraint = [float(self.time_step),
-                               [np.concatenate([target.start_fork, target.end_fork]).astype(np.float) for target in self.targets],
-                               [float(driver.next_available_time) for driver in self.drivers]]
+            time_constraint = [np.float64(self.time_step),
+                               [np.concatenate([target.start_fork, target.end_fork]).astype(np.float64) for target in self.targets],
+                               [np.float64(driver.next_available_time) for driver in self.drivers]]
 
-            world = list(map(float, [self.current_player,
+            world = list(map(np.float64, [self.current_player,
                                      self.current_player]))
 
-            targets = [list(map(float, [target.identity,
+            targets = [list(map(np.float64, [target.identity,
                        target.state,
                        self.drivers[self.current_player - 1].can_aim(target, self.time_step) ])) for target in self.targets]
 
-            drivers = [list(map(float, [driver.identity,
+            drivers = [list(map(np.float64, [driver.identity,
                                         driver.max_capacity,
                                         len(driver.loaded),
                                         driver.max_capacity - len(driver.loaded)] + driver.get_trunk())) for driver in self.drivers]
