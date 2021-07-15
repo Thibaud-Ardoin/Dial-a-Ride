@@ -670,7 +670,7 @@ class SupervisedTrainer():
         print('\t-->' + eval_name + 'Loss:', running_loss/total)
 
         # Model saving. Condition: Better accuracy and better loss
-        if saving and eval_acc >= self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] and full_test:
+        if saving and full_test and (eval_acc > self.best_eval_metric[0] or ( eval_acc == self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] )):
             self.best_eval_metric[0] = eval_acc
             self.best_eval_metric[1] = eval_loss
             if self.checkpoint_type == 'best':
@@ -801,7 +801,7 @@ class SupervisedTrainer():
         print('\t-->' + eval_name + 'Step Reward ', total_reward/total)
 
         # Model saving. Condition: Better accuracy and better loss
-        if saving and eval_acc >= self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] and full_test:
+        if saving and full_test and (eval_acc > self.best_eval_metric[0] or ( eval_acc == self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] )):
             self.best_eval_metric[0] = eval_acc
             self.best_eval_metric[1] = eval_loss
             if self.checkpoint_type == 'best':
