@@ -90,6 +90,8 @@ class Tester():
         reward_function = globals()[self.reward_function]()
         if self.typ == 15:
             self.rep_type = 'trans15'
+        elif self.typ == 16:
+            self.rep_type = 'trans16'
         else :
             self.rep_type = 'trans29'
 
@@ -431,7 +433,8 @@ class Tester():
 
             fit_sol += info['fit_solution'] #self.eval_env.is_fit_solution()
             delivered += info['delivered']
-            gap += info['GAP']
+            if fit_sol:
+                gap += info['GAP']
             print('- Supvi Total distance:', supervision_perf)
             print('- Model Total distance:', self.eval_env.total_distance)
 
@@ -456,7 +459,10 @@ class Tester():
         print('\t-->' + eval_name + 'Loss:', running_loss/total)
         print('\t-->' + eval_name + 'Fir sol%:', 100*fit_sol/self.eval_episodes)
         print('\t-->' + eval_name + 'Average delivered:', delivered/self.eval_episodes)
-        print('\t-->' + eval_name + 'Average gap:', gap/self.eval_episodes)
+        if fit_sol :
+            print('\t-->' + eval_name + 'Average gap:', gap/fit_sol)
+        else :
+            print('\t--> No fit sol :/')
         print('\t-->' + eval_name + 'Step Reward:', total_reward/total)
 
         # Model saving. Condition: Better accuracy and better loss

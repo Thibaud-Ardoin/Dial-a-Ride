@@ -42,6 +42,11 @@ from dialRL.utils import get_device, trans25_coord2int, objdict, SupervisionData
 # from dialRL.rl_train.callback import MonitorCallback
 from dialRL.strategies import NNStrategy, NNStrategyV2
 from dialRL.dataset import RFGenerator
+from dialRL.dataset import DataFileGenerator
+
+from dialRL.strategies.external.darp_rf.run_rf_algo import run_rf_algo
+
+
 
 torch.autograd.set_detect_anomaly(True)
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
@@ -721,6 +726,15 @@ class SupervisedTrainer():
 
         self.model.eval()
         for eval_step in range(self.eval_episodes):
+
+            # Generate solution and evironement instance.
+            if self.supervision_function == 'rf' :
+                file_gen = DataFileGenerator(env=self.eval_env, out_dir=self.rootdir + '/dialRL/strategies/data/DARP_cordeau/', data_size=1)
+                instance_file_name = file_gen.generate_file(tmp_name='eval_instance')[0]
+                reward_function = globals()[self.reward_function]()
+                self.eval_env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
+                                          rep_type=self.rep_type, reward_function=reward_function, test_env=True, dataset=instance_file_name)
+
             done = False
             observation = self.eval_env.reset()
 
@@ -784,11 +798,35 @@ class SupervisedTrainer():
                     else :
                         to_save.append(self.eval_env.get_image_representation())
                     save_rewards.append(reward)
+            # Env is done
 
+            if self.supervision_function == 'rf' :
+                if info['fit_solution']:
+                    # Get a solution from the supervision
+                    solution_file = ''
+                    while not solution_file :
+                        if not self.verbose:
+                            sys.stdout = open('test_file.out', 'w')
+                        try :
+                            rf_time = time.time()
+                            solution_file, supervision_perf, l_bound = run_rf_algo('0')
+                            rf_time = time.time() - rf_time
+                            if not self.verbose :
+                                sys.stdout = sys.__stdout__
+                            if l_bound is None :
+                                print('Wrong solution ?')
+                                solution_file = ''
+                        except:
+                            if not self.verbose :
+                                sys.stdout = sys.__stdout__
+                            print('ERROR in RUN RF ALGO. PASSING THROUGH')
+                    gap += self.eval_env.get_GAP(best_cost=l_bound)
+            else :
+                # If not rf supervision
+                gap += info['GAP']
 
             fit_sol += info['fit_solution'] #self.eval_env.is_fit_solution()
             delivered += info['delivered']
-            gap += info['GAP']
 
         # To spare time, only the last example is saved
         eval_acc = 100 * correct/total
@@ -830,7 +868,15 @@ class SupervisedTrainer():
                 series='Fit solution %', value=100*fit_sol/self.eval_episodes, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title=eval_name,
                 series='Average delivered', value=delivered/self.eval_episodes, iteration=self.current_epoch)
-            self.sacred.get_logger().report_scalar(title=eval_name,
-                series='Average gap', value=gap/self.eval_episodes, iteration=self.current_epoch)
+            if rf :
+                if fit_sol > 0:
+                    self.sacred.get_logger().report_scalar(title=eval_name,
+                        series='Average gap', value=gap/fit_sol, iteration=self.current_epoch)
+                else :
+                    self.sacred.get_logger().report_scalar(title=eval_name,
+                        series='Average gap', value=300, iteration=self.current_epoch)
+            else :
+                self.sacred.get_logger().report_scalar(title=eval_name,
+                    series='Average gap', value=gap/self.eval_episodes, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title=eval_name,
                 series='Step Reward', value=total_reward/total, iteration=self.current_epoch)

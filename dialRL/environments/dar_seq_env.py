@@ -97,8 +97,11 @@ class DarSeqEnv(DarEnv):
                      coord2int(self.depot_position[1])]
         return game_info
 
-    def get_GAP(self):
-        g = GAP_function(self.total_distance, self.best_cost)
+    def get_GAP(self, best_cost=None):
+        if best_cost is None:
+            g = GAP_function(self.total_distance, self.best_cost)
+        else :
+            g = GAP_function(self.total_distance, best_cost)
         if g is None :
             return 300.
         else :
