@@ -82,6 +82,7 @@ class DarSeqEnv(DarEnv):
         self.time_step = 0
         self.last_time_gap = 0
         self.current_episode = 0
+        self.assignation_history = []
 
 
         if self.verbose:
@@ -172,7 +173,7 @@ class DarSeqEnv(DarEnv):
                        [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
             return world, targets, drivers, positions
 
-        elif self.rep_type=='trans2':
+        elif self.rep_type=='2':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [self.depot_position,
                          [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
@@ -186,7 +187,7 @@ class DarSeqEnv(DarEnv):
                        [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
             return world, targets, drivers, positions
 
-        elif self.rep_type=='trans25':
+        elif self.rep_type=='25':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [self.depot_position,
                          [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
@@ -201,7 +202,7 @@ class DarSeqEnv(DarEnv):
                        [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
             return world, targets, drivers, positions
 
-        elif self.rep_type=='trans28':
+        elif self.rep_type=='28':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [self.depot_position,
                          [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
@@ -221,7 +222,7 @@ class DarSeqEnv(DarEnv):
                        [float(lo.identity) for lo in driver.loaded] for driver in self.drivers]
             return world, targets, drivers, positions, time_constraint
 
-        elif self.rep_type=='trans29':
+        elif self.rep_type=='29':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [self.depot_position,
                          [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
@@ -246,7 +247,7 @@ class DarSeqEnv(DarEnv):
 
             return world, targets, drivers, positions, time_constraint
 
-        elif self.rep_type=='trans15':
+        elif self.rep_type=='15':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [np.float64(self.depot_position),
                          [np.concatenate([target.pickup, target.dropoff]).astype(np.float64) for target in self.targets],
@@ -270,7 +271,7 @@ class DarSeqEnv(DarEnv):
 
             return world, targets, drivers, positions, time_constraint
 
-        elif self.rep_type=='trans16':
+        elif self.rep_type=='16':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [np.float64(self.depot_position),
                          [np.concatenate([target.pickup, target.dropoff]).astype(np.float64) for target in self.targets],
@@ -296,7 +297,32 @@ class DarSeqEnv(DarEnv):
 
             return world, targets, drivers, positions, time_constraint
 
-        elif self.rep_type=='trans3':
+        elif self.rep_type=='17':
+            #
+            positions = [np.float64(self.depot_position),
+                         [np.concatenate([target.pickup, target.dropoff]).astype(np.float64) for target in self.targets],
+                         [np.float64(driver.position) for driver in self.drivers]]
+
+            time_constraint = [np.float64(self.time_step),
+                               [np.concatenate([target.start_fork, target.end_fork]).astype(np.float64) for target in self.targets],
+                               [np.float64(driver.next_available_time) for driver in self.drivers]]
+
+            history = self.assignation_history + list(np.zeros((self.target_population*2 - len(self.assignation_history), 3)))
+            world = list(map(np.float64, [self.current_player, history]))
+
+            targets = [list(map(np.float64, [target.identity,
+                       target.state,
+                       self.drivers[self.current_player - 1].can_aim(target, self.time_step),
+                       distance(self.drivers[self.current_player - 1].position, target.pickup),
+                       distance(self.drivers[self.current_player - 1].position, target.dropoff)])) for target in self.targets]
+
+            drivers = [list(map(np.float64, [driver.identity,
+                                        driver.max_capacity,
+                                        len(driver.loaded),
+                                        driver.max_capacity - len(driver.loaded)] + driver.get_trunk())) for driver in self.drivers]
+            return world, targets, drivers, positions, time_constraint
+
+        elif self.rep_type=='3':
             # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
             positions = [self.depot_position,
                          [np.concatenate([target.pickup, target.dropoff]) for target in self.targets],
@@ -389,6 +415,7 @@ class DarSeqEnv(DarEnv):
         self.last_aim = None
         self.last_cell = None
         self.short_log = ''
+        self.assignation_history = []
         return self._next_observation()
 
 
@@ -438,6 +465,7 @@ class DarSeqEnv(DarEnv):
                 # Managed to load the target
                 if result :
                     self.distance = distance(aiming_driver.position, aiming_driver.destination)
+                    self.assignation_history.append([aiming_driver.identity, aimed_target.identity, 1])
                     self.short_log = 'Aimed right, going for pick up !'
                 else :
                     self.distance = -4
@@ -446,6 +474,7 @@ class DarSeqEnv(DarEnv):
                 result = aiming_driver.set_target(aimed_target, self.time_step)
                 if result :
                     self.distance = distance(aiming_driver.position, aiming_driver.destination)
+                    self.assignation_history.append([aiming_driver.identity, aimed_target.identity, -1])
                     self.short_log = 'Aimed right, and goiong for dropoff !'
                 else :
                     self.distance = -5

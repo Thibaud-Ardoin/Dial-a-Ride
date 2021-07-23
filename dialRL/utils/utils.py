@@ -9,7 +9,7 @@ import time
 import math
 
 def get_device():
-    if is_available(): #False: #
+    if False: #is_available(): #False: #
         device = 'cuda:0'
     else:
         device = 'cpu'
@@ -22,8 +22,18 @@ def trans25_coord2int(coord, src_vocab_size, extremas):
     h, w = abs(coordonate[:,0] - extremas[0]) / boxh, abs(coordonate[:,1] -  extremas[1]) / boxw
     return h.add(w * siderange).long()
 
-def quinconx(a, b, d=1):
-    return torch.cat([a.unsqueeze(-1), b.unsqueeze(-1)], dim=-1).flatten(start_dim=d)
+def quinconx(l, d=1):
+    nb = len(l)
+    if nb==2:
+        a, b = l
+        return torch.cat([a.unsqueeze(-1), b.unsqueeze(-1)], dim=-1).flatten(start_dim=d)
+    elif nb==3:
+        a, b, c = l
+        q1 = torch.cat([b.unsqueeze(-1), c.unsqueeze(-1)], dim=-1).flatten(start_dim=d)
+        return torch.cat([a.unsqueeze(-1), q1.unsqueeze(-1)], dim=-1).flatten(start_dim=d)
+    elif nb==4:
+        a, b, c, dd = l
+        return torch.cat([a.unsqueeze(-1), b.unsqueeze(-1), c.unsqueeze(-1), dd.unsqueeze(-1)], dim=-1).flatten(start_dim=d)
 
 def norm_image(self, image, type=None, scale=1):
     image = np.kron(image, np.ones((scale, scale)))

@@ -72,11 +72,16 @@ class SelfAttention(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, embed_size, heads, dropout, forward_expansion):
+    def __init__(self, embed_size, heads, dropout, forward_expansion, batch_norm=False):
         super(TransformerBlock, self).__init__()
         self.attention = SelfAttention(embed_size, heads)
-        self.norm1 = nn.LayerNorm(embed_size)
-        self.norm2 = nn.LayerNorm(embed_size)
+        self.batch_norm = batch_norm
+        if self.batch_norm:
+            self.norm1 = nn.BatchNorm1d(embed_size)
+            self.norm2 = nn.BatchNorm1d(embed_size)
+        else :
+            self.norm1 = nn.LayerNorm(embed_size)
+            self.norm2 = nn.LayerNorm(embed_size)
 
         self.feed_forward = nn.Sequential(
             nn.Linear(embed_size, forward_expansion * embed_size),
@@ -90,9 +95,21 @@ class TransformerBlock(nn.Module):
         attention = self.attention(value, key, query, mask)
 
         # Add skip connection, run through normalization and finally dropout
-        x = self.dropout(self.norm1(attention + query))
+        x = (attention + query)
+        if self.batch_norm:
+            x = x.permute(1,2,0).contiguous()
+        x = self.dropout(self.norm1(x))
+        if self.batch_norm:
+            x = x.permute(2,0,1).contiguous()
+
         forward = self.feed_forward(x)
-        out = self.dropout(self.norm2(forward + x))
+
+        x = forward + x
+        if self.batch_norm:
+            x = x.permute(1,2,0).contiguous()
+        out = self.dropout(self.norm2(x))
+        if self.batch_norm:
+            out = out.permute(2,0,1).contiguous()
         return out
 
 
@@ -108,6 +125,7 @@ class Encoder(nn.Module):
         dropout,
         max_length,
         typ,
+        encoder_bn
     ):
 
         super(Encoder, self).__init__()
@@ -130,6 +148,7 @@ class Encoder(nn.Module):
                     heads,
                     dropout=dropout,
                     forward_expansion=forward_expansion,
+                    batch_norm=encoder_bn
                 )
                 for _ in range(num_layers)
             ]
@@ -143,10 +162,10 @@ class Encoder(nn.Module):
             positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
 
         if self.typ in [9, 10] :
-            postim = quinconx(positions.to(self.device), times.to(self.device), d=2)
+            postim = quinconx([positions.to(self.device), times.to(self.device)], d=2)
         elif self.typ in [11, 12]:
             postim = self.position_embedding(torch.cat([positions.to(self.device), times.to(self.device)], dim=-1))
-        elif self.typ in [1,2,3,4,5,6,7,8, 13, 14, 15, 16]:
+        elif self.typ in [1,2,3,4,5,6,7,8, 13, 14, 15, 16, 17, 18, 19]:
             postim = positions.to(self.device) + times.to(self.device)
 
         out = self.dropout(
@@ -162,17 +181,30 @@ class Encoder(nn.Module):
         return out
 
 class DecoderBlock(nn.Module):
-    def __init__(self, embed_size, heads, forward_expansion, dropout, device):
+    def __init__(self, embed_size, heads, forward_expansion, dropout, device, batch_norm=False):
         super(DecoderBlock, self).__init__()
-        self.norm = nn.LayerNorm(embed_size)
+        self.batch_norm = batch_norm
+        if False:#self.batch_norm:
+            self.norm = nn.BatchNorm1d(embed_size)
+        else :
+            self.norm = nn.LayerNorm(embed_size)
+
         self.attention = SelfAttention(embed_size, heads=heads)
         self.transformer_block = TransformerBlock(
-            embed_size, heads, dropout, forward_expansion
+            embed_size, heads, dropout, forward_expansion, batch_norm=self.batch_norm
         )
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, value, key, src_mask, trg_mask):
         attention = self.attention(x, x, x, trg_mask)
+
+        h = (attention + x)
+        if False:#self.batch_norm:
+            h = h.permute(1,2,0).contiguous()
+        query = self.dropout(self.norm(h))
+        if False:#self.batch_norm:
+            query = query.permute(2,0,1).contiguous()
+
         query = self.dropout(self.norm(attention + x))
         out = self.transformer_block(value, key, query, src_mask)
         return out
@@ -190,57 +222,106 @@ class Decoder(nn.Module):
         dropout,
         device,
         max_length,
-        typ
+        typ,
+        decoder_bn
     ):
         super(Decoder, self).__init__()
         self.typ = typ
         self.device = device
         self.embed_size = embed_size
+        self.trg_vocab_size = trg_vocab_size
+        self.src_vocab_size = src_vocab_size
 
         # self.word_embedding = nn.Embedding(trg_vocab_size, embed_size)
         # self.position_embedding = nn.Embedding(max_length, embed_size)
-        self.word_embedding = nn.Embedding(4, embed_size)
+        self.word_embedding = nn.Embedding(trg_vocab_size, embed_size)
         if self.typ in [11, 12]:
             self.position_embedding = nn.Linear(self.embed_size, self.embed_size).to(self.device)
+        elif self.typ in [17, 18, 19]:
+            self.position_embedding1 = nn.Embedding(src_vocab_size, embed_size//4) #Driver
+            self.position_embedding2 = nn.Embedding(trg_vocab_size, embed_size//4) #Target
+            self.position_embedding3 = nn.Embedding(3, embed_size//4) #Action type
         else :
             self.position_embedding = nn.Embedding(src_vocab_size, embed_size)
 
         self.layers = nn.ModuleList(
             [
-                DecoderBlock(embed_size, heads, forward_expansion, dropout, device)
+                DecoderBlock(embed_size, heads, forward_expansion, dropout, device, batch_norm=decoder_bn)
                 for _ in range(num_layers)
             ]
         )
         self.fc_out = nn.Linear(embed_size, trg_vocab_size)
+        if self.typ in [18, 19]:
+            self.fc_out_out = nn.Linear(2*(self.trg_vocab_size-1), 1)
+            self.relu = nn.ReLU()
+
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, enc_out, src_mask, trg_mask, positions=None, times=None):
-        N, seq_length = x.shape
-        # positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
+        nb_target, nb_drivers = self.trg_vocab_size-1, len(positions[0]) - 2*(self.trg_vocab_size-1) - 1
+        if self.typ in [17, 18, 19]:
+            # Get position and time for already done targets
+            N, trg_len = x[0].shape[-1], len(x)
+            elmts1 = torch.tensor(x[1]).to(self.device).long()
+            elmt2 = torch.tensor(x[0]).to(self.device).long()
+            e1 = self.position_embedding1(elmts1[:, :, 0])      # Driver
+            e2 = self.position_embedding2(elmts1[:, :, 1])      # Target
+            e3 = self.position_embedding3(elmts1[:, :, 2] + 1)  # Action type
+            e4 = self.position_embedding1(elmt2)                # Current Driver
+            positions = quinconx([e1, e2, e3, e4.unsqueeze(1).expand(e1.shape)], d=2)
 
-        indices = torch.repeat_interleave(x.unsqueeze(-1), positions.shape[2], dim=2) - 1
-        positions = torch.gather(positions, 1, indices)
-        times = torch.gather(times, 1, indices)
+        else :
+            # Get the positions and time for x indice value. here the current player
+            N, trg_len = x.shape
+            indices = torch.repeat_interleave(x.unsqueeze(-1), positions.shape[2], dim=2) - 1
+            positions = torch.gather(positions, 1, indices)
+            times = torch.gather(times, 1, indices)
 
         if positions is None:
             positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
 
         if self.typ in [9, 10] :
             postim = quinconx(positions.to(self.device), times.to(self.device), d=2)
+            x = self.dropout(self.word_embedding(x.to(self.device)) + postim )
         elif self.typ in [11, 12]:
             postim = self.position_embedding(torch.cat([positions.to(self.device), times.to(self.device)], dim=-1))
+            x = self.dropout(self.word_embedding(x.to(self.device)) + postim )
         elif self.typ in [1,2,3,4,5,6,7,8, 13, 14, 15, 16]:
             postim = positions.to(self.device) + times.to(self.device)
-
-        x = self.dropout(self.word_embedding(x.to(self.device)) + postim )
+            x = self.dropout(self.word_embedding(x.to(self.device)) + postim )
+        elif self.typ in [17, 18, 19]:
+            x = self.dropout(positions.to(self.device))
 
         for layer in self.layers:
             x = layer(x, enc_out, enc_out, src_mask, trg_mask)
-        out = self.fc_out(x)
+
+        if self.typ in [17]:
+            # Get the correct output element of the out sequence
+            out = self.fc_out(x)
+            tmp = (elmts1[:, :, 0] == 0).int()
+            idx = torch.arange(tmp.shape[1], 0, -1)
+            tmp2 = tmp * idx
+            indices = torch.argmax(tmp2, 1, keepdim=True)
+            out = torch.gather(out, 1, indices.unsqueeze(-1).expand(-1, -1, out.shape[-1]))
+        elif self.typ in [18]:
+            x = self.fc_out(x)
+            x = self.relu(x.permute(0, 2, 1))
+            out = self.fc_out_out(x)
+            out = out.squeeze(-1)
+
+        elif self.typ in [19]:
+            x = x.permute(0, 2, 1)
+            x = self.relu(self.fc_out_out(x).squeeze(-1))
+            out = self.fc_out(x)
+            out = out.squeeze(-1)
+
+        else :
+            out = self.fc_out(x)
+
         return out
 
 
-class Trans28(nn.Module):
+class Trans17(nn.Module):
     def __init__(
         self,
         src_vocab_size,
@@ -256,10 +337,12 @@ class Trans28(nn.Module):
         device="",
         max_length=100,         #100
         typ=None,
-        max_time=2000
+        max_time=2000,
+        encoder_bn=False,
+        decoder_bn=False
     ):
 
-        super(Trans28, self).__init__()
+        super(Trans17, self).__init__()
         self.device = device #get_device()
 
         self.encoder = Encoder(
@@ -271,7 +354,8 @@ class Trans28(nn.Module):
             forward_expansion,
             dropout,
             max_length,
-            typ
+            typ,
+            encoder_bn
         )
 
         self.decoder = Decoder(
@@ -284,7 +368,8 @@ class Trans28(nn.Module):
             dropout,
             self.device,
             max_length,
-            typ
+            typ,
+            decoder_bn
         )
 
         self.src_pad_idx = src_pad_idx
@@ -323,7 +408,7 @@ class Trans28(nn.Module):
             self.ind_embedding2 = nn.Embedding(100, self.embed_size // 2)
             self.ind_embedding3 = nn.Embedding(100, self.embed_size // 2)
             self.ind_embedding4 = nn.Linear(4 + 3, self.embed_size)         # 4 pour info et 3 pour le trunk
-        elif self.typ in [16] :
+        elif self.typ in [16, 17, 18, 19] :
             self.ind_embedding1 = nn.Embedding(100, self.embed_size)
             self.ind_embedding2 = nn.Embedding(100, self.embed_size // 2)
             self.ind_embedding3 = nn.Embedding(100, self.embed_size // 4)
@@ -348,7 +433,7 @@ class Trans28(nn.Module):
             self.input_emb = nn.Linear(2, self.embed_size)
         elif self.typ in [2]:
             self.input_emb = nn.Linear(self.embed_size, self.embed_size).to(self.device)
-        elif self.typ in [4, 5, 6, 7, 8, 13, 14, 15, 16] :
+        elif self.typ in [4, 5, 6, 7, 8, 13, 14, 15, 16, 17, 18, 19] :
             # Driver, pickup, dropoff
             self.input_emb1 = nn.Linear(2, self.embed_size).to(self.device)
             self.input_emb2 = nn.Linear(2, self.embed_size).to(self.device)
@@ -363,7 +448,7 @@ class Trans28(nn.Module):
         if self.typ in [1, 2, 3, 4, 5, 6, 7]:
             self.time_embedding1 = nn.Embedding(self.max_time, self.embed_size)
             self.time_embedding2 = nn.Embedding(self.max_time, self.embed_size // 2)
-        elif self.typ in [13, 14, 15, 16]:
+        elif self.typ in [13, 14, 15, 16, 17, 18, 19]:
             self.time_embedding1 = nn.Embedding(self.max_time * 2 + 1, self.embed_size)
             self.time_embedding2 = nn.Embedding(self.max_time * 2 + 1, self.embed_size // 2)
         elif self.typ in [8]:
@@ -378,13 +463,13 @@ class Trans28(nn.Module):
             self.time_embedding1 = nn.Embedding(self.max_time, self.embed_size // 2)
             self.time_embedding2 = nn.Embedding(self.max_time, self.embed_size // 4)
 
+
     def summary(self):
         txt = '***** Model Summary *****\n'
-        txt += ' - This model is a classical Transformer with additional input transformation.\n'
+        txt += ' - This model is a Transformer with an input of the decoder that loops the old outputs \n'
         txt += '\t the default sizes are he ones proposed by the original paper.\n'
         txt += ''
         print(txt)
-
 
     def make_src_mask(self, src):
         # Little change towards original: src got embedding dimention in additon
@@ -393,16 +478,19 @@ class Trans28(nn.Module):
         return src_mask.to(self.device)
 
     def make_trg_mask(self, trg):
-        N, trg_len = trg.shape
+        if self.typ in [17, 18, 19]:
+            N, trg_len, _ = trg[1].shape
+        else :
+            N, trg_len = trg.shape
         trg_mask = torch.tril(torch.ones((trg_len, trg_len))).expand(
             N, 1, trg_len, trg_len
         )
-
         return trg_mask.to(self.device)
 
     def forward(self, src, trg, positions, times):
         # Encoode positoin and env
         nb_targets = len(positions[1])
+        nb_drivers = len(positions[2])
         src = self.env_encoding(src)
         if not positions is None :
             positions = self.positional_encoding(positions)
@@ -414,7 +502,7 @@ class Trans28(nn.Module):
         trg_mask = self.make_trg_mask(trg)
 
         enc_src = self.encoder(src, src_mask, positions=positions, times=times)#[:, :nb_targets])
-        out = self.decoder(trg, enc_src, src_mask, trg_mask, positions=positions[:, 1+nb_targets*2:], times=times[:, 1+nb_targets*2:])
+        out = self.decoder(trg, enc_src, src_mask, trg_mask, positions=positions, times=times)
         return out
 
     def generate_positional_encoding(self, d_model, max_len):
@@ -470,7 +558,7 @@ class Trans28(nn.Module):
         # World
         if self.typ in [1, 2, 5]:
             world_emb = [self.ind_embedding(w[0].long().to(self.device))]
-        elif self.typ in [6, 8, 9, 10, 11, 12, 13, 14, 15, 16]:
+        elif self.typ in [6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
             world_emb = [self.ind_embedding1(w[0].long().to(self.device))]
         elif self.typ in [7]:
             world_emb = [self.ind_embedding11(self.ind_embedding1(w[0].long().to(self.device)))]
@@ -510,7 +598,7 @@ class Trans28(nn.Module):
                 targets_emb.append(self.quinconx([em1, em2]))
                 targets_emb.append(self.quinconx([em1, em3]))
 
-            elif self.typ in [16]:
+            elif self.typ in [16, 17, 18, 19]:
                 # stack the embedding of 2 data points
                 em1 = self.ind_embedding2((target[0] + self.trg_vocab_size + target[1]+2).long().to(self.device))
                 em2 = self.ind_embedding3((target[1]+2 + target[2]*10).long().to(self.device))
@@ -545,7 +633,7 @@ class Trans28(nn.Module):
         elif self.typ in [6, 8, 9, 10, 11, 12, 13]:
             drivers_emb = [self.ind_embedding1(driver[0].long().to(self.device)) for driver in ds]
 
-        elif self.typ in [14, 15, 16]:
+        elif self.typ in [14, 15, 16, 17, 18, 19]:
             # em1 = [self.ind_embedding1(driver[0].long().to(self.device)) for driver in ds]
 
             drivers_emb = [self.ind_embedding4(torch.stack(driver, dim=-1).double().to(self.device)) for driver in ds]
@@ -580,7 +668,7 @@ class Trans28(nn.Module):
             d1 = [torch.stack([self.input_emb(depot_position.to(self.device))])]
         elif self.typ in [2]:
             d1 = [torch.stack([self.input_emb(self.fourier_feature(depot_position).to(self.device))])]
-        elif self.typ in [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]:
+        elif self.typ in [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
             d1 = [torch.stack([self.input_emb1(depot_position.double().to(self.device))])]
         else :
             raise "Na"
@@ -593,7 +681,7 @@ class Trans28(nn.Module):
             elif self.typ in [2]:
                 d2 = torch.stack([self.input_emb(self.fourier_feature(pick).to(self.device))])
                 d25 = torch.stack([self.input_emb(self.fourier_feature(doff).to(self.device))])
-            elif self.typ in [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]:
+            elif self.typ in [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
                 d2 = torch.stack([self.input_emb2(pick.double().to(self.device))])
                 d25 = torch.stack([self.input_emb3(doff.double().to(self.device))])
             else :
@@ -607,7 +695,7 @@ class Trans28(nn.Module):
                 d3 = torch.stack([self.input_emb(driver.to(self.device))])
             elif self.typ in [2]:
                 d3 = torch.stack([self.input_emb(self.fourier_feature(driver).to(self.device))])
-            elif self.typ in [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]:
+            elif self.typ in [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
                 d3 = torch.stack([self.input_emb1(driver.double().to(self.device))])
             else :
                 raise "Nah"
@@ -624,11 +712,10 @@ class Trans28(nn.Module):
         drivers_1d = times[2]
 
         # World
-        if self.typ in [1, 2, 3, 4, 5, 6, 7, 9, 12, 13, 14, 15, 16]:
+        if self.typ in [1, 2, 3, 4, 5, 6, 7, 9, 12, 13, 14, 15, 16, 17,  18, 19]:
             d1 = [self.time_embedding1(current_time.long().to(self.device)).unsqueeze(0)]
         elif self.typ in [8, 10, 11] :
             d1 = [self.time_embedding1(torch.stack([current_time, current_time], dim=-1).double().to(self.device))]
-            # ic(d1[0].shape)
 
         # Targets
         for target in targets_4d :
@@ -640,10 +727,7 @@ class Trans28(nn.Module):
                 em4 = self.time_embedding2(target[:, 3].to(self.device).long())
                 d22 = torch.stack([self.quinconx([em3, em4])])
 
-            elif self.typ in [13, 14, 15, 16]:
-                # for k in range(4):
-                #     ic((target[:, k] - current_time + self.max_time).max())
-                #     ic((target[:, k] - current_time + self.max_time).min())
+            elif self.typ in [13, 14, 15, 16, 17, 18, 19]:
                 em1 = self.time_embedding2((target[:, 0] - current_time + self.max_time).to(self.device).long())
                 em2 = self.time_embedding2((target[:, 1] - current_time + self.max_time).to(self.device).long())
                 d2 = torch.stack([self.quinconx([em1, em2])])
@@ -654,9 +738,6 @@ class Trans28(nn.Module):
             elif self.typ in [8, 10, 11]:
                 d2 = self.time_embedding2(torch.stack([target[:, 0], target[:, 1]], dim=-1).double().to(self.device))
                 d22 = self.time_embedding2(torch.stack([target[:, 2], target[:, 3]], dim=-1).double().to(self.device))
-                # ic(d2.shape)
-                # ic(d22.shape)
-
             else :
                 raise "Nah"
             d1.append(d2)
@@ -666,16 +747,15 @@ class Trans28(nn.Module):
         for driver in drivers_1d :
             if self.typ in [1, 2, 3, 4, 5, 6, 7, 9, 12]:
                 d3 = torch.stack([self.time_embedding1(driver.long().to(self.device))])
-            elif self.typ in [13, 14, 15, 16]:
+            elif self.typ in [13, 14, 15, 16, 17, 18, 19]:
                 d3 = torch.stack([self.time_embedding1((driver).long().to(self.device))])
             elif self.typ in [8, 10, 11]:
                 d3 = self.time_embedding3(torch.stack([driver, current_time], dim=-1).double().to(self.device))
-                # ic(d3.shape)
             else :
                 raise "Nah"
             d1.append(d3)
 
-        if self.typ in [1,2,3,4,5,6,7, 9, 12, 13, 14, 15, 16]:
+        if self.typ in [1,2,3,4,5,6,7, 9, 12, 13, 14, 15, 16, 17, 18, 19]:
             d1 = torch.cat(d1)
         elif self.typ in [8, 10, 11]:
             d1 = torch.stack(d1)

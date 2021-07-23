@@ -57,7 +57,10 @@ def get_args(args):
     parser.add_argument('--vocab_size', default=24, type=int)
     parser.add_argument('--supervision_function', default='nn', type=str)
     parser.add_argument('--balanced_dataset', default=0, type=bool)
-
+    parser.add_argument('--num_layers', default=6, type=int)
+    parser.add_argument('--forward_expansion', default=4, type=int)
+    parser.add_argument('--heads', default=8, type=int)
+    parser.add_argument('--tag', default='', type=str)
 
     return parser.parse_known_args(args)[0]
 
@@ -74,6 +77,9 @@ def millify(n):
 def goooo():
     # Get params
     parameters = objdict(vars(get_args(sys.argv[1:])))
+    tags_list = ['Gp: d'+str(parameters.nb_drivers)+'d'+str(parameters.nb_target)+ parameters.supervision_function +' '+millify(parameters.data_size)]
+    if parameters.tag :
+        tags_list.append(parameters.tag)
 
     task = None
     if parameters.clearml :
@@ -82,7 +88,7 @@ def goooo():
             project_name="DaRP",
             task_name="experiment" + str(n),
             auto_connect_frameworks={'pytorch': False},
-            tags='Gp: d'+str(parameters.nb_drivers)+'d'+str(parameters.nb_target)+ parameters.supervision_function +' '+millify(parameters.data_size))
+            tags=tags_list)
 
     # Get the trainer object
     trainer = SupervisedTrainer(parameters, sacred=task)

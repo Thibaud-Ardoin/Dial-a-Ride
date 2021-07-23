@@ -54,7 +54,7 @@ class RFGenerator():
             self.saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
                                                                                                                 tt=str(self.timeless),
                                                                                                                 sf=str(self.supervision_function),
-                                                                                                                ty=str(self.typ))
+                                                                                                                ty=str(self.rep_type))
         else :
             self.saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
                                                                                                               t=str(self.nb_target),
@@ -62,7 +62,7 @@ class RFGenerator():
                                                                                                               i=str(self.image_size),
                                                                                                               tt=str(self.timeless),
                                                                                                               sf=str(self.supervision_function),
-                                                                                                              ty=str(self.typ))
+                                                                                                              ty=str(self.rep_type))
         self.tmp_name = self.saving_name.split('/')[-2]
 
 

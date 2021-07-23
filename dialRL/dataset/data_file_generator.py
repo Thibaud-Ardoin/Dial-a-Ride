@@ -26,7 +26,7 @@ class DataFileGenerator():
         if env is None :
             self.params = {
                 'size': 10,
-                'target_population': 16,
+                'target_population': 5,
                 'driver_population': 2,
                 'reward_function': 'ConstantReward',
                 'time_end': 1400,

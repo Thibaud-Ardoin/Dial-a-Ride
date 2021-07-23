@@ -92,11 +92,28 @@ class SupervisedTrainer():
 
         reward_function = globals()[self.reward_function]()
         if self.typ==15:
-            self.rep_type = 'trans15'
-        if self.typ==16:
-            self.rep_type = 'trans16'
+            self.rep_type = '15'
+        elif self.typ==16:
+            self.rep_type = '16'
+        elif self.typ==17:
+            self.rep_type = '17'
+            self.model=='Trans17'
+        elif self.typ in [18, 19]:
+            self.rep_type = '17'
+            self.model=='Trans17'
+        elif self.typ in [20, 21, 22]:
+            self.encoder_bn=True
+            self.rep_type = '17'
+            self.model=='Trans17'
+            self.typ = self.typ - 3
+        elif self.typ in [23, 24, 25]:
+            self.encoder_bn=True
+            self.decoder_bn=True
+            self.rep_type = '17'
+            self.model=='Trans17'
+            self.typ = self.typ - 6
         else :
-            self.rep_type = 'trans29'
+            raise "Find your own typ men"
 
         ## TODO: Add globals()[self.env]
         self.env = DarSeqEnv(size=self.image_size,
@@ -158,6 +175,9 @@ class SupervisedTrainer():
                                                  src_pad_idx=self.image_size,
                                                  trg_pad_idx=self.image_size,
                                                  dropout=self.dropout,
+                                                 num_layer=self.num_layer,
+                                                 heads=self.heads,
+                                                 forward_expansion=self.forward_expansion,
                                                  extremas=self.env.extremas,
                                                  device=self.device).to(self.device).double()
         elif self.model=='Trans25':
@@ -167,6 +187,9 @@ class SupervisedTrainer():
                                                  src_pad_idx=-1,
                                                  trg_pad_idx=-1,
                                                  dropout=self.dropout,
+                                                 num_layer=self.num_layer,
+                                                 heads=self.heads,
+                                                 forward_expansion=self.forward_expansion,
                                                  extremas=self.env.extremas,
                                                  device=self.device).to(self.device).double()
         elif self.model=='Trans27':
@@ -177,20 +200,43 @@ class SupervisedTrainer():
                                                  trg_pad_idx=-1,
                                                  dropout=self.dropout,
                                                  extremas=self.env.extremas,
+                                                 num_layers=self.num_layers,
+                                                 heads=self.heads,
+                                                 forward_expansion=self.forward_expansion,
                                                  device=self.device,
                                                  typ=self.typ).to(self.device).double()
         elif self.model=='Trans28':
             self.model = globals()[self.model](src_vocab_size=50000,
                                                  trg_vocab_size=self.vocab_size + 1,
-                                                 max_length=10,
+                                                 max_length=self.nb_target*2 + self.nb_drivers + 1,
                                                  src_pad_idx=-1,
                                                  trg_pad_idx=-1,
                                                  embed_size=self.embed_size,
                                                  dropout=self.dropout,
                                                  extremas=self.env.extremas,
                                                  device=self.device,
+                                                 num_layers=self.num_layers,
+                                                 heads=self.heads,
+                                                 forward_expansion=self.forward_expansion,
                                                  typ=self.typ,
                                                  max_time=int(self.env.time_end)).to(self.device).double()
+        elif self.model=='Trans17':
+            self.model = globals()[self.model](src_vocab_size=50000,
+                                                 trg_vocab_size=self.vocab_size + 1,
+                                                 max_length=self.nb_target*2 + self.nb_drivers + 1,
+                                                 src_pad_idx=-1,
+                                                 trg_pad_idx=-1,
+                                                 embed_size=self.embed_size,
+                                                 dropout=self.dropout,
+                                                 extremas=self.env.extremas,
+                                                 device=self.device,
+                                                 num_layers=self.num_layers,
+                                                 heads=self.heads,
+                                                 forward_expansion=self.forward_expansion,
+                                                 typ=self.typ,
+                                                 max_time=int(self.env.time_end),
+                                                 encoder_bn=self.encoder_bn,
+                                                 decoder_bn=self.decoder_bn).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
 
@@ -241,7 +287,10 @@ class SupervisedTrainer():
 
         print(' *// What is this train about //* ')
         for item in vars(self):
-            print(item, ':', vars(self)[item])
+            if item == "model":
+                vars(self)[item].summary()
+            else :
+                print(item, ':', vars(self)[item])
 
 
     def save_example(self, observations, rewards, number, time_step):
@@ -384,10 +433,12 @@ class SupervisedTrainer():
             world, targets, drivers, positions, time_constraints = observation
             info_block = [world, targets, drivers]
             # Current player as trg elmt
-            target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
+            if self.typ in [17, 18, 19]:
+                target_tensor = world
+            else :
+                target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
             # target_tensor = torch.tensor([0 for _ in range(self.batch_size)]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
             # coord_int = trans25_coord2int(positions[1][supervised_action])
-
             model_action = self.model(info_block,
                                       target_tensor,
                                       positions=positions,
@@ -465,7 +516,10 @@ class SupervisedTrainer():
                              [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
                              [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
 
-            target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+            if self.typ in [17, 18, 19]:
+                target_tensor = torch.tensor(world).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+            else :
+                target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
 
             # supervised_action = self.supervision.action_choice()
             # supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
@@ -645,9 +699,13 @@ class SupervisedTrainer():
             world, targets, drivers, positions, time_constraints = observation
             info_block = [world, targets, drivers]
             # Current player as trg elmt
-            target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
+            # target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
             # target_tensor = torch.tensor([0 for _ in range(self.batch_size)]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
             # coord_int = trans25_coord2int(positions[1][supervised_action])
+            if self.typ in [17, 18, 19]:
+                target_tensor = world
+            else :
+                target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
 
             model_action = self.model(info_block,
                                       target_tensor,
@@ -760,7 +818,10 @@ class SupervisedTrainer():
                              [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
                              [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
 
-                target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+                if self.typ in [17, 18, 19]:
+                    target_tensor = w_t
+                else :
+                    target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
 
                 model_action = self.model(info_block,
                                           target_tensor,
@@ -868,7 +929,7 @@ class SupervisedTrainer():
                 series='Fit solution %', value=100*fit_sol/self.eval_episodes, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title=eval_name,
                 series='Average delivered', value=delivered/self.eval_episodes, iteration=self.current_epoch)
-            if rf :
+            if self.supervision_function == 'rf' :
                 if fit_sol > 0:
                     self.sacred.get_logger().report_scalar(title=eval_name,
                         series='Average gap', value=gap/fit_sol, iteration=self.current_epoch)

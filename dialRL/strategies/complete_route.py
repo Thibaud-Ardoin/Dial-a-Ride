@@ -60,9 +60,6 @@ class CompleteRoute(BaseStrategy):
 if __name__ == '__main__':
     strat = CompleteRoute(
         solution_file='/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-0_soln.json',
-#/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF0-0_soln.json',
-        #'/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF11-pr01_soln.json',
-        #/home/tibo/Documents/Prog/EPFL/own/dialRL/strategies/logs/darp/rf/4443b2f25d373531/RF7-service_test3_soln.json',
         size=4,
         target_population=2,
         driver_population=2,
