@@ -90,6 +90,9 @@ class SupervisedTrainer():
 
         #### RL elements
 
+        self.encoder_bn = False
+        self.decoder_bn = False
+
         reward_function = globals()[self.reward_function]()
         if self.typ==15:
             self.rep_type = '15'
