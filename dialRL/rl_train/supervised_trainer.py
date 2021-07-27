@@ -92,6 +92,7 @@ class SupervisedTrainer():
 
         self.encoder_bn = False
         self.decoder_bn = False
+        self.classifier_expansion = 4
 
         reward_function = globals()[self.reward_function]()
         if self.typ==15:
@@ -121,6 +122,13 @@ class SupervisedTrainer():
             self.rep_type = '16'
             self.model=='Trans18'
             self.typ = self.typ
+        elif self.typ in [27]:
+            self.classifier_expansion = 8
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
         else :
             raise "Find your own typ men"
 
@@ -261,6 +269,7 @@ class SupervisedTrainer():
                                                  forward_expansion=self.forward_expansion,
                                                  typ=self.typ,
                                                  max_time=int(self.env.time_end),
+                                                 classifier_expansion=self.classifier_expansion,
                                                  encoder_bn=self.encoder_bn,
                                                  decoder_bn=self.decoder_bn).to(self.device).double()
         else :

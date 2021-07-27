@@ -189,7 +189,7 @@ class Classifier(nn.Module):
         num_layers,
         heads,
         device,
-        forward_expansion,
+        classifier_expansion,
         dropout,
         max_length,
         typ,
@@ -201,9 +201,9 @@ class Classifier(nn.Module):
         self.embed_size = embed_size
         self.device = device
 
-        self.fc1 = nn.Linear(self.embed_size, forward_expansion * self.embed_size )
+        self.fc1 = nn.Linear(self.embed_size, classifier_expansion * self.embed_size )
         self.ReLU = nn.ReLU()
-        self.fc2 = nn.Linear(self.embed_size * forward_expansion, trg_vocab_size)
+        self.fc2 = nn.Linear(self.embed_size * classifier_expansion, trg_vocab_size)
 
         self.dropout = nn.Dropout(dropout)
 
@@ -234,6 +234,7 @@ class Trans18(nn.Module):
         max_length=100,         #100
         typ=None,
         max_time=2000,
+        classifier_expansion=4,
         encoder_bn=False,
         decoder_bn=False
     ):
@@ -260,7 +261,7 @@ class Trans18(nn.Module):
             num_layers,
             heads,
             self.device,
-            forward_expansion,
+            classifier_expansion,
             dropout,
             max_length,
             typ,
