@@ -115,6 +115,12 @@ class SupervisedTrainer():
             self.rep_type = '17'
             self.model=='Trans17'
             self.typ = self.typ - 6
+        elif self.typ in [26]:
+            self.encoder_bn=True
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = self.typ
         else :
             raise "Find your own typ men"
 
@@ -224,6 +230,23 @@ class SupervisedTrainer():
                                                  typ=self.typ,
                                                  max_time=int(self.env.time_end)).to(self.device).double()
         elif self.model=='Trans17':
+            self.model = globals()[self.model](src_vocab_size=50000,
+                                                 trg_vocab_size=self.vocab_size + 1,
+                                                 max_length=self.nb_target*2 + self.nb_drivers + 1,
+                                                 src_pad_idx=-1,
+                                                 trg_pad_idx=-1,
+                                                 embed_size=self.embed_size,
+                                                 dropout=self.dropout,
+                                                 extremas=self.env.extremas,
+                                                 device=self.device,
+                                                 num_layers=self.num_layers,
+                                                 heads=self.heads,
+                                                 forward_expansion=self.forward_expansion,
+                                                 typ=self.typ,
+                                                 max_time=int(self.env.time_end),
+                                                 encoder_bn=self.encoder_bn,
+                                                 decoder_bn=self.decoder_bn).to(self.device).double()
+        elif self.model=='Trans18':
             self.model = globals()[self.model](src_vocab_size=50000,
                                                  trg_vocab_size=self.vocab_size + 1,
                                                  max_length=self.nb_target*2 + self.nb_drivers + 1,
