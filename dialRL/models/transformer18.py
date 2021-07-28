@@ -189,7 +189,7 @@ class Classifier(nn.Module):
         num_layers,
         heads,
         device,
-        classifier_expansion,
+        classifier_type,
         dropout,
         max_length,
         typ,
@@ -199,11 +199,20 @@ class Classifier(nn.Module):
         super(Classifier, self).__init__()
         self.typ = typ
         self.embed_size = embed_size
+        self.src_vocab_size = src_vocab_size
+        self.trg_vocab_size = trg_vocab_size
         self.device = device
+        self.classifier_type = classifier_type
+        self.classifier_expansion = 4
 
-        self.fc1 = nn.Linear(self.embed_size, classifier_expansion * self.embed_size )
+        if self.classifier_type in [2]:
+            self.classifier_expansion = 8
+        elif self.classifier_type in [3] :
+            self.fc_out_out = nn.Linear(13, 1)
+
+        self.fc1 = nn.Linear(self.embed_size, self.classifier_expansion * self.embed_size )
         self.ReLU = nn.ReLU()
-        self.fc2 = nn.Linear(self.embed_size * classifier_expansion, trg_vocab_size)
+        self.fc2 = nn.Linear(self.embed_size * self.classifier_expansion, trg_vocab_size)
 
         self.dropout = nn.Dropout(dropout)
 
@@ -212,6 +221,15 @@ class Classifier(nn.Module):
 
         intermediate = self.ReLU(self.fc1(x))
         output = self.fc2(self.dropout(intermediate))
+        if self.classifier_type in [3]:
+            # ic(output.shape)
+            xx = self.ReLU(output.permute(0, 2, 1))
+            # ic(xx.shape)
+            xx = self.fc_out_out(xx)
+            # ic(xx.shape)
+            output = xx.squeeze(-1)
+        elif self.classifier_type in [2]:
+            output = output[:,0,:]
 
         return output
 
@@ -234,7 +252,7 @@ class Trans18(nn.Module):
         max_length=100,         #100
         typ=None,
         max_time=2000,
-        classifier_expansion=4,
+        classifier_type=1,
         encoder_bn=False,
         decoder_bn=False
     ):
@@ -261,7 +279,7 @@ class Trans18(nn.Module):
             num_layers,
             heads,
             self.device,
-            classifier_expansion,
+            classifier_type,
             dropout,
             max_length,
             typ,
@@ -273,6 +291,7 @@ class Trans18(nn.Module):
         self.src_vocab_size = src_vocab_size
         self.max_length = max_length
         self.max_time = max_time
+        self.classifier_type = classifier_type
 
         # Boxing stuff
         self.extremas = extremas
@@ -398,10 +417,8 @@ class Trans18(nn.Module):
         enc_src = self.encoder(src, src_mask, positions=positions, times=times)#[:, :nb_targets])
 
         classification = self.classifier(src)
-        if self.typ in [26]:
-            out = classification[:,0,:]
 
-        return out
+        return classification
 
     def generate_positional_encoding(self, d_model, max_len):
         """

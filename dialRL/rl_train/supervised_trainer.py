@@ -92,7 +92,7 @@ class SupervisedTrainer():
 
         self.encoder_bn = False
         self.decoder_bn = False
-        self.classifier_expansion = 4
+        self.classifier_type = 1
 
         reward_function = globals()[self.reward_function]()
         if self.typ==15:
@@ -123,8 +123,15 @@ class SupervisedTrainer():
             self.model=='Trans18'
             self.typ = self.typ
         elif self.typ in [27]:
-            self.classifier_expansion = 8
+            self.classifier_type = 2
             self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [28]:
+            self.classifier_type = 3
+            self.encoder_bn=True
             self.decoder_bn=False
             self.rep_type = '16'
             self.model=='Trans18'
@@ -269,7 +276,7 @@ class SupervisedTrainer():
                                                  forward_expansion=self.forward_expansion,
                                                  typ=self.typ,
                                                  max_time=int(self.env.time_end),
-                                                 classifier_expansion=self.classifier_expansion,
+                                                 classifier_type=self.classifier_type,
                                                  encoder_bn=self.encoder_bn,
                                                  decoder_bn=self.decoder_bn).to(self.device).double()
         else :
