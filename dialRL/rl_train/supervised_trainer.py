@@ -123,6 +123,7 @@ class SupervisedTrainer():
             self.model=='Trans18'
             self.typ = self.typ
         elif self.typ in [27]:
+            # 2 layer + 0 output
             self.classifier_type = 2
             self.encoder_bn=False
             self.decoder_bn=False
@@ -130,8 +131,33 @@ class SupervisedTrainer():
             self.model=='Trans18'
             self.typ = 26
         elif self.typ in [28]:
+            # 2 layer + mixing dimentions
             self.classifier_type = 3
             self.encoder_bn=True
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [29]:
+            # On layer + 0 dim as output
+            self.classifier_type = 4
+            self.encoder_bn=True
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [30]:
+            # On layer + mixer layer
+            self.classifier_type = 5
+            self.encoder_bn=True
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [31]:
+            # 1 layer + driver output
+            self.classifier_type = 6
+            self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
             self.model=='Trans18'
