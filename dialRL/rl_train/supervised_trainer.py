@@ -71,13 +71,13 @@ class SupervisedTrainer():
         if False :#self.sacred :
             self.path_name = '/'.join([self.sacred.experiment_info['base_dir'], self.file_dir, str(self.sacred._id)])
         else :
-            self.path_name = self.rootdir + '/data/rl_experiments/' + self.alias + time.strftime("%d-%H-%M")
+            self.path_name = self.rootdir + '/data/rl_experiments/' + self.alias + time.strftime("%d-%H-%M") + '_typ' + str(self.typ)
             print(' ** Saving train path: ', self.path_name)
             if not os.path.exists(self.path_name):
                 os.makedirs(self.path_name, exist_ok=True)
             else :
                 print(' Already such a path.. adding random seed')
-                self.path_name = self.path_name + '#' + str(np.random.randint(1000))
+                self.path_name = self.path_name + '#' + str(torch.randint(0, 10000, [1]).item())
                 os.makedirs(self.path_name, exist_ok=True)
 
         # Save parameters
