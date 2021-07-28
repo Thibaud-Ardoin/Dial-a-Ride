@@ -117,7 +117,7 @@ class SupervisedTrainer():
             self.model=='Trans17'
             self.typ = self.typ - 6
         elif self.typ in [26]:
-            self.encoder_bn=True
+            self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
             self.model=='Trans18'
@@ -133,7 +133,7 @@ class SupervisedTrainer():
         elif self.typ in [28]:
             # 2 layer + mixing dimentions
             self.classifier_type = 3
-            self.encoder_bn=True
+            self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
             self.model=='Trans18'
@@ -141,7 +141,7 @@ class SupervisedTrainer():
         elif self.typ in [29]:
             # On layer + 0 dim as output
             self.classifier_type = 4
-            self.encoder_bn=True
+            self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
             self.model=='Trans18'
@@ -149,7 +149,7 @@ class SupervisedTrainer():
         elif self.typ in [30]:
             # On layer + mixer layer
             self.classifier_type = 5
-            self.encoder_bn=True
+            self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
             self.model=='Trans18'
@@ -157,6 +157,38 @@ class SupervisedTrainer():
         elif self.typ in [31]:
             # 1 layer + driver output
             self.classifier_type = 6
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [32]:
+            # 1 layer + driver output (but with a shift that should be better)
+            self.classifier_type = 7
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [33]:
+            # 1 layer with all infformation concatenated
+            self.classifier_type = 8
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [34]:
+            # one Autotransformer + 1 layer with all infformation concatenated
+            self.classifier_type = 9
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [35]:
+            # one Autotransformer + 1 layer with all infformation concatenated
+            self.classifier_type = 10
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'

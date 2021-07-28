@@ -156,7 +156,7 @@ class Encoder(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x, mask, positions=None, times=None):
+    def forward(self, x, mask, positions=None, times=None, layers_out=1):
         N, seq_length, _ = x.shape
         if positions is None:
             positions = torch.tensor([0 for i in range(seq_length-1)] + [1]).expand(N, seq_length).to(self.device)
@@ -175,10 +175,17 @@ class Encoder(nn.Module):
 
         # In the Encoder the query, key, value are all the same, it's in the
         # decoder this will change. This might look a bit odd in this case.
-        for layer in self.layers:
+        saving_layers = []
+        for i, layer in enumerate(self.layers):
             out = layer(out, out, out, mask)
+            if len(self.layers) - 1 - i < layers_out :
+                saving_layers.append(out)
 
-        return out
+        if layers_out == 1:
+            return out
+        else :
+            return torch.cat(saving_layers, dim=-1)
+
 
 class Classifier(nn.Module):
     def __init__(
@@ -215,8 +222,23 @@ class Classifier(nn.Module):
         elif self.classifier_type in [5] :
             self.fc_out = nn.Linear(self.embed_size, self.trg_vocab_size)
             self.fc_out_out = nn.Linear(max_length, 1)
-        elif self.classifier_type in [6] :
+        elif self.classifier_type in [6, 7] :
             self.fc_out = nn.Linear(self.embed_size, self.trg_vocab_size)
+        elif self.classifier_type in [8] :
+            self.fc_out = nn.Linear(self.embed_size * max_length, self.trg_vocab_size)
+        elif self.classifier_type in [9]:
+            self.trans1 = TransformerBlock(
+                self.embed_size,
+                heads,
+                dropout=dropout,
+                forward_expansion=self.classifier_expansion,
+                batch_norm=decoder_bn
+            )
+            self.fc_out = nn.Linear(self.embed_size * max_length, self.trg_vocab_size)
+        elif self.classifier_type in [10]:
+            self.fc_out = nn.Linear(self.embed_size * 4, self.trg_vocab_size)
+            self.fc_out_out = nn.Linear(max_length, 1)
+
 
         self.fc1 = nn.Linear(self.embed_size, self.classifier_expansion * self.embed_size )
         self.ReLU = nn.ReLU()
@@ -224,7 +246,7 @@ class Classifier(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x, trg=None):
+    def forward(self, x, trg=None, mask=None):
         N, seq_length, emb = x.shape
 
         if self.classifier_type in [4]:
@@ -232,7 +254,7 @@ class Classifier(nn.Module):
             output = xx[:,0,:]
             return output
 
-        elif self.classifier_type in [5]:
+        elif self.classifier_type in [5, 10]:
             xx = self.fc_out(x)
             xx = self.ReLU(xx.permute(0, 2, 1))
             xx = self.fc_out_out(xx)
@@ -240,10 +262,25 @@ class Classifier(nn.Module):
             return output
 
         elif self.classifier_type in [6]:
-            out = self.fc_out(x)    # IN: bsz, seq_l, trg_sz
+            out = self.fc_out(x)    # IN: bsz, seq_l, emb_size
             current_driver_indice = trg
             out = torch.gather(out, 1, current_driver_indice.unsqueeze(-1).expand(-1, -1, out.shape[-1]))
             return out.squeeze(1)
+        elif self.classifier_type in [7]:
+            out = self.fc_out(x)    # out: bsz, seq_l, trg_sz
+            current_driver_indice = trg +  2*(self.trg_vocab_size-1)
+            out = torch.gather(out, 1, current_driver_indice.unsqueeze(-1).expand(-1, -1, out.shape[-1]))
+            return out.squeeze(1)
+        elif self.classifier_type in [8]:
+             # IN: bsz, seq_l, embedding_sz
+             # flatten: bsz, seq_l * embedding_sz
+            out = self.fc_out(x.flatten(start_dim=1)) #OUT: bsz, trg_sz
+            return out.squeeze(1)
+        elif self.classifier_type in [9]:
+            x = self.trans1(x, x, x, mask)
+            out = self.fc_out(x.flatten(start_dim=1)) #OUT: bsz, trg_sz
+            return out.squeeze(1)
+
 
         intermediate = self.ReLU(self.fc1(x))
         output = self.fc2(self.dropout(intermediate))
@@ -437,12 +474,18 @@ class Trans18(nn.Module):
 
         src_mask = self.make_src_mask(src)
 
-        enc_src = self.encoder(src, src_mask, positions=positions, times=times)#[:, :nb_targets])
+        encodded_layers_out = 1
+        if self.classifier_type in [10]:
+            encodded_layers_out = 4
 
-        if self.classifier_type in [6]:
-            classification = self.classifier(src, trg)
+        enc_src = self.encoder(src, src_mask, positions=positions, times=times, layers_out=encodded_layers_out)#[:, :nb_targets])
+
+        if self.classifier_type in [6, 7]:
+            classification = self.classifier(enc_src, trg=trg)
+        elif self.classifier_type in [9] :
+            classification = self.classifier(enc_src, mask=src_mask)
         else :
-            classification = self.classifier(src)
+            classification = self.classifier(enc_src)
 
         return classification
 
