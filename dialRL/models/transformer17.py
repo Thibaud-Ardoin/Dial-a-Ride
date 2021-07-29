@@ -298,8 +298,8 @@ class Decoder(nn.Module):
         if self.typ in [17]:
             # Get the correct output element of the out sequence
             out = self.fc_out(x)
-            tmp = (elmts1[:, :, 0] == 0).int()
-            idx = torch.arange(tmp.shape[1], 0, -1)
+            tmp = (elmts1[:, :, 0] == 0).int().to(self.device)
+            idx = torch.arange(tmp.shape[1], 0, -1).to(self.device)
             tmp2 = tmp * idx
             indices = torch.argmax(tmp2, 1, keepdim=True)
             out = torch.gather(out, 1, indices.unsqueeze(-1).expand(-1, -1, out.shape[-1]))
