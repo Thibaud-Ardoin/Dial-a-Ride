@@ -751,6 +751,8 @@ class SupervisedTrainer():
                     weights = max_nb/action_counter
                     if self.balanced_dataset == 3 :
                         weights[0] = 0.5
+                    elif self.balanced_dataset == 4 :
+                        weights[0] = 0.9
                     self.criterion.weight = torch.from_numpy(max_nb/action_counter).to(self.device)
 
                 # Divide the dataset into a validation and a training set.
