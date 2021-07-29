@@ -56,7 +56,7 @@ def get_args(args):
     parser.add_argument('--rl', default=10000, type=int)
     parser.add_argument('--vocab_size', default=24, type=int)
     parser.add_argument('--supervision_function', default='nn', type=str)
-    parser.add_argument('--balanced_dataset', default=0, type=bool)
+    parser.add_argument('--balanced_dataset', default=0, type=int)
     parser.add_argument('--num_layers', default=6, type=int)
     parser.add_argument('--forward_expansion', default=4, type=int)
     parser.add_argument('--heads', default=8, type=int)

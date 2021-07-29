@@ -21,6 +21,9 @@ import seaborn as sn
 from moviepy.editor import *
 from matplotlib.image import imsave
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+
 
 from torch.utils.data import DataLoader, SubsetRandomSampler, Dataset
 import torch
@@ -693,7 +696,7 @@ class SupervisedTrainer():
             if self.supervision_function == 'rf':
                 dataset = self.supervision.generate_dataset()
 
-                if self.balanced_dataset :
+                if self.balanced_dataset == 1 :
                     action_counter = np.zeros(self.vocab_size + 1)
                     data_list = []
                     for i in range(self.vocab_size + 1):
@@ -709,6 +712,29 @@ class SupervisedTrainer():
                         if action_counter[i] > 0:
                             fin_data = fin_data + data_list[i][:min_nb]
 
+                    dataset = SupervisionDataset(fin_data)
+
+                elif self.balanced_dataset == 2 :
+                    # Over sampling method
+                    action_counter = np.zeros(self.vocab_size + 1)
+                    data_list = []
+                    for i in range(self.vocab_size + 1):
+                        data_list.append([])
+                    for data in dataset:
+                        o, a = data
+                        action_counter[a] += 1
+                        data_list[a].append(data)
+
+                    min_nb = int(min(action_counter[action_counter > 0]))
+                    max_nb = int(max(action_counter[action_counter > 0]))
+                    fin_data = []
+                    for i in range(len(action_counter)):
+                        if action_counter[i] < max_nb and action_counter[i] > 0:
+                            for j in range(int(max_nb/min_nb)) :
+                                fin_data = fin_data + data_list[i]
+                    ic(len(fin_data))
+                    ic(len(fin_data)/max_nb)
+                    ic(len(action_counter))
                     dataset = SupervisionDataset(fin_data)
 
                 # If not balanced, weight the cross entropy respectivly to min_size/size
