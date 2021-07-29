@@ -16,9 +16,11 @@ import math
 from clearml import Task
 from icecream import ic
 import drawSvg as draw
+import seaborn as sn
 
 from moviepy.editor import *
 from matplotlib.image import imsave
+import matplotlib.pyplot as plt
 
 from torch.utils.data import DataLoader, SubsetRandomSampler, Dataset
 import torch
@@ -26,6 +28,7 @@ import torch.nn as nn
 from torch.nn.functional import softmax
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
 import torch.optim as optim
+from sklearn.metrics import confusion_matrix, f1_score
 
 # from transformers import (GPT2Tokenizer,
 #                           GPT2Config,
@@ -786,6 +789,7 @@ class SupervisedTrainer():
         running_loss = 0
         total = 0
         correct = nearest_accuracy = pointing_accuracy = 0
+        y_pred, y_sup = [], []
         if full_test :
             eval_name = 'Offline Test'
         else :
@@ -812,11 +816,15 @@ class SupervisedTrainer():
                                       positions=positions,
                                       times=time_constraints)
 
+
             # model_action = model_action[:,0]
             supervised_action = supervised_action.to(self.device)
 
             # loss = self.criterion(model_action, supervised_action.squeeze(-1))
             loss = self.criterion(model_action.squeeze(1), supervised_action.squeeze(-1))
+
+            y_pred = y_pred +model_action.squeeze(1).argmax(dim=-1).flatten().tolist()
+            y_sup = y_sup + supervised_action.squeeze(-1).tolist()
 
             total += supervised_action.size(0)
             correct += np.sum((model_action.squeeze(1).argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
@@ -826,11 +834,20 @@ class SupervisedTrainer():
             if i == 20:
                 break
 
+        cf_matrix = confusion_matrix(y_sup, y_pred)
+        #Calculate metrics for each label, and find their average weighted by support (the number of true instances for each label).
+        f1_metric = f1_score(y_sup, y_pred, average='weighted')
+        #Calculate metrics globally by counting the total true positives, false negatives and false positives.
+        f1_metric1 = f1_score(y_sup, y_pred, average='micro')
+        #Calculate metrics for each label, and find their unweighted mean. This does not take label imbalance into account.
+        f1_metric2 = f1_score(y_sup, y_pred, average='macro')
+
         eval_acc = 100 * correct/total
         eval_loss = running_loss/total
 
         print('\t-->' + eval_name + 'Réussite: ', eval_acc, '%')
         print('\t-->' + eval_name + 'Loss:', running_loss/total)
+        print('\t-->' + eval_name + 'F1 :', f1_metric)
 
         # Model saving. Condition: Better accuracy and better loss
         if saving and full_test and (eval_acc > self.best_eval_metric[0] or ( eval_acc == self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] )):
@@ -845,11 +862,15 @@ class SupervisedTrainer():
             print('\tSaving as:', model_name)
             torch.save(self.model, model_name)
 
-            # # Saving an example
-            # if self.example_format == 'svg':
-            #     self.save_svg_example(to_save, save_rewards, 0, time_step=self.current_epoch)
-            # else :
-            #     self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            dir = self.path_name + '/example/'
+            os.makedirs(dir, exist_ok=True)
+            save_name = dir + '/cf_matrix.png'
+            conf_img = sn.heatmap(cf_matrix, annot=True)
+            plt.savefig(save_name)
+            plt.clf()
+            self.sacred.get_logger().report_media('Image', 'Confusion Matrix',
+                                              iteration=self.current_epoch,
+                                              local_path=save_name)
 
         # Statistics on clearml saving
         if self.sacred :
@@ -857,6 +878,12 @@ class SupervisedTrainer():
                 series='reussite %', value=eval_acc, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title=eval_name,
                 series='Loss', value=running_loss/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=eval_name,
+                series='F1 score weighted', value=f1_metric, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=eval_name,
+                series='F1 score micro', value=f1_metric1, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=eval_name,
+                series='F1 score macro', value=f1_metric2, iteration=self.current_epoch)
             # self.sacred.get_logger().report_scalar(title=eval_name,
             #     series='Fit solution %', value=100*fit_sol/self.eval_episodes, iteration=self.current_epoch)
             # self.sacred.get_logger().report_scalar(title=eval_name,

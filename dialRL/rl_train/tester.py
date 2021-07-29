@@ -86,12 +86,23 @@ class Tester():
         self.device = get_device()
 
         #### RL elements
+        self.encoder_bn = False
+        self.decoder_bn = False
+        self.classifier_type = 1
 
         reward_function = globals()[self.reward_function]()
         if self.typ == 15:
             self.rep_type = 'trans15'
         elif self.typ == 16:
             self.rep_type = 'trans16'
+        elif self.typ in [33]:
+            # 1 layer with all infformation concatenated
+            self.classifier_type = 8
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
         else :
             self.rep_type = 'trans29'
 
@@ -188,6 +199,24 @@ class Tester():
                                                  device=self.device,
                                                  typ=self.typ,
                                                  max_time=int(self.gen_env.time_end)).to(self.device).double()
+        elif self.model=='Trans18':
+            self.model = globals()[self.model](src_vocab_size=50000,
+                                                 trg_vocab_size=self.vocab_size + 1,
+                                                 max_length=self.nb_target*2 + self.nb_drivers + 1,
+                                                 src_pad_idx=-1,
+                                                 trg_pad_idx=-1,
+                                                 embed_size=self.embed_size,
+                                                 dropout=self.dropout,
+                                                 extremas=self.gen_env.extremas,
+                                                 device=self.device,
+                                                 num_layers=self.num_layers,
+                                                 heads=self.heads,
+                                                 forward_expansion=self.forward_expansion,
+                                                 typ=self.typ,
+                                                 max_time=int(self.gen_env.time_end),
+                                                 classifier_type=self.classifier_type,
+                                                 encoder_bn=self.encoder_bn,
+                                                 decoder_bn=self.decoder_bn).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
 
@@ -299,7 +328,7 @@ class Tester():
     def run(self):
         if self.supervision_function=='rf':
             supervision = False
-            self.online_evaluation(full_test=True, supervision=supervision, saving=False, rf=True)
+            self.online_evaluation(full_test=True, supervision=supervision, saving=True, rf=True)
         else :
             supervision = True
             self.online_evaluation(full_test=True, supervision=supervision)
