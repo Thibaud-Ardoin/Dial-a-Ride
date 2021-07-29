@@ -748,6 +748,9 @@ class SupervisedTrainer():
                     action_counter[action_counter == 0] = min_nb
                     ic(min_nb/max_nb)
                     ic(max_nb/action_counter)
+                    weights = max_nb/action_counter
+                    if self.balanced_dataset == 3 :
+                        weights[0] = 0.5
                     self.criterion.weight = torch.from_numpy(max_nb/action_counter).to(self.device)
 
                 # Divide the dataset into a validation and a training set.
