@@ -72,6 +72,8 @@ class DarPInstance():
 
         if seed:
             np.random.seed(seed)
+        else :
+            np.random.seed(int(time.time()))
 
         # Generate Random points for targets and drivers
         if self.extremas is None :

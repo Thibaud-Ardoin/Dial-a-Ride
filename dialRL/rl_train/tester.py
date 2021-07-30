@@ -91,10 +91,81 @@ class Tester():
         self.classifier_type = 1
 
         reward_function = globals()[self.reward_function]()
-        if self.typ == 15:
-            self.rep_type = 'trans15'
-        elif self.typ == 16:
-            self.rep_type = 'trans16'
+        if self.typ==15:
+            self.rep_type = '15'
+        elif self.typ==16:
+            self.rep_type = '16'
+        elif self.typ==17:
+            self.rep_type = '17'
+            self.model=='Trans17'
+        elif self.typ in [18, 19]:
+            self.rep_type = '17'
+            self.model=='Trans17'
+        elif self.typ in [20, 21, 22]:
+            self.encoder_bn=True
+            self.rep_type = '17'
+            self.model=='Trans17'
+            self.typ = self.typ - 3
+        elif self.typ in [23, 24, 25]:
+            self.encoder_bn=True
+            self.decoder_bn=True
+            self.rep_type = '17'
+            self.model=='Trans17'
+            self.typ = self.typ - 6
+        elif self.typ in [26]:
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = self.typ
+        elif self.typ in [27]:
+            # 2 layer + 0 output
+            self.classifier_type = 2
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [28]:
+            # 2 layer + mixing dimentions
+            self.classifier_type = 3
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [29]:
+            # On layer + 0 dim as output
+            self.classifier_type = 4
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [30]:
+            # On layer + mixer layer
+            self.classifier_type = 5
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [31]:
+            # 1 layer + driver output
+            self.classifier_type = 6
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [32]:
+            # 1 layer + driver output (but with a shift that should be better)
+            self.classifier_type = 7
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
         elif self.typ in [33]:
             # 1 layer with all infformation concatenated
             self.classifier_type = 8
@@ -103,8 +174,24 @@ class Tester():
             self.rep_type = '16'
             self.model=='Trans18'
             self.typ = 26
+        elif self.typ in [34]:
+            # one Autotransformer + 1 layer with all infformation concatenated
+            self.classifier_type = 9
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [35]:
+            # one Autotransformer + 1 layer with all infformation concatenated
+            self.classifier_type = 10
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
         else :
-            self.rep_type = 'trans29'
+            raise "Find your own typ men"
 
         ## TODO: Add globals()[self.gen_env]
         self.gen_env = DarSeqEnv(size=self.image_size,
@@ -247,7 +334,7 @@ class Tester():
         # Checkpoint
         if self.checkpoint_dir :
             print(' -- -- -- -- -- Loading  -- -- -- -- -- --')
-            self.model.load_state_dict(torch.load(self.rootdir + '/data/rl_experiments/' + self.checkpoint_dir).state_dict())
+            self.model = torch.load(self.rootdir + '/data/rl_experiments/' + self.checkpoint_dir)
             print(' -- The model weights has been loaded ! --')
             print(' -----------------------------------------')
 
@@ -328,7 +415,7 @@ class Tester():
     def run(self):
         if self.supervision_function=='rf':
             supervision = False
-            self.online_evaluation(full_test=True, supervision=supervision, saving=True, rf=True)
+            self.online_evaluation(full_test=True, supervision=supervision, saving=False, rf=True)
         else :
             supervision = True
             self.online_evaluation(full_test=True, supervision=supervision)

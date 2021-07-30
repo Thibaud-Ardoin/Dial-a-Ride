@@ -2,8 +2,10 @@ import sys
 import argparse
 import numpy as np
 import math
+import time
 
 from clearml import Task
+from icecream import ic
 
 from dialRL.utils import objdict
 from dialRL.rl_train import SupervisedTrainer
@@ -60,6 +62,7 @@ def get_args(args):
     parser.add_argument('--num_layers', default=6, type=int)
     parser.add_argument('--forward_expansion', default=4, type=int)
     parser.add_argument('--heads', default=8, type=int)
+    parser.add_argument('--seed', default=None, type=int)
     parser.add_argument('--tag', default='', type=str)
 
     return parser.parse_known_args(args)[0]
@@ -77,6 +80,16 @@ def millify(n):
 def goooo():
     # Get params
     parameters = objdict(vars(get_args(sys.argv[1:])))
+
+    # Adding random seed
+    if parameters.seed is not None:
+        np.random.seed(parameters.seed)
+    else :
+        new_seed = int(time.time())
+        ic(new_seed)
+        np.random.seed(new_seed)
+        parameters.seed = new_seed
+
     tags_list = ['Gp: d'+str(parameters.nb_drivers)+'d'+str(parameters.nb_target)+ parameters.supervision_function +' '+millify(parameters.data_size)]
     if parameters.tag :
         tags_list.append(parameters.tag)

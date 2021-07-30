@@ -58,6 +58,7 @@ class DataFileGenerator():
         file_names = []
         os.makedirs(self.out_dir, exist_ok=True)
         for n in range(self.data_size):
+            
             observation = self.env.reset()
             text_lists = []
 
