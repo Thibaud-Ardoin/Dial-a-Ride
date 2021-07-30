@@ -426,7 +426,10 @@ class Tester():
                     supervised_action = self.supervision.action_choice()
                     supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
 
-                chosen_action = model_action[:, 0].argmax(-1).cpu().item()
+                if self.typ >25:
+                    chosen_action = model_action.argmax(-1).cpu().item()
+                else :
+                    chosen_action = model_action[:, 0].argmax(-1).cpu().item()
 
                 if full_test :
                     observation, reward, done, info = self.eval_env.step(chosen_action)
