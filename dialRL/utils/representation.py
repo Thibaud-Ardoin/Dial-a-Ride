@@ -64,6 +64,7 @@ arrow.append(draw.Lines(-0.1, -0.5, -0.1, 0.5, 0.9, 0, fill='red', close=True))
 
 
 def instance2Image_rep(targets, drivers, size, time_step, time_end, out='svg'):
+    ic(time_end)
     # Return an image gathered from svg data
     default_size = 300
     time_margin = 0.01

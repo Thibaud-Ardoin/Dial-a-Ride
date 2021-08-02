@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="750.0" height="840.0" viewBox="0 -2.8 2.5 2.8">
+<defs>
+</defs>
+<g id="map" origin="(0, 0)" x="0" y="0" transform="translate(1, -1)">
+<rect x="-1" y="-1" width="2" height="2" fill="#ffebcd" />
+<path d="M1,-1 L1,1" stroke-width="0.02" fille="#321414" stroke="#321414" />
+<path d="M-1,-1 L1,-1" stroke-width="0.02" fille="#321414" stroke="#321414" />
+<path d="M0.04,0 L-0.04,0" stroke-width="0.01" fille="red" stroke="red" />
+<path d="M0,-0.04 L0,0.04" stroke-width="0.01" fille="red" stroke="red" />
+<rect x="-0.025" y="-0.025" width="0.05" height="0.05" fill="#ff4500" stroke-width="0.01" stroke="black" />
+<circle cx="-0.06461704422869471" cy="0.2785329018338727" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="-0.06461704422869471" y="0.2785329018338727" font-size="0.05" fill="#321414" text-anchor="end">1</text>
+<circle cx="0.36067961165048545" cy="-0.36305285868392667" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="0.36067961165048545" y="-0.36305285868392667" font-size="0.05" fill="#321414" text-anchor="end">1</text>
+<path d="M-0.06461704422869471,0.2785329018338727 L0.36067961165048545,-0.36305285868392667" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.30059331175836035" cy="-0.3837108953613808" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.30059331175836035" y="-0.3837108953613808" font-size="0.05" fill="#321414" text-anchor="end">2</text>
+<circle cx="-0.11823085221143476" cy="0.49676375404530754" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="-0.11823085221143476" y="0.49676375404530754" font-size="0.05" fill="#321414" text-anchor="end">2</text>
+<path d="M0.30059331175836035,-0.3837108953613808 L-0.11823085221143476,0.49676375404530754" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="-0.3567421790722762" cy="-0.003883495145631068" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="-0.3567421790722762" y="-0.003883495145631068" font-size="0.05" fill="#321414" text-anchor="end">3</text>
+<circle cx="-0.057227615965480046" cy="-0.47206040992448767" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="-0.057227615965480046" y="-0.47206040992448767" font-size="0.05" fill="#321414" text-anchor="end">3</text>
+<path d="M-0.3567421790722762,-0.003883495145631068 L-0.057227615965480046,-0.47206040992448767" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="-0.3977346278317152" cy="0.05970873786407767" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="-0.3977346278317152" y="0.05970873786407767" font-size="0.05" fill="#321414" text-anchor="end">4</text>
+<circle cx="0.3712513484358145" cy="-0.047572815533980586" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="0.3712513484358145" y="-0.047572815533980586" font-size="0.05" fill="#321414" text-anchor="end">4</text>
+<path d="M-0.3977346278317152,0.05970873786407767 L0.3712513484358145,-0.047572815533980586" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="-0.498975188781014" cy="-0.4488133764832794" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="-0.498975188781014" y="-0.4488133764832794" font-size="0.05" fill="#321414" text-anchor="end">5</text>
+<circle cx="0.30129449838187705" cy="0.08381877022653722" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="0.30129449838187705" y="0.08381877022653722" font-size="0.05" fill="#321414" text-anchor="end">5</text>
+<path d="M-0.498975188781014,-0.4488133764832794 L0.30129449838187705,0.08381877022653722" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.35048543689320394" cy="0.3255663430420712" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.35048543689320394" y="0.3255663430420712" font-size="0.05" fill="#321414" text-anchor="end">6</text>
+<circle cx="-0.5320927723840345" cy="-0.07540453074433656" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="-0.5320927723840345" y="-0.07540453074433656" font-size="0.05" fill="#321414" text-anchor="end">6</text>
+<path d="M0.35048543689320394,0.3255663430420712 L-0.5320927723840345,-0.07540453074433656" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.04644012944983819" cy="-0.37233009708737863" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.04644012944983819" y="-0.37233009708737863" font-size="0.05" fill="#321414" text-anchor="end">7</text>
+<circle cx="-0.528586839266451" cy="-0.3072815533980583" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="-0.528586839266451" y="-0.3072815533980583" font-size="0.05" fill="#321414" text-anchor="end">7</text>
+<path d="M0.04644012944983819,-0.37233009708737863 L-0.528586839266451,-0.3072815533980583" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.21057173678532903" cy="0.28376483279395903" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.21057173678532903" y="0.28376483279395903" font-size="0.05" fill="#321414" text-anchor="end">8</text>
+<circle cx="0.06855447680690399" cy="-0.05490830636461705" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="0.06855447680690399" y="-0.05490830636461705" font-size="0.05" fill="#321414" text-anchor="end">8</text>
+<path d="M0.21057173678532903,0.28376483279395903 L0.06855447680690399,-0.05490830636461705" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.43020496224379723" cy="0.4854368932038835" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.43020496224379723" y="0.4854368932038835" font-size="0.05" fill="#321414" text-anchor="end">9</text>
+<circle cx="0.23754045307443367" cy="0.10528586839266452" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="0.23754045307443367" y="0.10528586839266452" font-size="0.05" fill="#321414" text-anchor="end">9</text>
+<path d="M0.43020496224379723,0.4854368932038835 L0.23754045307443367,0.10528586839266452" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="-0.1407766990291262" cy="-0.002103559870550162" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="-0.1407766990291262" y="-0.002103559870550162" font-size="0.05" fill="#321414" text-anchor="end">10</text>
+<circle cx="0.03629989212513485" cy="-0.3388888888888889" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="0.03629989212513485" y="-0.3388888888888889" font-size="0.05" fill="#321414" text-anchor="end">10</text>
+<path d="M-0.1407766990291262,-0.002103559870550162 L0.03629989212513485,-0.3388888888888889" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.24201725997842505" cy="-0.38522114347357067" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.24201725997842505" y="-0.38522114347357067" font-size="0.05" fill="#321414" text-anchor="end">11</text>
+<circle cx="0.3792880258899677" cy="-0.15145631067961166" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="0.3792880258899677" y="-0.15145631067961166" font-size="0.05" fill="#321414" text-anchor="end">11</text>
+<path d="M0.24201725997842505,-0.38522114347357067 L0.3792880258899677,-0.15145631067961166" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.4820927723840346" cy="0.2366774541531823" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.4820927723840346" y="0.2366774541531823" font-size="0.05" fill="#321414" text-anchor="end">12</text>
+<circle cx="-0.037432578209277236" cy="0.38284789644012945" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="-0.037432578209277236" y="0.38284789644012945" font-size="0.05" fill="#321414" text-anchor="end">12</text>
+<path d="M0.4820927723840346,0.2366774541531823 L-0.037432578209277236,0.38284789644012945" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="-0.2250269687162891" cy="0.4906148867313916" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="-0.2250269687162891" y="0.4906148867313916" font-size="0.05" fill="#321414" text-anchor="end">13</text>
+<circle cx="0.2029665587918015" cy="0.39207119741100327" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="0.2029665587918015" y="0.39207119741100327" font-size="0.05" fill="#321414" text-anchor="end">13</text>
+<path d="M-0.2250269687162891,0.4906148867313916 L0.2029665587918015,0.39207119741100327" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.4225997842502697" cy="0.4999460625674218" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.4225997842502697" y="0.4999460625674218" font-size="0.05" fill="#321414" text-anchor="end">14</text>
+<circle cx="0.3578209277238404" cy="0.4005393743257821" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="0.3578209277238404" y="0.4005393743257821" font-size="0.05" fill="#321414" text-anchor="end">14</text>
+<path d="M0.4225997842502697,0.4999460625674218 L0.3578209277238404,0.4005393743257821" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.1505933117583603" cy="0.4284789644012945" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.1505933117583603" y="0.4284789644012945" font-size="0.05" fill="#321414" text-anchor="end">15</text>
+<circle cx="-0.5097087378640777" cy="-0.2045307443365696" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="-0.5097087378640777" y="-0.2045307443365696" font-size="0.05" fill="#321414" text-anchor="end">15</text>
+<path d="M0.1505933117583603,0.4284789644012945 L-0.5097087378640777,-0.2045307443365696" stroke="green" stroke-width="0.008" fill="none" />
+<circle cx="0.28112189859762676" cy="-0.5000539374325783" r="0.03" fill="red" stroke-width="0.008" stroke="black" />
+<text x="0.28112189859762676" y="-0.5000539374325783" font-size="0.05" fill="#321414" text-anchor="end">16</text>
+<circle cx="-0.4756742179072277" cy="0.25614886731391584" r="0.03" fill="blue" stroke-width="0.008" stroke="black" />
+<text x="-0.4756742179072277" y="0.25614886731391584" font-size="0.05" fill="#321414" text-anchor="end">16</text>
+<path d="M0.28112189859762676,-0.5000539374325783 L-0.4756742179072277,0.25614886731391584" stroke="green" stroke-width="0.008" fill="none" />
+<rect x="0.0" y="-0.04" width="0.05" height="0.04" fill="#faff18" stroke-width="0.01" stroke="black" />
+<circle cx="0.0" cy="-0.0" r="0.02" fill="#faff18" stroke-width="0.01" stroke="black" />
+<circle cx="0.05" cy="-0.0" r="0.02" fill="#faff18" stroke-width="0.01" stroke="black" />
+<rect x="0.0" y="-0.04" width="0.05" height="0.04" fill="#a818ff" stroke-width="0.01" stroke="black" />
+<circle cx="0.0" cy="-0.0" r="0.02" fill="#a818ff" stroke-width="0.01" stroke="black" />
+<circle cx="0.05" cy="-0.0" r="0.02" fill="#a818ff" stroke-width="0.01" stroke="black" />
+</g>
+<g id="data" origin="(0, 0)" transform="translate(2, 0)">
+<rect x="0" y="-2" width="0.5" height="2" fill="#ffebcd" />
+<text x="0.15" y="-0.95" font-size="0.05" fill="#321414" text-anchor="start">1: -| (Zzz)</text>
+<rect x="0.02" y="-0.99" width="0.05" height="0.04" fill="#faff18" stroke-width="0.01" stroke="black" />
+<circle cx="0.02" cy="-0.95" r="0.02" fill="#faff18" stroke-width="0.01" stroke="black" />
+<circle cx="0.07" cy="-0.95" r="0.02" fill="#faff18" stroke-width="0.01" stroke="black" />
+<text x="0" y="-0.85" font-size="0.05" fill="#321414" text-anchor="start">{}</text>
+<text x="0.15" y="-1.9" font-size="0.05" fill="#321414" text-anchor="start">2: -| (Zzz)</text>
+<rect x="0.02" y="-1.94" width="0.05" height="0.04" fill="#a818ff" stroke-width="0.01" stroke="black" />
+<circle cx="0.02" cy="-1.9" r="0.02" fill="#a818ff" stroke-width="0.01" stroke="black" />
+<circle cx="0.07" cy="-1.9" r="0.02" fill="#a818ff" stroke-width="0.01" stroke="black" />
+<text x="0" y="-1.7999999999999998" font-size="0.05" fill="#321414" text-anchor="start">{}</text>
+</g>
+<g id="info" origin="(0, 0)" transform="translate(2, -2)">
+<rect x="0" y="-0.8" width="0.5" height="0.8" fill="#ffebcd" />
+<text x="0" y="-0.4" font-size="0.05" fill="#321414" text-anchor="start"><tspan x="0" dy="0em">- DARP Simulation -</tspan><tspan x="0" dy="1em">Time: 0</tspan></text>
+</g>
+<g id="time" origin="(0, 0)" transform="translate(0, -2)">
+<rect x="0" y="-0.8" width="2" height="0.8" fill="#ffebcd" />
+<rect x="1.470625" y="-0.05" width="0.13351023543654975" height="0.025" fill="red" />
+<rect x="1.5893749999999998" y="-0.025" width="0.07125" height="0.025" fill="blue" />
+<text x="1.91" y="-0.0" font-size="0.05" fill="#8b5962" text-anchor="start">t1</text>
+<rect x="1.1539583333333334" y="-0.1" width="0.11844627341474213" height="0.025" fill="red" />
+<rect x="1.2727083333333333" y="-0.07500000000000001" width="0.07125" height="0.025" fill="blue" />
+<text x="1.91" y="-0.05" font-size="0.05" fill="#8b5962" text-anchor="start">t2</text>
+<rect x="0.5879166666666666" y="-0.15" width="0.1492122206434934" height="0.025" fill="red" />
+<rect x="0.7066666666666667" y="-0.125" width="0.07125" height="0.025" fill="blue" />
+<text x="1.91" y="-0.1" font-size="0.05" fill="#8b5962" text-anchor="start">t3</text>
+<rect x="0.42562500000000003" y="-0.2" width="0.13301949675166055" height="0.025" fill="red" />
+<rect x="0.544375" y="-0.17500000000000002" width="0.07125" height="0.025" fill="blue" />
+<text x="1.91" y="-0.15000000000000002" font-size="0.05" fill="#8b5962" text-anchor="start">t4</text>
+<rect x="0.20395833333333332" y="-0.25" width="0.11945141731518058" height="0.025" fill="red" />
+<rect x="0.3227083333333333" y="-0.225" width="0.07125" height="0.025" fill="blue" />
+<text x="1.91" y="-0.2" font-size="0.05" fill="#8b5962" text-anchor="start">t5</text>
+<rect x="0.07333333333333332" y="-0.30000000000000004" width="0.11885870343741335" height="0.025" fill="red" />
+<rect x="0.19208333333333333" y="-0.275" width="0.07125" height="0.025" fill="blue" />
+<text x="1.91" y="-0.25" font-size="0.05" fill="#8b5962" text-anchor="start">t6</text>
+<rect x="1.4627083333333333" y="-0.3500000000000001" width="0.14753105716205592" height="0.025" fill="red" />
+<rect x="1.5814583333333332" y="-0.32500000000000007" width="0.07125" height="0.025" fill="blue" />
+<text x="1.91" y="-0.30000000000000004" font-size="0.05" fill="#8b5962" text-anchor="start">t7</text>
+<rect x="1.0589583333333334" y="-0.4000000000000001" width="0.16304885679185946" height="0.025" fill="red" />
+<rect x="1.1777083333333334" y="-0.37500000000000006" width="0.07125" height="0.025" fill="blue" />
+<text x="1.91" y="-0.35000000000000003" font-size="0.05" fill="#8b5962" text-anchor="start">t8</text>
+<rect x="1.1025" y="-0.45000000000000007" width="0.07125" height="0.025" fill="red" />
+<rect x="1.1337767171679758" y="-0.42500000000000004" width="0.15872328283202414" height="0.025" fill="blue" />
+<text x="1.91" y="-0.4" font-size="0.05" fill="#8b5962" text-anchor="start">t9</text>
+<rect x="0.13666666666666666" y="-0.5" width="0.07125" height="0.025" fill="red" />
+<rect x="0.16459063230530488" y="-0.47500000000000003" width="0.16207603436136175" height="0.025" fill="blue" />
+<text x="1.91" y="-0.45" font-size="0.05" fill="#8b5962" text-anchor="start">t10</text>
+<rect x="0.46520833333333333" y="-0.55" width="0.07125" height="0.025" fill="red" />
+<rect x="0.4851028792569949" y="-0.525" width="0.1701054540763384" height="0.025" fill="blue" />
+<text x="1.91" y="-0.5" font-size="0.05" fill="#8b5962" text-anchor="start">t11</text>
+<rect x="0.06541666666666666" y="-0.6000000000000001" width="0.07125" height="0.025" fill="red" />
+<rect x="0.10502364872730074" y="-0.5750000000000001" width="0.1503930179393659" height="0.025" fill="blue" />
+<text x="1.91" y="-0.55" font-size="0.05" fill="#8b5962" text-anchor="start">t12</text>
+<rect x="0.79375" y="-0.6500000000000001" width="0.07125" height="0.025" fill="red" />
+<rect x="0.8259811782891388" y="-0.6250000000000001" width="0.15776882171086118" height="0.025" fill="blue" />
+<text x="1.91" y="-0.6000000000000001" font-size="0.05" fill="#8b5962" text-anchor="start">t13</text>
+<rect x="0.6433333333333333" y="-0.7000000000000001" width="0.07125" height="0.025" fill="red" />
+<rect x="0.6520408119845736" y="-0.675" width="0.18129252134875964" height="0.025" fill="blue" />
+<text x="1.91" y="-0.65" font-size="0.05" fill="#8b5962" text-anchor="start">t14</text>
+<rect x="0.7225" y="-0.7500000000000001" width="0.07125" height="0.025" fill="red" />
+<rect x="0.789628508941236" y="-0.7250000000000001" width="0.12287149105876398" height="0.025" fill="blue" />
+<text x="1.91" y="-0.7000000000000001" font-size="0.05" fill="#8b5962" text-anchor="start">t15</text>
+<rect x="1.45875" y="-0.8" width="0.07125" height="0.025" fill="red" />
+<rect x="1.5372637547997272" y="-0.775" width="0.11148624520027255" height="0.025" fill="blue" />
+<text x="1.91" y="-0.75" font-size="0.05" fill="#8b5962" text-anchor="start">t16</text>
+<path d="M0.01,-0.8 L0.01,0" stroke="red" stroke-width="0.01" fill="red" />
+<path d="M0,-0.8 L0,0" stroke="#ff4500" stroke-width="0.01" fill="#ff4500" />
+</g>
+</svg>

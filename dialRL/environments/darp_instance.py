@@ -6,6 +6,7 @@ import random
 import time
 import matplotlib.pyplot as plt
 import os
+from icecream import ic
 
 import pickle
 
@@ -136,6 +137,7 @@ class DarPInstance():
         self.depot_position = drivers[0].position
         self.drivers = drivers
         self.targets = targets
+        self.time_end = 1440 #max([targets[0].start_fork[0], targets[0].start_fork[1], targets[0].end_fork[0], targets[0].end_fork[1]])
         for target in self.targets:
             target = self.tight_window(target)
 

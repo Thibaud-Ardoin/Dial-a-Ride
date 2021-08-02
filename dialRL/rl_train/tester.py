@@ -415,11 +415,78 @@ class Tester():
     def run(self):
         if self.supervision_function=='rf':
             supervision = False
-            self.online_evaluation(full_test=True, supervision=supervision, saving=False, rf=True)
+            if self.eval_episodes:
+                self.online_evaluation(full_test=True, supervision=supervision, saving=False, rf=True)
+            self.dataset_evaluation()
         else :
             supervision = True
             self.online_evaluation(full_test=True, supervision=supervision)
 
+
+    def dataset_evaluation(self):
+        self.dataset_instance_folder = self.rootdir + '/data/instances/cordeau2006/'
+        inst_name = 'a' + str(self.nb_drivers) + '-' + str(self.nb_target)
+        data_instance = self.dataset_instance_folder + inst_name + '.txt'
+        reward_function = globals()[self.reward_function]()
+        self.dataset_env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
+                                  rep_type=self.rep_type, reward_function=reward_function, test_env=True, dataset=data_instance)
+        # self.dataset_env.format_time
+
+        observation = self.dataset_env.reset()
+        image = self.dataset_env.get_svg_representation()
+        image.saveSvg(self.path_name + '/example_data.svg')
+        # exit()
+
+        # Get the best known solution from .txt instanaces
+        with open(self.dataset_instance_folder + 'gschwind_results.txt') as f:
+            for line in f :
+                inst, bks = line.split(' ')
+                if inst == inst_name :
+                    self.dataset_env.best_cost = float(bks)
+                    break;
+            f.close()
+
+        print('\t** ON DATASET **')
+        print(inst_name)
+
+        done = False
+        observation = self.dataset_env.reset()
+        while not done:
+            world, targets, drivers, positions, time_contraints = observation
+            w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
+            t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
+            d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
+            info_block = [w_t, t_t, d_t]
+
+            positions = [torch.tensor([positions[0]], dtype=torch.float64),
+                         [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
+                         [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
+
+            time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                         [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
+                         [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
+
+            target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+
+            model_action = self.model(info_block,
+                                      target_tensor,
+                                      positions=positions,
+                                      times=time_contraints)
+
+            if self.typ >25:
+                chosen_action = model_action.argmax(-1).cpu().item()
+            else :
+                chosen_action = model_action[:, 0].argmax(-1).cpu().item()
+
+            observation, reward, done, info = self.dataset_env.step(chosen_action)
+            self.dataset_env.render()
+
+        print('Fit solution:', info['fit_solution'])
+        print('with ',info['delivered'], 'deliveries')
+        print('GAP to optimal solution: ', info['GAP'], '(counts only if fit solution')
+
+        print('- Optim Total distance:', self.dataset_env.best_cost)
+        print('- Model Total distance:', self.dataset_env.total_distance)
 
 
     def online_evaluation(self, full_test=True, supervision=False, saving=True, rf=False):
@@ -454,19 +521,19 @@ class Tester():
                 while not solution_file :
                     if not self.verbose:
                         sys.stdout = open('test_file.out', 'w')
-                    try :
-                        rf_time = time.time()
-                        solution_file, supervision_perf, l_bound = run_rf_algo('0')
-                        rf_time = time.time() - rf_time
-                        if not self.verbose :
-                            sys.stdout = sys.__stdout__
-                        if l_bound is None :
-                            print('Wrong solution ?')
-                            solution_file = ''
-                    except:
-                        if not self.verbose :
-                            sys.stdout = sys.__stdout__
-                        print('ERROR in RUN RF ALGO. PASSING THROUGH')
+                    # try :
+                    rf_time = time.time()
+                    solution_file, supervision_perf, l_bound = run_rf_algo('0')
+                    rf_time = time.time() - rf_time
+                    if not self.verbose :
+                        sys.stdout = sys.__stdout__
+                    if l_bound is None :
+                        print('Wrong solution ?')
+                        solution_file = ''
+                # except:
+                #     if not self.verbose :
+                #         sys.stdout = sys.__stdout__
+                #     print('ERROR in RUN RF ALGO. PASSING THROUGH')
 
                 reward_function = globals()[self.reward_function]()
 
@@ -475,7 +542,9 @@ class Tester():
                 self.eval_env.best_cost = l_bound
 
             observation = self.eval_env.reset()
-
+            image = self.eval_env.get_svg_representation()
+            image.saveSvg(self.path_name + '/example_random.svg')
+            # return
             if saving:
                 if self.example_format == 'svg':
                     to_save = [self.eval_env.get_svg_representation() if full_test else 0]
@@ -523,7 +592,7 @@ class Tester():
                 else :
                     observation, reward, done, info = self.eval_env.step(supervised_action)
 
-                # self.eval_env.render()
+                self.eval_env.render()
                 if supervision :
                     loss = self.criterion(model_action[:,0], supervised_action)
                     running_loss += loss.item()
@@ -552,8 +621,12 @@ class Tester():
 
             fit_sol += info['fit_solution'] #self.eval_env.is_fit_solution()
             delivered += info['delivered']
-            if fit_sol:
+            if fit_sol and l_bound is not None:
                 gap += info['GAP']
+            if l_bound is None:
+                print('!NO LOW BOUND FOUND!')
+                print()
+            print('* Model did: ', info['fit_solution'], ' *')
             print('- Supvi Total distance:', supervision_perf)
             print('- Model Total distance:', self.eval_env.total_distance)
 

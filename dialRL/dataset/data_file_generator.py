@@ -58,16 +58,17 @@ class DataFileGenerator():
         file_names = []
         os.makedirs(self.out_dir, exist_ok=True)
         for n in range(self.data_size):
-            
+
             observation = self.env.reset()
             text_lists = []
 
-            text_lists.append([self.env.driver_population, 2 * self.env.target_population, self.env.time_limit, self.env.drivers[0].max_capacity, self.env.max_ride_time])
+            text_lists.append([self.env.driver_population, self.env.target_population, self.env.time_limit, self.env.drivers[0].max_capacity, self.env.max_ride_time])
             text_lists.append([0, self.env.depot_position[0], self.env.depot_position[1], 0, 0, 0, int(self.env.time_end)])
             for target in self.env.targets:
                 text_lists.append([target.identity, target.pickup[0], target.pickup[1], target.service_time, 1, int(target.start_fork[0]), int(target.start_fork[1])])
             for target in self.env.targets:
                 text_lists.append([target.identity + len(self.env.targets), target.dropoff[0], target.dropoff[1], target.service_time, -1, int(target.end_fork[0]), int(target.end_fork[1])])
+            text_lists.append([len(self.env.targets)*2 + 1, self.env.depot_position[0], self.env.depot_position[1], 0, 0, 0, int(self.env.time_end)])
             self.env.close()
 
             # Join the text info into 1 file data
@@ -75,6 +76,7 @@ class DataFileGenerator():
             text_lists2 = []
             for text in text_lists :
                 text_lists2.append('\t'.join(map(str, map(lambda x: round(x, 3), text))))
+            text_lists2.append('')
             final_string = '\n'.join(text_lists2)
 
             if tmp_name is None:

@@ -441,6 +441,9 @@ class DarSeqEnv(DarEnv):
         self.short_log = ''
         self.assignation_history = []
         return self._next_observation()
+    #
+    # def format_time(self):
+
 
 
     def del_target(self, position):

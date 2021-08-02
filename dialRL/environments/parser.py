@@ -6,7 +6,11 @@ def tabu_parse(file_name):
     targets = []
     drivers = []
     with open(file_name, 'r') as file :
-        nb_drivers, number_line, c, e, f = list(map(int, file.readline().split()))
+        number_line = sum(1 if line and line.strip() else 0 for line in file if line.rstrip()) - 3
+        file.close()
+
+    with open(file_name, 'r') as file :
+        nb_drivers, wrong_number_line, c, e, f = list(map(int, file.readline().split()))
         # print("What is that ? :", c, e, f)
 
         # Depot
@@ -44,7 +48,7 @@ def tabu_parse_info(file_name):
         identity, X, Y, we, ty, st, en = list(map(float, file.readline().split()))
 
         # Compute Infos
-        time_end = en
+        time_list = [en]
         target_population = number_line // 2
         driver_population = nb_drivers
         depot_position = np.array([X, Y])
@@ -54,7 +58,10 @@ def tabu_parse_info(file_name):
             # 1 3.442 -1.227 10 1 192 298
             identity, X, Y, service_time, ty, st, en = list(map(float, file.readline().split()))
             extremas = check_extrema(extremas, X, Y)
+            time_list.append(float(st))
+            time_list.append(float(en))
     size = max(abs(extremas[2] - extremas[0]), abs(extremas[3] - extremas[1]))
+    time_end = max(time_list)
     return extremas, target_population, driver_population, time_end, depot_position, size, time_limit, max_capacity, max_ride_time, service_time
 
 def tabu_parse_best(file_name):
