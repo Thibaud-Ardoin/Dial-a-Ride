@@ -193,9 +193,25 @@ class SupervisedTrainer():
             self.model=='Trans18'
             self.typ = 26
         elif self.typ in [35]:
-            # one Autotransformer + 1 layer with all infformation concatenated
+            # 1 layer with 4 last vectors of transformer concatenated
             self.classifier_type = 10
             self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [36]:
+            # 4 last encoder vectors + flatten in 1 layer
+            self.classifier_type = 11
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
+        elif self.typ in [37]:
+            # 32 but with batch norm in encoder
+            self.classifier_type = 7
+            self.encoder_bn=True
             self.decoder_bn=False
             self.rep_type = '16'
             self.model=='Trans18'

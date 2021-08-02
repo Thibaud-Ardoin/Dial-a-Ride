@@ -238,6 +238,8 @@ class Classifier(nn.Module):
         elif self.classifier_type in [10]:
             self.fc_out = nn.Linear(self.embed_size * 4, self.trg_vocab_size)
             self.fc_out_out = nn.Linear(max_length, 1)
+        elif self.classifier_type in [11] :
+            self.fc_out = nn.Linear(self.embed_size * 4 * max_length, self.trg_vocab_size)
 
 
         self.fc1 = nn.Linear(self.embed_size, self.classifier_expansion * self.embed_size )
@@ -271,7 +273,7 @@ class Classifier(nn.Module):
             current_driver_indice = trg +  2*(self.trg_vocab_size-1)
             out = torch.gather(out, 1, current_driver_indice.unsqueeze(-1).expand(-1, -1, out.shape[-1]))
             return out.squeeze(1)
-        elif self.classifier_type in [8]:
+        elif self.classifier_type in [8, 11]:
              # IN: bsz, seq_l, embedding_sz
              # flatten: bsz, seq_l * embedding_sz
             out = self.fc_out(x.flatten(start_dim=1)) #OUT: bsz, trg_sz
@@ -475,10 +477,11 @@ class Trans18(nn.Module):
         src_mask = self.make_src_mask(src)
 
         encodded_layers_out = 1
-        if self.classifier_type in [10]:
+        if self.classifier_type in [10, 11]:
             encodded_layers_out = 4
 
         enc_src = self.encoder(src, src_mask, positions=positions, times=times, layers_out=encodded_layers_out)#[:, :nb_targets])
+        ic(enc_src.shape)
 
         if self.classifier_type in [6, 7]:
             classification = self.classifier(enc_src, trg=trg)
