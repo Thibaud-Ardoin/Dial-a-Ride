@@ -6,6 +6,7 @@ import time
 
 from clearml import Task
 from icecream import ic
+import torch
 
 from dialRL.utils import objdict
 from dialRL.rl_train import SupervisedTrainer
@@ -84,10 +85,12 @@ def goooo():
     # Adding random seed
     if parameters.seed is not None:
         np.random.seed(parameters.seed)
+        torch.manual_seed(parameters.seed)
     else :
         new_seed = int(time.time())
         ic(new_seed)
         np.random.seed(new_seed)
+        torch.manual_seed(new_seed)
         parameters.seed = new_seed
 
     tags_list = ['Gp: d'+str(parameters.nb_drivers)+'d'+str(parameters.nb_target)+ parameters.supervision_function +' '+millify(parameters.data_size)]

@@ -481,7 +481,6 @@ class Trans18(nn.Module):
             encodded_layers_out = 4
 
         enc_src = self.encoder(src, src_mask, positions=positions, times=times, layers_out=encodded_layers_out)#[:, :nb_targets])
-        ic(enc_src.shape)
 
         if self.classifier_type in [6, 7]:
             classification = self.classifier(enc_src, trg=trg)
