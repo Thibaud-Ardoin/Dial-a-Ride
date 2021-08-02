@@ -9,3 +9,5 @@ data_processing/
 external/
 logs/
 *.out
+*.svg
+*.png
