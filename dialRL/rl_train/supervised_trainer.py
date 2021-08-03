@@ -992,7 +992,7 @@ class SupervisedTrainer():
             observation, reward, done, info = self.dataset_env.step(chosen_action)
             total_reward += reward
 
-        if info['fit_solution'] and info['GAP'] > self.best_eval_metric[2] :
+        if info['fit_solution'] and info['GAP'] < self.best_eval_metric[2] :
             print('/-- NEW BEST GAP SOLUTION --\\')
             print('/-- GAP:', info['GAP'])
             self.best_eval_metric[2] = info['GAP']
