@@ -479,11 +479,11 @@ class Tester():
                 chosen_action = model_action[:, 0].argmax(-1).cpu().item()
 
             observation, reward, done, info = self.dataset_env.step(chosen_action)
-            self.dataset_env.render()
+            # self.dataset_env.render()
 
         print('Fit solution:', info['fit_solution'])
         print('with ',info['delivered'], 'deliveries')
-        print('GAP to optimal solution: ', info['GAP'], '(counts only if fit solution')
+        print('GAP to optimal solution: ', info['GAP'], '(counts only if fit solution)')
 
         print('- Optim Total distance:', self.dataset_env.best_cost)
         print('- Model Total distance:', self.dataset_env.total_distance)
@@ -592,7 +592,7 @@ class Tester():
                 else :
                     observation, reward, done, info = self.eval_env.step(supervised_action)
 
-                self.eval_env.render()
+                # self.eval_env.render()
                 if supervision :
                     loss = self.criterion(model_action[:,0], supervised_action)
                     running_loss += loss.item()

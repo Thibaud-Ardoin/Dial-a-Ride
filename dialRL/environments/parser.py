@@ -49,7 +49,7 @@ def tabu_parse_info(file_name):
 
         # Compute Infos
         time_list = [en]
-        target_population = number_line // 2
+        target_population = number_line
         driver_population = nb_drivers
         depot_position = np.array([X, Y])
 

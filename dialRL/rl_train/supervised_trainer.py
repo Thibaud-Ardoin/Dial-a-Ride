@@ -242,8 +242,23 @@ class SupervisedTrainer():
                                   test_env=True,
                                   dataset=self.dataset)
                           # dataset=self.dataset) for i in range(1)])
+        # DATASET EVAL
+        self.dataset_instance_folder = self.rootdir + '/data/instances/cordeau2006/'
+        self.inst_name = 'a' + str(self.nb_drivers) + '-' + str(self.nb_target)
+        data_instance = self.dataset_instance_folder + self.inst_name + '.txt'
+        reward_function = globals()[self.reward_function]()
+        self.dataset_env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
+                                  rep_type=self.rep_type, reward_function=reward_function, test_env=True, dataset=data_instance)
+        # Get the best known solution from .txt instanaces
+        with open(self.dataset_instance_folder + 'gschwind_results.txt') as f:
+            for line in f :
+                inst, bks = line.split(' ')
+                if inst == self.inst_name :
+                    self.dataset_env.best_cost = float(bks)
+                    break;
+            f.close()
 
-        self.best_eval_metric = [0, 1000] # accuracy + loss
+        self.best_eval_metric = [0, 1000, 300, 300] # accuracy + loss + dataset GAP + online GAP
         self.nb_target = self.env.target_population
         self.nb_drivers = self.env.driver_population
         self.image_size = self.env.size
@@ -878,7 +893,7 @@ class SupervisedTrainer():
             running_loss += loss.item()
 
             # Limit train passage to 20 rounds
-            if i == 20:
+            if i == 40:
                 break
 
         cf_matrix = confusion_matrix(y_sup, y_pred)
@@ -901,9 +916,9 @@ class SupervisedTrainer():
             self.best_eval_metric[0] = eval_acc
             self.best_eval_metric[1] = eval_loss
             if self.checkpoint_type == 'best':
-                model_name = self.path_name + '/models/best_model.pt'
+                model_name = self.path_name + '/models/best_offline_model.pt'
             else :
-                model_name = self.path_name + '/models/model_' + str(self.current_epoch) + '.pt'
+                model_name = self.path_name + '/models/model_offline' + str(self.current_epoch) + '.pt'
             os.makedirs(self.path_name + '/models/', exist_ok=True)
             print('\t New Best Accuracy Model <3')
             print('\tSaving as:', model_name)
@@ -918,6 +933,7 @@ class SupervisedTrainer():
             self.sacred.get_logger().report_media('Image', 'Confusion Matrix',
                                               iteration=self.current_epoch,
                                               local_path=save_name)
+            self.dataset_evaluation()
 
         # Statistics on clearml saving
         if self.sacred :
@@ -939,6 +955,75 @@ class SupervisedTrainer():
             #     series='Average gap', value=gap/self.eval_episodes, iteration=self.current_epoch)
             # self.sacred.get_logger().report_scalar(title=eval_name,
             #     series='Step Reward', value=total_reward/total, iteration=self.current_epoch)
+
+    def dataset_evaluation(self):
+        print('\t** ON DATASET :', self.inst_name, '**')
+        eval_name = 'Dataset Test'
+        done = False
+        observation = self.dataset_env.reset()
+        total_reward = 0
+        while not done:
+            world, targets, drivers, positions, time_contraints = observation
+            w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
+            t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
+            d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
+            info_block = [w_t, t_t, d_t]
+
+            positions = [torch.tensor([positions[0]], dtype=torch.float64),
+                         [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
+                         [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
+
+            time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                         [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
+                         [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
+
+            target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+
+            model_action = self.model(info_block,
+                                      target_tensor,
+                                      positions=positions,
+                                      times=time_contraints)
+
+            if self.typ >25:
+                chosen_action = model_action.argmax(-1).cpu().item()
+            else :
+                chosen_action = model_action[:, 0].argmax(-1).cpu().item()
+
+            observation, reward, done, info = self.dataset_env.step(chosen_action)
+            total_reward += reward
+
+        if info['fit_solution'] and info['GAP'] > self.best_eval_metric[2] :
+            print('/-- NEW BEST GAP SOLUTION --\\')
+            print('/-- GAP:', info['GAP'])
+            self.best_eval_metric[2] = info['GAP']
+            if self.checkpoint_type == 'best':
+                model_name = self.path_name + '/models/best_GAP_model.pt'
+            else :
+                model_name = self.path_name + '/models/GAP_model_' + str(self.current_epoch) + '.pt'
+            print('\tSaving as:', model_name)
+            os.makedirs(self.path_name + '/models/', exist_ok=True)
+            torch.save(self.model, model_name)
+
+        print('/- Fit solution:', info['fit_solution'])
+        print('/- with ',info['delivered'], 'deliveries')
+        if info['fit_solution'] :
+            print('/- GAP to optimal solution: ', info['GAP'], '(counts only if fit solution)')
+        print('/- Optim Total distance:', self.dataset_env.best_cost)
+        print('/- Model Total distance:', self.dataset_env.total_distance)
+
+        if self.sacred :
+            self.sacred.get_logger().report_scalar(title=eval_name,
+                series='Fit solution', value=info['fit_solution'], iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=eval_name,
+                series='Delivered', value=info['delivered'], iteration=self.current_epoch)
+            if info['fit_solution'] > 0:
+                self.sacred.get_logger().report_scalar(title=eval_name,
+                    series='Average gap', value=info['GAP'], iteration=self.current_epoch)
+            else :
+                self.sacred.get_logger().report_scalar(title=eval_name,
+                    series='Average gap', value=300, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=eval_name,
+                series='Total Reward', value=total_reward, iteration=self.current_epoch)
 
 
     def online_evaluation(self, full_test=True, supervision=True, saving=True):
@@ -1077,15 +1162,14 @@ class SupervisedTrainer():
         print('\t-->' + eval_name + 'Step Reward ', total_reward/total)
 
         # Model saving. Condition: Better accuracy and better loss
-        if saving and full_test and (eval_acc > self.best_eval_metric[0] or ( eval_acc == self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] )):
-            self.best_eval_metric[0] = eval_acc
-            self.best_eval_metric[1] = eval_loss
+        if fit_sol > 0 and gap < self.best_eval_metric[3] :
+            self.best_eval_metric[3] = gap
             if self.checkpoint_type == 'best':
-                model_name = self.path_name + '/models/best_model.pt'
+                model_name = self.path_name + '/models/best_online_model.pt'
             else :
-                model_name = self.path_name + '/models/model_' + str(self.current_epoch) + '.pt'
+                model_name = self.path_name + '/models/model_online' + str(self.current_epoch) + '.pt'
             os.makedirs(self.path_name + '/models/', exist_ok=True)
-            print('\t New Best Accuracy Model <3')
+            print('\t New Best online GAP Model <3')
             print('\tSaving as:', model_name)
             torch.save(self.model, model_name)
 
