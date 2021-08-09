@@ -15,7 +15,7 @@ if __name__ == '__main__':
                         reward_function='HybridProportionalReward',
                         time_end=1400,
                         max_step=5000,
-                        dataset='./data/instances/cordeau2003/tabu1.txt',
+                        dataset='./data/instances/cordeau2006/a2-16.txt',
                         test_env=True)
 
     strat.run()

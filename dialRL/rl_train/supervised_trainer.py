@@ -216,6 +216,14 @@ class SupervisedTrainer():
             self.rep_type = '16'
             self.model=='Trans18'
             self.typ = 26
+        elif self.typ in [38]:
+            # Adding the last 4 layers, concatenated as in 33
+            self.classifier_type = 12
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '16'
+            self.model=='Trans18'
+            self.typ = 26
         else :
             raise "Find your own typ men"
 
@@ -833,6 +841,7 @@ class SupervisedTrainer():
             if self.supervision_function == 'rf':
                 self.offline_evaluation(validation_data, saving=True)
                 self.online_evaluation(full_test=True, supervision=False, saving=False)
+                self.dataset_evaluation()
             else :
                 self.online_evaluation()
                 if self.dataset:
@@ -933,7 +942,6 @@ class SupervisedTrainer():
             self.sacred.get_logger().report_media('Image', 'Confusion Matrix',
                                               iteration=self.current_epoch,
                                               local_path=save_name)
-            self.dataset_evaluation()
 
         # Statistics on clearml saving
         if self.sacred :
@@ -1174,10 +1182,10 @@ class SupervisedTrainer():
             torch.save(self.model, model_name)
 
             # Saving an example
-            if self.example_format == 'svg':
-                self.save_svg_example(to_save, save_rewards, 0, time_step=self.current_epoch)
-            else :
-                self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            # if self.example_format == 'svg':
+            #     self.save_svg_example(to_save, save_rewards, 0, time_step=self.current_epoch)
+            # else :
+            #     self.save_example(to_save, save_rewards, 0, time_step=self.current_epoch)
 
 
         # Statistics on clearml saving
