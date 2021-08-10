@@ -25,21 +25,13 @@ import matplotlib
 matplotlib.use('Agg')
 
 
-from torch.utils.data import DataLoader, SubsetRandomSampler, Dataset
+from torch.utils.data import DataLoader, SubsetRandomSampler, Dataset, ConcatDataset
 import torch
 import torch.nn as nn
 from torch.nn.functional import softmax
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
 import torch.optim as optim
 from sklearn.metrics import confusion_matrix, f1_score
-
-# from transformers import (GPT2Tokenizer,
-#                           GPT2Config,
-#                           GPT2Model,
-#                           PretrainedConfig,
-#                           BertConfig,
-#                           BertModel,
-#                           pipeline)
 
 from dialRL.models import *
 from dialRL.utils.reward_functions import *
@@ -541,12 +533,12 @@ class SupervisedTrainer():
         if self.dataset:
             self.eval_episodes = 1
             data_type = self.dataset.split('/')[-1].split('.')[0]
-            saving_name = data_directory + data_type + '_s{s}_tless{tt}_fun{sf}_typ{ty}.pt'.format(s=str(self.data_size),
+            saving_name = data_directory + data_type + '_s{s}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
                                                                                                                 tt=str(self.timeless),
                                                                                                                 sf=str(self.supervision_function),
                                                                                                                 ty=str(self.rep_type))
         else :
-            saving_name = data_directory + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}_typ{ty}.pt'.format(s=str(self.data_size),
+            saving_name = data_directory + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
                                                                                                               t=str(self.nb_target),
                                                                                                               d=str(self.nb_drivers),
                                                                                                               i=str(self.image_size),
@@ -555,17 +547,35 @@ class SupervisedTrainer():
                                                                                                               ty=str(self.rep_type))
 
         action_counter = np.zeros(self.vocab_size + 1)
+        self.data_part = 0
 
-        if os.path.isfile(saving_name) :
+        def load_dataset():
+            files_names = os.listdir(saving_name)
+            datasets = []
+            for file in files_names:
+                print('Datafile folder:', saving_name)
+                print(file)
+                datasets.append(torch.load(saving_name + file))
+            return ConcatDataset(datasets)
+
+        def partial_name(size):
+            name = saving_name + '/dataset_elementN' + str(self.data_part) + '_size' + str(size) + '.pt'
+            self.data_part += 1
+            return name
+
+        if os.path.isdir(saving_name) :
             print('This data is already out there !')
-            dataset = torch.load(saving_name)
+            dataset = load_dataset()
             for data in dataset:
                 o, a = data
                 action_counter[a] += 1
             self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
             return dataset
+        else :
+            os.makedirs(saving_name)
 
         done = True
+        last_save_size = 0
         sub_data = []
         sub_action_counter = np.zeros(self.vocab_size + 1)
         observation = self.env.reset()
@@ -583,6 +593,15 @@ class SupervisedTrainer():
                     action_counter = action_counter + sub_action_counter
                 else :
                     print('/!\ Found a non feasable solution. It is not saved')
+
+                if sys.getsizeof(data) > 100000: #200k bytes.
+                    last_save_size += len(data)
+                    train_data = SupervisionDataset(data)
+                    name = partial_name(len(data))
+                    torch.save(train_data, name)
+                    data = []
+                    print('Saving data status')
+
                 observation = self.env.reset()
                 sub_data = []
                 sub_action_counter = np.zeros(self.vocab_size + 1)
@@ -597,20 +616,19 @@ class SupervisedTrainer():
             sub_action_counter[supervised_action-1] += 1
 
             if element % 1000 == 0:
-                print('Generating data... [{i}/{ii}]'.format(i=element, ii=size))
+                print('Generating data... [{i}/{ii}] memorry:{m}'.format(i=last_save_size + len(data), ii=self.data_size, m=sys.getsizeof(data)))
 
         print('Done Generating !')
-        train_data = SupervisionDataset(data)
-        torch.save(train_data, saving_name)
         self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
-        return train_data
+        data = load_dataset()
+        return data
 
     def pretrain_log(self, name, time_distance, pick_distance, drop_distance, correct_loaded, correct_available, total):
         if self.sacred :
             self.sacred.get_logger().report_scalar(title=name,
                 series='Time distance', value=time_distance/total, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title=name,
-            series='Pick distance', value=pick_distance/total, iteration=self.current_epoch)
+                series='Pick distance', value=pick_distance/total, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title=name,
                 series='Drop distance', value=drop_distance/total, iteration=self.current_epoch)
             self.sacred.get_logger().report_scalar(title=name,
