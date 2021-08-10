@@ -39,6 +39,7 @@ class RFGenerator():
         self.dataset_name = params.dataset
         self.rootdir = params.rootdir
         self.verbose = params.verbose
+        self.datadir = params.datadir
         self.typ = params.typ
         self.reward_function =  globals()[params.reward_function]()
         self.last_save_size = 0
@@ -49,14 +50,19 @@ class RFGenerator():
         self.instances_number = int(self.data_size / (self.nb_target * self.nb_drivers))
         self.dir_path = self.rootdir + '/dialRL/strategies/data/DARP_cordeau/'
 
+        if self.datadir:
+            data_directory = self.datadir
+        else :
+            data_directory = self.rootdir + '/data/supervision_data/'
+
         if self.dataset_name:
             data_type = dataset_name.split('/')[-1].split('.')[0]
-            self.saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
+            self.saving_name = data_directory + data_type + '_s{s}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
                                                                                                                 tt=str(self.timeless),
                                                                                                                 sf=str(self.supervision_function),
                                                                                                                 ty=str(self.rep_type))
         else :
-            self.saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
+            self.saving_name = data_directory + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}_typ{ty}/'.format(s=str(self.data_size),
                                                                                                               t=str(self.nb_target),
                                                                                                               d=str(self.nb_drivers),
                                                                                                               i=str(self.image_size),

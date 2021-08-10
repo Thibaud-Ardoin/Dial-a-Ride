@@ -66,6 +66,7 @@ def get_args(args):
     parser.add_argument('--seed', default=None, type=int)
     parser.add_argument('--tag', default='', type=str)
     parser.add_argument('--pretrain', default=0, type=int)
+    parser.add_argument('--datadir', default='', type=str)
 
     return parser.parse_known_args(args)[0]
 
