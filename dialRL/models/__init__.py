@@ -9,6 +9,7 @@ from dialRL.models.transformer27 import Trans27
 from dialRL.models.transformer28 import Trans28
 from dialRL.models.transformer17 import Trans17
 from dialRL.models.transformer18 import Trans18
+from dialRL.models.transformer19 import Trans19
 from dialRL.models.transformer3 import Trans3
 
 __all__ = ['Trans1',
@@ -19,5 +20,6 @@ __all__ = ['Trans1',
            'Trans28',
            'Trans17',
            'Trans18',
+           'Trans19',
            'Trans3',
            'DQN']

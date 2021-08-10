@@ -107,26 +107,26 @@ class SupervisedTrainer():
             self.rep_type = '16'
         elif self.typ==17:
             self.rep_type = '17'
-            self.model=='Trans17'
+            self.model='Trans17'
         elif self.typ in [18, 19]:
             self.rep_type = '17'
-            self.model=='Trans17'
+            self.model='Trans17'
         elif self.typ in [20, 21, 22]:
             self.encoder_bn=True
             self.rep_type = '17'
-            self.model=='Trans17'
+            self.model='Trans17'
             self.typ = self.typ - 3
         elif self.typ in [23, 24, 25]:
             self.encoder_bn=True
             self.decoder_bn=True
             self.rep_type = '17'
-            self.model=='Trans17'
+            self.model='Trans17'
             self.typ = self.typ - 6
         elif self.typ in [26]:
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = self.typ
         elif self.typ in [27]:
             # 2 layer + 0 output
@@ -134,7 +134,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [28]:
             # 2 layer + mixing dimentions
@@ -142,7 +142,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [29]:
             # On layer + 0 dim as output
@@ -150,7 +150,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [30]:
             # On layer + mixer layer
@@ -158,7 +158,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [31]:
             # 1 layer + driver output
@@ -166,7 +166,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [32]:
             # 1 layer + driver output (but with a shift that should be better)
@@ -174,7 +174,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [33]:
             # 1 layer with all infformation concatenated
@@ -182,7 +182,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [34]:
             # one Autotransformer + 1 layer with all infformation concatenated
@@ -190,7 +190,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [35]:
             # 1 layer with 4 last vectors of transformer concatenated
@@ -198,7 +198,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [36]:
             # 4 last encoder vectors + flatten in 1 layer
@@ -206,7 +206,7 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [37]:
             # 32 but with batch norm in encoder
@@ -214,7 +214,7 @@ class SupervisedTrainer():
             self.encoder_bn=True
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
         elif self.typ in [38]:
             # Adding the last 4 layers, concatenated as in 33
@@ -222,8 +222,18 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
-            self.model=='Trans18'
+            self.model='Trans18'
             self.typ = 26
+
+        # Pre Train module now
+        elif self.typ in [40]:
+            # Take as 38 ?
+            self.classifier_type = 12
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '18'
+            self.model='Trans19'
+            self.typ = 40
         else :
             raise "Find your own typ men"
 
@@ -270,6 +280,10 @@ class SupervisedTrainer():
         self.nb_target = self.env.target_population
         self.nb_drivers = self.env.driver_population
         self.image_size = self.env.size
+        self.max_time=int(self.env.time_end)
+
+        if self.pretrain:
+            self.supervision_function = 'nn'
 
         if self.supervision_function == 'nn':
             self.supervision = NNStrategy(reward_function=self.reward_function,
@@ -382,6 +396,27 @@ class SupervisedTrainer():
                                                  classifier_type=self.classifier_type,
                                                  encoder_bn=self.encoder_bn,
                                                  decoder_bn=self.decoder_bn).to(self.device).double()
+        elif self.model=='Trans19':
+            self.model = globals()[self.model](src_vocab_size=50000,
+                                                 trg_vocab_size=self.vocab_size + 1,
+                                                 max_length=self.nb_target*2 + self.nb_drivers + 1,
+                                                 src_pad_idx=-1,
+                                                 trg_pad_idx=-1,
+                                                 embed_size=self.embed_size,
+                                                 dropout=self.dropout,
+                                                 extremas=self.env.extremas,
+                                                 device=self.device,
+                                                 num_layers=self.num_layers,
+                                                 heads=self.heads,
+                                                 forward_expansion=self.forward_expansion,
+                                                 typ=self.typ,
+                                                 max_time=int(self.env.time_end),
+                                                 classifier_type=self.classifier_type,
+                                                 encoder_bn=self.encoder_bn,
+                                                 decoder_bn=self.decoder_bn,
+                                                 max_capacity=self.env.max_capacity,
+                                                 image_size=self.image_size,
+                                                 pretrain=self.pretrain).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
 
@@ -394,6 +429,9 @@ class SupervisedTrainer():
             self.criterion = nn.CrossEntropyLoss()
         else :
             raise "Not found criterion"
+        if self.pretrain :
+            self.dist_criterion = nn.L1Loss()
+            self.class_criterion = nn.CrossEntropyLoss()
 
         # optimizer
         if self.optimizer == 'Adam':
@@ -502,7 +540,7 @@ class SupervisedTrainer():
             saving_name = self.rootdir + '/data/supervision_data/' + data_type + '_s{s}_tless{tt}_fun{sf}_typ{ty}.pt'.format(s=str(self.data_size),
                                                                                                                 tt=str(self.timeless),
                                                                                                                 sf=str(self.supervision_function),
-                                                                                                                ty=str(self.typ))
+                                                                                                                ty=str(self.rep_type))
         else :
             saving_name = self.rootdir + '/data/supervision_data/' + 's{s}_t{t}_d{d}_i{i}_tless{tt}_fun{sf}_typ{ty}.pt'.format(s=str(self.data_size),
                                                                                                               t=str(self.nb_target),
@@ -510,7 +548,7 @@ class SupervisedTrainer():
                                                                                                               i=str(self.image_size),
                                                                                                               tt=str(self.timeless),
                                                                                                               sf=str(self.supervision_function),
-                                                                                                              ty=str(self.typ))
+                                                                                                              ty=str(self.rep_type))
 
         action_counter = np.zeros(self.vocab_size + 1)
 
@@ -533,6 +571,10 @@ class SupervisedTrainer():
 
             if done :
                 if self.env.is_fit_solution():
+                    data = data + sub_data
+                    action_counter = action_counter + sub_action_counter
+                elif self.pretrain:
+                    # Might wana subsample thiiiis
                     data = data + sub_data
                     action_counter = action_counter + sub_action_counter
                 else :
@@ -559,6 +601,54 @@ class SupervisedTrainer():
         self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
         return train_data
 
+    def pretrain_log(self, name, time_distance, pick_distance, drop_distance, correct_loaded, correct_available, total):
+        if self.sacred :
+            self.sacred.get_logger().report_scalar(title=name,
+                series='Time distance', value=time_distance/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=name,
+            series='Pick distance', value=pick_distance/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=name,
+                series='Drop distance', value=drop_distance/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=name,
+                series='Acc /% Loaded', value=100*correct_loaded/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title=name,
+                series='Acc /% available', value=100*correct_available/total, iteration=self.current_epoch)
+
+    def pretrain_loss(self, output, prior_kwlg):
+        out_time, out_pick, out_drop, out_loaded, out_available = output
+        d_stuff, t_stuff = prior_kwlg
+        d_stuff = torch.stack([torch.stack(elmt) for elmt in d_stuff]).to(self.device).permute(2, 0, 1)
+        t_stuff = torch.stack([torch.stack(elmt) for elmt in t_stuff]).to(self.device).permute(2, 0, 1)
+        prior_time, prior_loaded = d_stuff[:,:,0], d_stuff[:,:,1]
+        prior_available, prior_pick, prior_drop = t_stuff[:,:,0], t_stuff[:,:,1], t_stuff[:,:,2]
+
+        # The divisions are a ruff way to normalise the losses values
+        time_distance = self.dist_criterion(out_time, prior_time)
+        l1 = time_distance / self.max_time
+        pick_distance = self.dist_criterion(out_pick, prior_pick)
+        l2 = pick_distance / (2*self.image_size)
+        drop_distance = self.dist_criterion(out_drop, prior_drop)
+        l3 = drop_distance / (2*self.image_size)
+        correct_loaded = 0
+        l4 = 0
+        for i in range(out_loaded.shape[1]):
+            l4 += self.class_criterion(out_loaded[:,i], prior_loaded[:,i].long())
+            correct_loaded += np.sum((out_loaded[:,i].argmax(-1) == prior_loaded[:,i].long()).cpu().numpy())
+        l4 = l4 / (out_loaded.shape[1]*out_loaded.shape[-1])
+        correct_loaded = correct_loaded / out_loaded.shape[1]
+
+        correct_available = 0
+        l5 = 0
+        for i in range(out_available.shape[1]):
+            l5 += self.class_criterion(out_available[:,i], prior_available[:,i].long())
+            correct_available += np.sum((out_available[:,i].argmax(-1) == prior_available[:,i].long()).cpu().numpy())
+        l5 = l5 / (out_available.shape[1]*out_available.shape[-1])
+        correct_available = correct_available / out_available.shape[1]
+
+        final_loss = l1 + l2 + l3 + l4 +l5
+
+        # ic(l1, l2, l3, l4, l5)
+        return final_loss, time_distance, pick_distance, drop_distance, correct_loaded, correct_available
 
 
     def train(self, dataloader):
@@ -566,16 +656,19 @@ class SupervisedTrainer():
         running_loss = 0
         total = 0
         correct = nearest_accuracy = pointing_accuracy = 0
+        mean_time_distance, mean_pick_distance, mean_drop_distance, mean_correct_loaded, mean_correct_available = 0, 0, 0, 0, 0
 
         self.model.train()
-        # ic(dataloader[0])
         for i, data in enumerate(dataloader):
             # set the parameter gradients to zero
             self.optimizer.zero_grad()
 
             observation, supervised_action = data
 
-            world, targets, drivers, positions, time_constraints = observation
+            if self.pretrain :
+                world, targets, drivers, positions, time_constraints, prior_kwlg = observation
+            else :
+                world, targets, drivers, positions, time_constraints = observation
             info_block = [world, targets, drivers]
             # Current player as trg elmt
             if self.typ in [17, 18, 19]:
@@ -588,23 +681,30 @@ class SupervisedTrainer():
                                       target_tensor,
                                       positions=positions,
                                       times=time_constraints)
+            # Typ > 40: model action (time, int)xd , (bool, dist, dist)xt
 
-            # model_action = model_action[:,0]
             supervised_action = supervised_action.to(self.device)
 
-            # loss = self.criterion(model_action, supervised_action.squeeze(-1))
-            loss = self.criterion(model_action.squeeze(1), supervised_action.squeeze(-1))
+            if self.pretrain :
+                loss, time_distance, pick_distance, drop_distance, correct_loaded, correct_available = self.pretrain_loss(model_action, prior_kwlg)
+                total += supervised_action.size(0)
+                running_loss += loss.item()
+                mean_time_distance += time_distance
+                mean_pick_distance += pick_distance
+                mean_drop_distance += drop_distance
+                mean_correct_loaded += correct_loaded
+                mean_correct_available += correct_available
+                correct += (correct_available + correct_loaded)/2
+            else :
+                loss = self.criterion(model_action.squeeze(1), supervised_action.squeeze(-1))
+                total += supervised_action.size(0)
+                correct += np.sum((model_action.squeeze(1).argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
+                running_loss += loss.item()
 
             loss.backward()
-
             # update the gradients
             self.optimizer.step()
 
-            total += supervised_action.size(0)
-            correct += np.sum((model_action.squeeze(1).argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
-            running_loss += loss.item()
-
-            # Limit train passage to 20 rounds
             if i == 20:
                 break
 
@@ -612,6 +712,14 @@ class SupervisedTrainer():
         print('-> Réussite: ', acc, '%')
         print('-> Loss:', 100*running_loss/total)
         self.scheduler.step(running_loss)
+        if self.pretrain :
+            self.pretrain_log('Pretrain train',
+                              mean_time_distance,
+                              mean_pick_distance,
+                              mean_drop_distance,
+                              mean_correct_loaded,
+                              mean_correct_available,
+                              total)
 
         if self.sacred :
             self.sacred.get_logger().report_scalar(title='Train stats',
@@ -808,8 +916,8 @@ class SupervisedTrainer():
                 # Creating PT data samplers and loaders:
                 train_sampler = SubsetRandomSampler(train_indices)
                 valid_sampler = SubsetRandomSampler(val_indices)
-                from itertools import chain
-                from iteration_utilities import deepflatten
+                # from itertools import chain
+                # from iteration_utilities import deepflatten
 
                 # for d in dataset:
                 #     i=list(deepflatten(d[0][1]))
@@ -824,6 +932,22 @@ class SupervisedTrainer():
                                                            sampler=train_sampler)
                 validation_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                             sampler=valid_sampler)
+            elif self.pretrain :
+                dataset = self.generate_supervision_data()
+                dataset_size = len(dataset)
+                indices = list(range(dataset_size))
+                split = int(np.floor(0.1 * dataset_size))
+                train_indices, val_indices = indices[split:], indices[:split]
+                if self.shuffle :
+                    np.random.shuffle(train_indices)
+                    np.random.shuffle(val_indices)
+                train_sampler = SubsetRandomSampler(train_indices)
+                valid_sampler = SubsetRandomSampler(val_indices)
+                supervision_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+                                                           sampler=train_sampler)
+                validation_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+                                                            sampler=valid_sampler)
+
             else :
                 dataset = self.generate_supervision_data()
                 supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
@@ -839,13 +963,19 @@ class SupervisedTrainer():
                 self.train(supervision_data)
 
             if self.supervision_function == 'rf':
-                self.offline_evaluation(validation_data, saving=True)
-                self.online_evaluation(full_test=True, supervision=False, saving=False)
-                self.dataset_evaluation()
+                if self.pretrain:
+                    self.offline_evaluation(validation_data, saving=True)
+                else :
+                    self.offline_evaluation(validation_data, saving=True)
+                    self.online_evaluation(full_test=True, supervision=False, saving=False)
+                    self.dataset_evaluation()
             else :
-                self.online_evaluation()
-                if self.dataset:
-                    self.online_evaluation(full_test=False)
+                if self.pretrain:
+                    self.offline_evaluation(validation_data, saving=True)
+                else :
+                    self.online_evaluation()
+                    if self.dataset:
+                        self.online_evaluation(full_test=False)
 
         print('\t ** Learning DONE ! **')
 
@@ -860,6 +990,8 @@ class SupervisedTrainer():
         running_loss = 0
         total = 0
         correct = nearest_accuracy = pointing_accuracy = 0
+        mean_time_distance, mean_pick_distance, mean_drop_distance, mean_correct_loaded, mean_correct_available = 0, 0, 0, 0, 0
+
         y_pred, y_sup = [], []
         if full_test :
             eval_name = 'Offline Test'
@@ -871,7 +1003,11 @@ class SupervisedTrainer():
         for i, data in enumerate(dataloader):
             observation, supervised_action = data
 
-            world, targets, drivers, positions, time_constraints = observation
+            if self.pretrain :
+                world, targets, drivers, positions, time_constraints, prior_kwlg = observation
+            else :
+                world, targets, drivers, positions, time_constraints = observation
+
             info_block = [world, targets, drivers]
             # Current player as trg elmt
             # target_tensor = world[1].unsqueeze(-1).type(torch.LongTensor).to(self.device)
@@ -891,19 +1027,42 @@ class SupervisedTrainer():
             # model_action = model_action[:,0]
             supervised_action = supervised_action.to(self.device)
 
-            # loss = self.criterion(model_action, supervised_action.squeeze(-1))
-            loss = self.criterion(model_action.squeeze(1), supervised_action.squeeze(-1))
+            if self.pretrain :
+                loss, time_distance, pick_distance, drop_distance, correct_loaded, correct_available = self.pretrain_loss(model_action, prior_kwlg)
+                total += supervised_action.size(0)
+                running_loss += loss.item()
+                mean_time_distance += time_distance
+                mean_pick_distance += pick_distance
+                mean_drop_distance += drop_distance
+                mean_correct_loaded += correct_loaded
+                mean_correct_available += correct_available
+                correct += (correct_available + correct_loaded)/2
+                y_pred = y_pred + [0]
+                y_sup = y_sup + [0]
+            else :
+                loss = self.criterion(model_action.squeeze(1), supervised_action.squeeze(-1))
+                total += supervised_action.size(0)
+                correct += np.sum((model_action.squeeze(1).argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
+                running_loss += loss.item()
 
-            y_pred = y_pred +model_action.squeeze(1).argmax(dim=-1).flatten().tolist()
-            y_sup = y_sup + supervised_action.squeeze(-1).tolist()
-
-            total += supervised_action.size(0)
-            correct += np.sum((model_action.squeeze(1).argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
-            running_loss += loss.item()
+                y_pred = y_pred +model_action.squeeze(1).argmax(dim=-1).flatten().tolist()
+                y_sup = y_sup + supervised_action.squeeze(-1).tolist()
 
             # Limit train passage to 20 rounds
             if i == 40:
                 break
+
+        if self.pretrain :
+            self.pretrain_log('Pretrain test',
+                              mean_time_distance,
+                              mean_pick_distance,
+                              mean_drop_distance,
+                              mean_correct_loaded,
+                              mean_correct_available,
+                              total)
+
+        eval_acc = 100 * correct/total
+        eval_loss = running_loss/total
 
         cf_matrix = confusion_matrix(y_sup, y_pred)
         #Calculate metrics for each label, and find their average weighted by support (the number of true instances for each label).
@@ -913,12 +1072,9 @@ class SupervisedTrainer():
         #Calculate metrics for each label, and find their unweighted mean. This does not take label imbalance into account.
         f1_metric2 = f1_score(y_sup, y_pred, average='macro')
 
-        eval_acc = 100 * correct/total
-        eval_loss = running_loss/total
-
         print('\t-->' + eval_name + 'Réussite: ', eval_acc, '%')
-        print('\t-->' + eval_name + 'Loss:', running_loss/total)
         print('\t-->' + eval_name + 'F1 :', f1_metric)
+        print('\t-->' + eval_name + 'Loss:', running_loss/total)
 
         # Model saving. Condition: Better accuracy and better loss
         if saving and full_test and (eval_acc > self.best_eval_metric[0] or ( eval_acc == self.best_eval_metric[0] and eval_loss <= self.best_eval_metric[1] )):

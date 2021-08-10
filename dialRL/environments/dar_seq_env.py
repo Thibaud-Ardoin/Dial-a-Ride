@@ -295,6 +295,10 @@ class DarSeqEnv(DarEnv):
                                         len(driver.loaded),
                                         driver.max_capacity - len(driver.loaded)] + driver.get_trunk())) for driver in self.drivers]
 
+            # Nex available: time[3] #1xd
+            # can aim: targets[2] # t
+            # distance driver to target elements: target[4, 5] t
+            # loaded: drivers[2] d
             return world, targets, drivers, positions, time_constraint
 
         elif self.rep_type=='17':
@@ -321,6 +325,40 @@ class DarSeqEnv(DarEnv):
                                         len(driver.loaded),
                                         driver.max_capacity - len(driver.loaded)] + driver.get_trunk())) for driver in self.drivers]
             return world, targets, drivers, positions, time_constraint
+
+        elif self.rep_type=='18':
+            # Depot (2dim), targets (T x 4dim), drivers (D x 2dim)
+            positions = [np.float64(self.depot_position),
+                         [np.concatenate([target.pickup, target.dropoff]).astype(np.float64) for target in self.targets],
+                         [np.float64(driver.position) for driver in self.drivers]]
+
+            time_constraint = [np.float64(self.time_step),
+                               [np.concatenate([target.start_fork, target.end_fork]).astype(np.float64) for target in self.targets],
+                               ]
+
+            world = list(map(np.float64, [self.current_player,
+                                     self.current_player]))
+
+            targets = [list(map(np.float64, [target.identity,
+                       target.state])) for target in self.targets]
+
+            drivers = [list(map(np.float64, [driver.identity,
+                                        driver.max_capacity] + driver.get_trunk())) for driver in self.drivers]
+
+            prior_kwlg = [
+                [[np.float64(driver.next_available_time),
+                  np.float64(len(driver.loaded))] for driver in self.drivers],                    # Driver info
+                [[np.float64(self.drivers[self.current_player - 1].can_aim(target, self.time_step)),
+                  np.float64(distance(self.drivers[self.current_player - 1].position, target.pickup)),
+                  np.float64(distance(self.drivers[self.current_player - 1].position, target.dropoff))] for target in self.targets], #Target x current driver info
+                        ]
+            #[[(time+int)xd], [(bool+dist*2]xt]
+
+            # Nex available: time[3] #1xd
+            # can aim: targets[2] # t
+            # distance driver to target elements: target[4, 5] t
+            # loaded: drivers[2] d
+            return world, targets, drivers, positions, time_constraint, prior_kwlg
 
         # elif self.rep_type=='18':
         #     #
