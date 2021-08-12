@@ -40,7 +40,7 @@ class SelfAttention(nn.Module):
         # Einsum does matrix mult. for query*keys for each training example
         # with every other training example, don't be confused by einsum
         # it's just how I like doing matrix multiplication & bmm
-        
+
         energy = torch.einsum("nqhd,nkhd->nhqk", [queries, keys])
         # queries shape: (N, query_len, heads, heads_dim),
         # keys shape: (N, key_len, heads, heads_dim)
@@ -436,6 +436,13 @@ class Trans19(nn.Module):
                 max_time,
                 image_size
         )
+
+        # Freezing stuff
+        if not pretrain:
+            self.encoder.requires_grad = False
+            self.multiout.requires_grad = False
+        else :
+            self.classifier.requires_grad = False
 
         self.src_pad_idx = src_pad_idx
         self.trg_pad_idx = trg_pad_idx

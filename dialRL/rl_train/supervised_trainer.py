@@ -107,19 +107,19 @@ class SupervisedTrainer():
             self.encoder_bn=True
             self.rep_type = '17'
             self.model='Trans17'
-            self.typ = self.typ - 3
+            self.emb_typ = self.typ - 3
         elif self.typ in [23, 24, 25]:
             self.encoder_bn=True
             self.decoder_bn=True
             self.rep_type = '17'
             self.model='Trans17'
-            self.typ = self.typ - 6
+            self.emb_typ = self.typ - 6
         elif self.typ in [26]:
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = self.typ
+            self.emb_typ = self.typ
         elif self.typ in [27]:
             # 2 layer + 0 output
             self.classifier_type = 2
@@ -127,7 +127,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [28]:
             # 2 layer + mixing dimentions
             self.classifier_type = 3
@@ -135,7 +135,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [29]:
             # On layer + 0 dim as output
             self.classifier_type = 4
@@ -143,7 +143,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [30]:
             # On layer + mixer layer
             self.classifier_type = 5
@@ -151,7 +151,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [31]:
             # 1 layer + driver output
             self.classifier_type = 6
@@ -159,7 +159,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [32]:
             # 1 layer + driver output (but with a shift that should be better)
             self.classifier_type = 7
@@ -167,7 +167,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [33]:
             # 1 layer with all infformation concatenated
             self.classifier_type = 8
@@ -175,7 +175,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [34]:
             # one Autotransformer + 1 layer with all infformation concatenated
             self.classifier_type = 9
@@ -183,7 +183,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [35]:
             # 1 layer with 4 last vectors of transformer concatenated
             self.classifier_type = 10
@@ -191,7 +191,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [36]:
             # 4 last encoder vectors + flatten in 1 layer
             self.classifier_type = 11
@@ -199,7 +199,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [37]:
             # 32 but with batch norm in encoder
             self.classifier_type = 7
@@ -207,7 +207,7 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
         elif self.typ in [38]:
             # Adding the last 4 layers, concatenated as in 33
             self.classifier_type = 12
@@ -215,17 +215,17 @@ class SupervisedTrainer():
             self.decoder_bn=False
             self.rep_type = '16'
             self.model='Trans18'
-            self.typ = 26
+            self.emb_typ = 26
 
         # Pre Train module now
         elif self.typ in [40]:
             # Take as 38 ?
             self.classifier_type = 12
+            self.emb_typ = 40
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '18'
             self.model='Trans19'
-            self.typ = 40
         else :
             raise "Find your own typ men"
 
@@ -351,7 +351,7 @@ class SupervisedTrainer():
                                                  num_layers=self.num_layers,
                                                  heads=self.heads,
                                                  forward_expansion=self.forward_expansion,
-                                                 typ=self.typ,
+                                                 typ=self.emb_typ,
                                                  max_time=int(self.env.time_end)).to(self.device).double()
         elif self.model=='Trans17':
             self.model = globals()[self.model](src_vocab_size=50000,
@@ -366,7 +366,7 @@ class SupervisedTrainer():
                                                  num_layers=self.num_layers,
                                                  heads=self.heads,
                                                  forward_expansion=self.forward_expansion,
-                                                 typ=self.typ,
+                                                 typ=self.emb_typ,
                                                  max_time=int(self.env.time_end),
                                                  encoder_bn=self.encoder_bn,
                                                  decoder_bn=self.decoder_bn).to(self.device).double()
@@ -383,7 +383,7 @@ class SupervisedTrainer():
                                                  num_layers=self.num_layers,
                                                  heads=self.heads,
                                                  forward_expansion=self.forward_expansion,
-                                                 typ=self.typ,
+                                                 typ=self.emb_typ,
                                                  max_time=int(self.env.time_end),
                                                  classifier_type=self.classifier_type,
                                                  encoder_bn=self.encoder_bn,
@@ -401,7 +401,7 @@ class SupervisedTrainer():
                                                  num_layers=self.num_layers,
                                                  heads=self.heads,
                                                  forward_expansion=self.forward_expansion,
-                                                 typ=self.typ,
+                                                 typ=self.emb_typ,
                                                  max_time=int(self.env.time_end),
                                                  classifier_type=self.classifier_type,
                                                  encoder_bn=self.encoder_bn,
@@ -424,6 +424,13 @@ class SupervisedTrainer():
         if self.pretrain :
             self.dist_criterion = nn.L1Loss()
             self.class_criterion = nn.CrossEntropyLoss()
+
+        # ic(self.model.parameters())
+        # for pa in self.model.parameters():
+        #     ic(pa)
+        # for chi in self.model.named_children():
+        #     ic(chi)
+        # exit()
 
         # optimizer
         if self.optimizer == 'Adam':
@@ -687,7 +694,7 @@ class SupervisedTrainer():
 
             observation, supervised_action = data
 
-            if self.pretrain :
+            if self.typ >= 40 :
                 world, targets, drivers, positions, time_constraints, prior_kwlg = observation
             else :
                 world, targets, drivers, positions, time_constraints = observation
@@ -1025,7 +1032,7 @@ class SupervisedTrainer():
         for i, data in enumerate(dataloader):
             observation, supervised_action = data
 
-            if self.pretrain :
+            if self.emb_typ >= 40 :
                 world, targets, drivers, positions, time_constraints, prior_kwlg = observation
             else :
                 world, targets, drivers, positions, time_constraints = observation
@@ -1149,19 +1156,24 @@ class SupervisedTrainer():
         observation = self.dataset_env.reset()
         total_reward = 0
         while not done:
-            world, targets, drivers, positions, time_contraints = observation
-            w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
-            t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
-            d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
-            info_block = [w_t, t_t, d_t]
+            if self.emb_typ >= 40 :
+                world, targets, drivers, positions, time_contraints, prior_kwlg = observation
+                time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]]]
+            else :
+                world, targets, drivers, positions, time_contraints = observation
+                time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
+                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
 
             positions = [torch.tensor([positions[0]], dtype=torch.float64),
                          [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
                          [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
 
-            time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
-                         [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
-                         [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
+            w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
+            t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
+            d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
+            info_block = [w_t, t_t, d_t]
 
             target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
 
@@ -1249,19 +1261,24 @@ class SupervisedTrainer():
             last_time = 0
 
             while not done:
-                world, targets, drivers, positions, time_contraints = observation
-                w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
-                t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
-                d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
-                info_block = [w_t, t_t, d_t]
+                if self.emb_typ >= 40 :
+                    world, targets, drivers, positions, time_contraints, prior_kwlg = observation
+                    time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                                 [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]]]
+                else :
+                    world, targets, drivers, positions, time_contraints = observation
+                    time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                                 [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
+                                 [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
 
                 positions = [torch.tensor([positions[0]], dtype=torch.float64),
                              [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
                              [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
 
-                time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
-                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
-                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
+                w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
+                t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
+                d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
+                info_block = [w_t, t_t, d_t]
 
                 if self.typ in [17, 18, 19]:
                     target_tensor = w_t

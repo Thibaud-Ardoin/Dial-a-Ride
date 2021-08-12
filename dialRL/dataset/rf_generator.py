@@ -168,10 +168,10 @@ class RFGenerator():
             print('\t ** Solution N° ', i,' searching with RF Started for: ', instance_file_name)
             if not self.verbose:
                 sys.stdout = open('test_file.out', 'w')
-            # try :
-            solution_file, perf, l_bound = run_rf_algo('0')
-            # except:
-                # print('ERROR in RUN RF ALGO. PASSING THROUGH')
+            try :
+                solution_file, perf, l_bound = run_rf_algo('0')
+            except:
+                print('ERROR in RUN RF ALGO. PASSING THROUGH')
             if not self.verbose :
                 sys.stdout = sys.__stdout__
 
