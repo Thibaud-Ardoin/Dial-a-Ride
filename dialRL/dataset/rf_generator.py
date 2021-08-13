@@ -5,7 +5,7 @@ from dialRL.strategies.external.darp_rf.run_rf_algo import run_rf_algo
 from dialRL.utils import get_device, objdict, SupervisionDataset
 from dialRL.utils.reward_functions import  *
 
-from torch.utils.data import ConcatDataset
+from torch.utils.data import ConcatDataset, ChainDataset
 import os
 import torch
 import sys
@@ -80,6 +80,8 @@ class RFGenerator():
 
     def load_dataset(self):
         files_names = os.listdir(self.saving_name)
+        return [self.saving_name + file for file in os.listdir(self.saving_name)]
+
         datasets = []
         for file in files_names:
             print('Datafile folder:', self.saving_name)

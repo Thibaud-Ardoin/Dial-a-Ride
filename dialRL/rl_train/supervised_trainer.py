@@ -299,6 +299,8 @@ class SupervisedTrainer():
             f.close()
 
         self.best_eval_metric = [0, 1000, 300, 300] # accuracy + loss + dataset GAP + online GAP
+        self.train_rounds = 40
+        self.partial_data_state=0
         self.nb_target = self.env.target_population
         self.nb_drivers = self.env.driver_population
         self.image_size = self.env.size
@@ -591,13 +593,14 @@ class SupervisedTrainer():
         self.data_part = 0
 
         def load_dataset():
-            files_names = os.listdir(saving_name)
-            datasets = []
-            for file in files_names:
-                print('Datafile folder:', saving_name)
-                print(file)
-                datasets.append(torch.load(saving_name + file))
-            return ConcatDataset(datasets)
+            return [saving_name + file for file in os.listdir(saving_name)]
+            # files_names = os.listdir(saving_name)
+            # datasets = []
+            # for file in files_names:
+            #     print('Datafile folder:', saving_name)
+            #     print(file)
+            #     datasets.append(torch.load(saving_name + file))
+            # return ConcatDataset(datasets)
 
         def partial_name(size):
             name = saving_name + '/dataset_elementN' + str(self.data_part) + '_size' + str(size) + '.pt'
@@ -607,10 +610,10 @@ class SupervisedTrainer():
         if os.path.isdir(saving_name) :
             print('This data is already out there !')
             dataset = load_dataset()
-            for data in dataset:
-                o, a = data
-                action_counter[a] += 1
-            self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
+            # for data in dataset:
+            #     o, a = data
+            #     action_counter[a] += 1
+            # self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
             return dataset
         else :
             os.makedirs(saving_name)
@@ -658,6 +661,10 @@ class SupervisedTrainer():
 
             if element % 1000 == 0:
                 print('Generating data... [{i}/{ii}] memorry:{m}'.format(i=last_save_size + len(data), ii=self.data_size, m=sys.getsizeof(data)))
+
+        train_data = SupervisionDataset(data)
+        name = partial_name(len(data))
+        torch.save(train_data, name)
 
         print('Done Generating !')
         self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
@@ -768,7 +775,7 @@ class SupervisedTrainer():
             # update the gradients
             self.optimizer.step()
 
-            if i == 20:
+            if i == self.train_rounds:
                 break
 
         acc = 100 * correct/total
@@ -894,6 +901,140 @@ class SupervisedTrainer():
             self.sacred.get_logger().report_scalar(title='Train stats',
                 series='Train accuracy', value=acc, iteration=self.current_epoch)
 
+    def load_partial_data(self):
+        if len(self.dataset_names) > 10:
+            part_size = len(self.dataset_names) // 10
+            files_names = self.dataset_names[self.partial_data_state*part_size:(self.partial_data_state+1)*part_size - 1]
+            ic(len(files_names))
+        else :
+            files_names = self.dataset_names
+        datasets = []
+        for file in files_names:
+            print('Datafile folder:', file)
+            datasets.append(torch.load(file))
+        self.partial_data_state += 1
+        self.partial_data_state = self.partial_data_state % 10
+        return ConcatDataset(datasets)
+
+    def updating_data(self):
+        if self.current_epoch == 0 :
+            # First time (generate) and get files names of the data
+            if self.supervision_function == 'rf':
+                self.dataset_names = self.supervision.generate_dataset()
+            elif self.pretrain :
+                self.dataset_names = self.generate_supervision_data()
+            else :
+                self.dataset_names = self.generate_supervision_data()
+
+        ic(len(self.dataset_names))
+        # Load a 10th of the data
+        dataset = self.load_partial_data()
+
+        # Take care of the loaded dataset part to
+        if self.supervision_function == 'rf':
+            if self.balanced_dataset == 1 :
+                action_counter = np.zeros(self.vocab_size + 1)
+                data_list = []
+                for i in range(self.vocab_size + 1):
+                    data_list.append([])
+                for data in dataset:
+                    o, a = data
+                    action_counter[a] += 1
+                    data_list[a].append(data)
+
+                min_nb = int(min(action_counter[action_counter > 0]))
+                fin_data = []
+                for i in range(len(action_counter)):
+                    if action_counter[i] > 0:
+                        fin_data = fin_data + data_list[i][:min_nb]
+
+                dataset = SupervisionDataset(fin_data)
+
+            elif self.balanced_dataset == 2 :
+                # Over sampling method
+                action_counter = np.zeros(self.vocab_size + 1)
+                data_list = []
+                for i in range(self.vocab_size + 1):
+                    data_list.append([])
+                for data in dataset:
+                    o, a = data
+                    action_counter[a] += 1
+                    data_list[a].append(data)
+
+                min_nb = int(min(action_counter[action_counter > 0]))
+                max_nb = int(max(action_counter[action_counter > 0]))
+                fin_data = []
+                for i in range(len(action_counter)):
+                    if action_counter[i] < max_nb and action_counter[i] > 0:
+                        for j in range(int(max_nb/min_nb)) :
+                            fin_data = fin_data + data_list[i]
+                ic(len(fin_data))
+                ic(len(fin_data)/max_nb)
+                ic(len(action_counter))
+                dataset = SupervisionDataset(fin_data)
+
+            # If not balanced, weight the cross entropy respectivly to min_size/size
+            else :
+                action_counter = np.zeros(self.vocab_size + 1)
+                for data in dataset:
+                    o, a = data
+                    action_counter[a] += 1
+                min_nb = int(min(action_counter[action_counter > 0]))
+                max_nb = int(max(action_counter[action_counter > 0]))
+                action_counter[action_counter == 0] = min_nb
+                ic(min_nb/max_nb)
+                ic(max_nb/action_counter)
+                weights = max_nb/action_counter
+                if self.balanced_dataset == 3 :
+                    weights[0] = 0.5
+                elif self.balanced_dataset == 4 :
+                    weights[0] = 0.9
+                self.criterion.weight = torch.from_numpy(max_nb/action_counter).to(self.device)
+
+            # Divide the dataset into a validation and a training set.
+            dataset_size = len(dataset)
+            indices = list(range(dataset_size))
+            split = int(np.floor(0.1 * dataset_size))
+            # if self.shuffle and False :
+            #     np.random.shuffle(indices)
+            train_indices, val_indices = indices[split:], indices[:split]
+            if self.shuffle :
+                np.random.shuffle(train_indices)
+                np.random.shuffle(val_indices)
+
+            # Creating PT data samplers and loaders:
+            train_sampler = SubsetRandomSampler(train_indices)
+            valid_sampler = SubsetRandomSampler(val_indices)
+
+            supervision_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+                                                       sampler=train_sampler)
+            validation_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+                                                        sampler=valid_sampler)
+        elif self.pretrain :
+            dataset_size = len(dataset)
+            indices = list(range(dataset_size))
+            split = int(np.floor(0.1 * dataset_size))
+            train_indices, val_indices = indices[split:], indices[:split]
+            if self.shuffle :
+                np.random.shuffle(train_indices)
+                np.random.shuffle(val_indices)
+            train_sampler = SubsetRandomSampler(train_indices)
+            valid_sampler = SubsetRandomSampler(val_indices)
+            supervision_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+                                                       sampler=train_sampler)
+            validation_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+                                                        sampler=valid_sampler)
+        else :
+            for data in dataset:
+                o, a = data
+                action_counter[a] += 1
+            self.criterion.weight = torch.from_numpy(action_counter).to(self.device)
+            supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+            validation_data = DataLoader([], batch_size=self.batch_size, shuffle=self.shuffle)
+
+        return supervision_data,  validation_data
+
+
 
 
     def run(self):
@@ -902,129 +1043,23 @@ class SupervisedTrainer():
             (Eventually generate data)
             Train and evaluate
         """
-        if self.rl :
-            if self.supervision_function == 'rf':
-                dataset = self.supervision.generate_dataset()
-
-                if self.balanced_dataset == 1 :
-                    action_counter = np.zeros(self.vocab_size + 1)
-                    data_list = []
-                    for i in range(self.vocab_size + 1):
-                        data_list.append([])
-                    for data in dataset:
-                        o, a = data
-                        action_counter[a] += 1
-                        data_list[a].append(data)
-
-                    min_nb = int(min(action_counter[action_counter > 0]))
-                    fin_data = []
-                    for i in range(len(action_counter)):
-                        if action_counter[i] > 0:
-                            fin_data = fin_data + data_list[i][:min_nb]
-
-                    dataset = SupervisionDataset(fin_data)
-
-                elif self.balanced_dataset == 2 :
-                    # Over sampling method
-                    action_counter = np.zeros(self.vocab_size + 1)
-                    data_list = []
-                    for i in range(self.vocab_size + 1):
-                        data_list.append([])
-                    for data in dataset:
-                        o, a = data
-                        action_counter[a] += 1
-                        data_list[a].append(data)
-
-                    min_nb = int(min(action_counter[action_counter > 0]))
-                    max_nb = int(max(action_counter[action_counter > 0]))
-                    fin_data = []
-                    for i in range(len(action_counter)):
-                        if action_counter[i] < max_nb and action_counter[i] > 0:
-                            for j in range(int(max_nb/min_nb)) :
-                                fin_data = fin_data + data_list[i]
-                    ic(len(fin_data))
-                    ic(len(fin_data)/max_nb)
-                    ic(len(action_counter))
-                    dataset = SupervisionDataset(fin_data)
-
-                # If not balanced, weight the cross entropy respectivly to min_size/size
-                else :
-                    action_counter = np.zeros(self.vocab_size + 1)
-                    for data in dataset:
-                        o, a = data
-                        action_counter[a] += 1
-                    min_nb = int(min(action_counter[action_counter > 0]))
-                    max_nb = int(max(action_counter[action_counter > 0]))
-                    action_counter[action_counter == 0] = min_nb
-                    ic(min_nb/max_nb)
-                    ic(max_nb/action_counter)
-                    weights = max_nb/action_counter
-                    if self.balanced_dataset == 3 :
-                        weights[0] = 0.5
-                    elif self.balanced_dataset == 4 :
-                        weights[0] = 0.9
-                    self.criterion.weight = torch.from_numpy(max_nb/action_counter).to(self.device)
-
-                # Divide the dataset into a validation and a training set.
-                dataset_size = len(dataset)
-                indices = list(range(dataset_size))
-                split = int(np.floor(0.1 * dataset_size))
-                # if self.shuffle and False :
-                #     np.random.shuffle(indices)
-                train_indices, val_indices = indices[split:], indices[:split]
-                if self.shuffle :
-                    np.random.shuffle(train_indices)
-                    np.random.shuffle(val_indices)
-
-                # Creating PT data samplers and loaders:
-                train_sampler = SubsetRandomSampler(train_indices)
-                valid_sampler = SubsetRandomSampler(val_indices)
-                # from itertools import chain
-                # from iteration_utilities import deepflatten
-
-                # for d in dataset:
-                #     i=list(deepflatten(d[0][1]))
-                #     for elmt in i:
-                #         if type(elmt) == np.float64 :
-                #             pass
-                #         else :
-                #             ic(elmt)
-                #             ic(type(elmt))
-
-                supervision_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
-                                                           sampler=train_sampler)
-                validation_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
-                                                            sampler=valid_sampler)
-            elif self.pretrain :
-                dataset = self.generate_supervision_data()
-                dataset_size = len(dataset)
-                indices = list(range(dataset_size))
-                split = int(np.floor(0.1 * dataset_size))
-                train_indices, val_indices = indices[split:], indices[:split]
-                if self.shuffle :
-                    np.random.shuffle(train_indices)
-                    np.random.shuffle(val_indices)
-                train_sampler = SubsetRandomSampler(train_indices)
-                valid_sampler = SubsetRandomSampler(val_indices)
-                supervision_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
-                                                           sampler=train_sampler)
-                validation_data = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
-                                                            sampler=valid_sampler)
-
-            else :
-                dataset = self.generate_supervision_data()
-                supervision_data = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
-
+        round_counter = 1e6 // (self.train_rounds -1)
         print('\t ** Learning START ! **')
-
-        done = True
         for epoch in range(self.epochs):
             self.current_epoch = epoch
+
+            # Every million visits update the dataset
+            if round_counter * self.batch_size * self.train_rounds > 1e6:
+                supervision_data, validation_data = self.updating_data()
+                round_counter = 0
+
+            # Train
             if self.rl <= epoch:
                 self.rl_train()
             else :
                 self.train(supervision_data)
 
+            # Evaluate
             if self.supervision_function == 'rf':
                 if self.pretrain:
                     self.offline_evaluation(validation_data, saving=True)
@@ -1039,6 +1074,8 @@ class SupervisedTrainer():
                     self.online_evaluation()
                     if self.dataset:
                         self.online_evaluation(full_test=False)
+
+            round_counter +=1
 
         print('\t ** Learning DONE ! **')
 
@@ -1112,7 +1149,7 @@ class SupervisedTrainer():
                 y_sup = y_sup + supervised_action.squeeze(-1).tolist()
 
             # Limit train passage to 20 rounds
-            if i == 40:
+            if i == 20:
                 break
 
         if self.pretrain :
