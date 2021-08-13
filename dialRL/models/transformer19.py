@@ -389,7 +389,8 @@ class Trans19(nn.Module):
         decoder_bn=False,
         max_capacity=3,
         image_size=10,
-        pretrain=False
+        pretrain=False,
+        unfreezing_strat=1
     ):
 
         super(Trans19, self).__init__()
@@ -421,25 +422,28 @@ class Trans19(nn.Module):
             decoder_bn
         )
         self.multiout = MultiOutput(
-                src_vocab_size,
-                trg_vocab_size,
-                embed_size,
-                num_layers,
-                heads,
-                self.device,
-                classifier_type,
-                dropout,
-                max_length,
-                typ,
-                decoder_bn,
-                max_capacity,
-                max_time,
-                image_size
+            src_vocab_size,
+            trg_vocab_size,
+            embed_size,
+            num_layers,
+            heads,
+            self.device,
+            classifier_type,
+            dropout,
+            max_length,
+            typ,
+            decoder_bn,
+            max_capacity,
+            max_time,
+            image_size
         )
 
         # Freezing stuff
-        if not pretrain:
+        if (not pretrain) and unfreezing_strat == 1:
             self.encoder.requires_grad = False
+            self.multiout.requires_grad = False
+        elif (not pretrain) and unfreezing_strat == 2:
+            self.encoder.requires_grad = True
             self.multiout.requires_grad = False
         else :
             self.classifier.requires_grad = False

@@ -225,7 +225,37 @@ class SupervisedTrainer():
             self.encoder_bn=False
             self.decoder_bn=False
             self.rep_type = '18'
+            self.unfreezing_strat=1
             self.model='Trans19'
+        elif self.typ in [41]:
+            # Take as 38 + Unfreeze all
+            self.classifier_type = 12
+            self.emb_typ = 40
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '18'
+            self.unfreezing_strat = 2
+            self.model='Trans19'
+        elif self.typ in [42]:
+            # Take as 34
+            self.classifier_type = 9
+            self.emb_typ = 40
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '18'
+            self.unfreezing_strat = 1
+            self.model='Trans19'
+        elif self.typ in [43]:
+            # Take as 34 + unfreeze all
+            self.classifier_type = 9
+            self.emb_typ = 40
+            self.encoder_bn=False
+            self.decoder_bn=False
+            self.rep_type = '18'
+            self.unfreezing_strat = 2
+            self.model='Trans19'
+
+
         else :
             raise "Find your own typ men"
 
@@ -408,7 +438,8 @@ class SupervisedTrainer():
                                                  decoder_bn=self.decoder_bn,
                                                  max_capacity=self.env.max_capacity,
                                                  image_size=self.image_size,
-                                                 pretrain=self.pretrain).to(self.device).double()
+                                                 pretrain=self.pretrain,
+                                                 unfreezing_strat=self.unfreezing_strat).to(self.device).double()
         else :
             raise "self.model in PPOTrainer is not found"
 
@@ -449,7 +480,10 @@ class SupervisedTrainer():
         # Checkpoint
         if self.checkpoint_dir :
             print(' -- -- -- -- -- Loading  -- -- -- -- -- --')
-            self.model.load_state_dict(torch.load(self.rootdir + '/data/rl_experiments/' + self.checkpoint_dir).state_dict())
+            if self.typ >= 40 :
+                self.model.load_state_dict(torch.load(self.rootdir + '/data/rl_experiments/' + self.checkpoint_dir).state_dict(), strict=False)
+            else:
+                self.model.load_state_dict(torch.load(self.rootdir + '/data/rl_experiments/' + self.checkpoint_dir).state_dict())
             print(' -- The model weights has been loaded ! --')
             print(' -----------------------------------------')
 
