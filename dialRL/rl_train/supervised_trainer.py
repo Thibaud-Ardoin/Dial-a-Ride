@@ -1049,7 +1049,10 @@ class SupervisedTrainer():
             self.current_epoch = epoch
 
             # Every million visits update the dataset
-            if round_counter * self.batch_size * self.train_rounds > 1e6:
+            if round_counter * self.batch_size * self.train_rounds > self.data_size // 10:
+                if 'supervision_data' in locals():
+                    del supervision_data
+                    del validation_data
                 supervision_data, validation_data = self.updating_data()
                 round_counter = 0
 
