@@ -903,7 +903,7 @@ class SupervisedTrainer():
 
     def load_partial_data(self):
         if len(self.dataset_names) > 10:
-            part_size = len(self.dataset_names) // 10
+            part_size = len(self.dataset_names) // 20
             files_names = self.dataset_names[self.partial_data_state*part_size:(self.partial_data_state+1)*part_size - 1]
             ic(len(files_names))
         else :
@@ -1049,7 +1049,7 @@ class SupervisedTrainer():
             self.current_epoch = epoch
 
             # Every million visits update the dataset
-            if round_counter * self.batch_size * self.train_rounds > self.data_size // 10:
+            if round_counter * self.batch_size * self.train_rounds > self.data_size // 20:
                 if 'supervision_data' in locals():
                     del supervision_data
                     del validation_data
