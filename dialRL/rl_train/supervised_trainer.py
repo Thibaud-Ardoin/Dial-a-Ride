@@ -640,7 +640,7 @@ class SupervisedTrainer():
 
                 if sys.getsizeof(data) > 100000: #200k bytes.
                     last_save_size += len(data)
-                    train_data = SupervisionDataset(data)
+                    train_data = SupervisionDataset(data, augment=self.augmentation, typ=self.typ)
                     name = partial_name(len(data))
                     torch.save(train_data, name)
                     data = []
@@ -662,7 +662,7 @@ class SupervisedTrainer():
             if element % 1000 == 0:
                 print('Generating data... [{i}/{ii}] memorry:{m}'.format(i=last_save_size + len(data), ii=self.data_size, m=sys.getsizeof(data)))
 
-        train_data = SupervisionDataset(data)
+        train_data = SupervisionDataset(data, augment=self.augmentation, typ=self.typ)
         name = partial_name(len(data))
         torch.save(train_data, name)
 
@@ -858,7 +858,7 @@ class SupervisedTrainer():
             rewards.append(reward)
             step += 1
 
-        train_data = SupervisionDataset(final_data)
+        train_data = SupervisionDataset(final_data, augment=self.augmentation, typ=self.typ)
         return train_data
 
 
@@ -948,7 +948,7 @@ class SupervisedTrainer():
                     if action_counter[i] > 0:
                         fin_data = fin_data + data_list[i][:min_nb]
 
-                dataset = SupervisionDataset(fin_data)
+                dataset = SupervisionDataset(fin_data, augment=self.augmentation, typ=self.typ)
 
             elif self.balanced_dataset == 2 :
                 # Over sampling method
@@ -971,7 +971,7 @@ class SupervisedTrainer():
                 ic(len(fin_data))
                 ic(len(fin_data)/max_nb)
                 ic(len(action_counter))
-                dataset = SupervisionDataset(fin_data)
+                dataset = SupervisionDataset(fin_data, augment=self.augmentation, typ=self.typ)
 
             # If not balanced, weight the cross entropy respectivly to min_size/size
             else :
@@ -990,6 +990,7 @@ class SupervisedTrainer():
                 elif self.balanced_dataset == 4 :
                     weights[0] = 0.9
                 self.criterion.weight = torch.from_numpy(max_nb/action_counter).to(self.device)
+                dataset = SupervisionDataset(dataset, augment=self.augmentation, typ=self.typ)
 
             # Divide the dataset into a validation and a training set.
             dataset_size = len(dataset)

@@ -67,6 +67,7 @@ def get_args(args):
     parser.add_argument('--tag', default='', type=str)
     parser.add_argument('--pretrain', default=0, type=int)
     parser.add_argument('--datadir', default='', type=str)
+    parser.add_argument('--augmentation', default=1, type=int)
 
     return parser.parse_known_args(args)[0]
 

@@ -41,6 +41,7 @@ class RFGenerator():
         self.verbose = params.verbose
         self.datadir = params.datadir
         self.typ = params.typ
+        self.augment = params.augmentation
         self.reward_function =  globals()[params.reward_function]()
         self.last_save_size = 0
         self.data_part = 1
@@ -212,7 +213,7 @@ class RFGenerator():
                 # If current data list is big enough, save it as a dataset_element.
                 if sys.getsizeof(data) > 100000: #200k bytes.
                     self.last_save_size += len(data)
-                    train_data = SupervisionDataset(data)
+                    train_data = SupervisionDataset(data, augment=self.augment, typ=self.typ)
                     saving_name = self.partial_name(len(data))
                     torch.save(train_data, saving_name)
                     data = []
@@ -222,7 +223,7 @@ class RFGenerator():
                 print('Generating data... [{i}/{ii}] memorry:{m}'.format(i=self.last_save_size + len(data), ii=self.data_size, m=sys.getsizeof(data)))
 
         if len(data) > 0 :
-            train_data = SupervisionDataset(data)
+            train_data = SupervisionDataset(data, augment=self.augment, typ=self.typ)
             saving_name = self.partial_name(len(data))
             torch.save(train_data, saving_name)
             print('Last data element in ', self.saving_name)
