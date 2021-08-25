@@ -34,6 +34,9 @@ class SupervisionDataset(Dataset):
 
 
     def pos_augmentation(self, positions):
+        ''' Transposing all popsition information by a 2D vectors in [-1,1]²
+            In addition the 2D points are rotated by a random value [-pi, pi]
+        '''
         depot, targets, drivers = positions
 
         get_rot = lambda theta: torch.tensor([[torch.cos(theta*np.pi), -torch.sin(theta*np.pi)],
@@ -55,9 +58,25 @@ class SupervisionDataset(Dataset):
 
 
     def time_augmentation(self, time):
-        return time
-        ic(time)
-        current, targets = time
+        ''' Shifting all time information by a random amount
+            This transposition value is in [0, 10]
+            half of the time it's rounded to an integer
+        '''
+        current, targets, drivers = time
+
+        rand1, rand2 = torch.rand(2)
+        trsp = rand1 * 10
+        if rand2 > 0.5:
+            trsp = torch.round(trsp)
+
+        aug4d = lambda tem: torch.from_numpy(tem) + trsp
+        aug1d = lambda tem: tem + trsp
+
+        current = aug1d(current)
+        targets = list(map(aug4d, targets))
+        drivers = list(map(aug1d, drivers))
+
+        return [current, targets, drivers]
 
 
     def __getitem__(self, idx):
