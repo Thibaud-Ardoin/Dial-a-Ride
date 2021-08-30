@@ -18,9 +18,10 @@ from dialRL.utils.utils import (image_coordonates2indices,
                                 trans25_coord2int,
                                 quinconx)
 from dialRL.utils.representation import instance2Image_rep
-from dialRL.utils.reward_functions import ConstantReward, ProportionalReward, NoNegativeProportionalReward, EndReward, NoNegativeEndReward
+from dialRL.utils.reward_functions import ConstantReward, ProportionalReward, ProportionalEndReward2, NoNegativeProportionalReward, EndReward, NoNegativeEndReward
 
 __all__ = ['coord2int',
+           'ProportionalEndReward2',
            'quinconx',
            'trans25_coord2int',
            'plotting',

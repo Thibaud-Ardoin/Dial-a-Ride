@@ -79,6 +79,22 @@ class ProportionalEndReward(BaseReward):
         else :
             return 0
 
+class ProportionalEndReward2(BaseReward):
+    def __init__(self):
+        """
+        This function returns a reward of (MD - total_distance) at the end, if finished
+        according to the planed distance that the choice leads to
+        """
+        super().__init__()
+
+    def compute(self, distance, done, env):
+        if done and env.is_fit_solution() :
+            return env.total_distance
+        elif done :
+            return (env.size * env.target_population * 2)
+        else :
+            return 0
+
 
 class NoNegativeProportionalEndReward(BaseReward):
     def __init__(self):

@@ -1,4 +1,3 @@
-import gym
 import logging
 import os
 import imageio
@@ -6,6 +5,7 @@ import time
 import json
 import numpy as np
 import math
+import copy
 
 # from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 # from stable_baselines.common import make_vec_env
@@ -17,6 +17,7 @@ from clearml import Task
 from icecream import ic
 import drawSvg as draw
 import seaborn as sn
+import gym
 
 from moviepy.editor import *
 from matplotlib.image import imsave
@@ -26,6 +27,7 @@ matplotlib.use('Agg')
 
 
 from torch.utils.data import DataLoader, SubsetRandomSampler, Dataset, ConcatDataset
+from torch.distributions.categorical import Categorical
 import torch
 import torch.nn as nn
 from torch.nn.functional import softmax
@@ -489,6 +491,9 @@ class SupervisedTrainer():
             print(' -- The model weights has been loaded ! --')
             print(' -----------------------------------------')
 
+        if self.rl < 10000:
+            self.baseline_model = copy.deepcopy(self.model)
+
         # number of elements passed throgh the model for each epoch
         self.testing_size = self.batch_size * (10000 // self.batch_size)    #About 10k
         self.training_size = self.batch_size * (100000 // self.batch_size)   #About 100k
@@ -800,65 +805,109 @@ class SupervisedTrainer():
 
     def generate_rl_data(self):
         print(" - Generate ...")
-        size = 1 * self.batch_size
-        actions = []
-        supervised = []
-        rewards = []
+        size = 1 #self.batch_size
+        rl_actions = []
+        baseline_actions = []
+        rl_rewards = []
+        baseline_rewards = []
+        cathegorical_choices = []
         final_data = []
-        done = False
-        observation = self.env.reset()
         step = 0
+        file_gen = DataFileGenerator(env=self.env, out_dir=self.rootdir + '/dialRL/strategies/data/DARP_cordeau/', data_size=1)
 
         # Generate a Memory batch
+        self.model.train()
+        self.baseline_model.eval()
+        # Number of episodes
         while step < size:
 
-            if done :
-                observation = self.env.reset()
-                # ic(torch.stack(actions))
-                # ic(torch.stack(actions).sum(dim=0))
-                # ic(torch.sum(torch.tensor(rewards)))
-                final_data.append([torch.sum(torch.tensor(rewards)), torch.stack(actions).sum(dim=0).squeeze(), []])
-                # ic(final_data[-1][0].shape)
-                # ic(final_data[-1][1].shape)
-                actions = []
-                supervised = []
-                rewards = []
-                print('[{s} / {ss}]'.format(s=step, ss=size))
+            instance_file_name = file_gen.generate_file(tmp_name='rl_instance')[0]
+            reward_function = globals()[self.reward_function]()
+            self.env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
+                                 rep_type=self.rep_type, reward_function=reward_function, test_env=True, dataset=instance_file_name)
+            self.eval_env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
+                                      rep_type=self.rep_type, reward_function=reward_function, test_env=True, dataset=instance_file_name)
 
-            world, targets, drivers, positions, time_contraints = observation
-            w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
-            t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
-            d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
-            info_block = [w_t, t_t, d_t]
+            done = rl_done = baseline_done = False
+            baseline_observation = self.eval_env.reset()
+            rl_observation = self.env.reset()
 
-            positions = [torch.tensor([positions[0]], dtype=torch.float64),
-                         [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
-                         [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
+            # Run a full episode
+            while not done :
+                # Pass in learning model
+                if not rl_done:
+                    world, targets, drivers, positions, time_contraints = rl_observation
+                    w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
+                    t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
+                    d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
+                    info_block = [w_t, t_t, d_t]
 
-            time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
-                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
-                             [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
+                    positions = [torch.tensor([positions[0]], dtype=torch.float64),
+                                 [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
+                                 [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
 
-            if self.typ in [17, 18, 19]:
-                target_tensor = torch.tensor(world).unsqueeze(-1).type(torch.LongTensor).to(self.device)
-            else :
-                target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+                    time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                                     [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
+                                     [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
 
-            # supervised_action = self.supervision.action_choice()
-            # supervised_action = torch.tensor([supervised_action]).type(torch.LongTensor).to(self.device)
+                    if self.typ in [17, 18, 19]:
+                        target_tensor = torch.tensor(world).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+                    else :
+                        target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+                    rl_action = self.model(info_block,
+                                              target_tensor,
+                                              positions=positions,
+                                              times=time_contraints)
+                    bernouie_action = Categorical(softmax(rl_action)).sample()
 
-            model_action = self.model(info_block,
-                                      target_tensor,
-                                      positions=positions,
-                                      times=time_contraints)
+                    rl_observation, rl_reward, rl_done, info = self.env.step(bernouie_action)
+                    rl_actions.append(rl_action)
+                    cathegorical_choices.append(bernouie_action)
+                    rl_rewards.append(rl_reward)
 
-            observation, reward, done, info = self.env.step(model_action.squeeze(1).argmax(-1))
-            actions.append(model_action)
-            supervised.append(1)
-            rewards.append(reward)
+                # Pass in Baseline
+                if not baseline_done :
+                    world, targets, drivers, positions, time_contraints = baseline_observation
+                    w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
+                    t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
+                    d_t = [[torch.tensor([dinfo],  dtype=torch.float64) for dinfo in driver] for driver in drivers]
+                    info_block = [w_t, t_t, d_t]
+
+                    positions = [torch.tensor([positions[0]], dtype=torch.float64),
+                                 [torch.tensor([position], dtype=torch.float64) for position in positions[1]],
+                                 [torch.tensor([position], dtype=torch.float64) for position in positions[2]]]
+
+                    time_contraints = [torch.tensor([time_contraints[0]], dtype=torch.float64),
+                                     [torch.tensor([time], dtype=torch.float64) for time in time_contraints[1]],
+                                     [torch.tensor([time], dtype=torch.float64) for time in time_contraints[2]]]
+
+                    if self.typ in [17, 18, 19]:
+                        target_tensor = torch.tensor(world).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+                    else :
+                        target_tensor = torch.tensor([world[1]]).unsqueeze(-1).type(torch.LongTensor).to(self.device)
+                    baseline_action = self.baseline_model(info_block,
+                                              target_tensor,
+                                              positions=positions,
+                                              times=time_contraints)
+
+                    baseline_observation, baseline_reward, baseline_done, info = self.eval_env.step(baseline_action.squeeze(1).argmax(-1))
+                    baseline_rewards.append(baseline_reward)
+                    baseline_actions.append(baseline_action)
+
+                done = rl_done and baseline_done
+
+            # Done with episode
+            final_data.append([torch.tensor(rl_rewards).to(self.device), torch.tensor(baseline_rewards).to(self.device), torch.stack(rl_actions), torch.stack(cathegorical_choices)])
+            rl_actions = []
+            baseline_actions = []
+            baseline_rewards = []
+            cathegorical_choices = []
+            rl_rewards = []
             step += 1
+            print('Number of memoriesed episodes [{s} / {ss}]'.format(s=step, ss=size))
 
-        train_data = SupervisionDataset(final_data, augment=self.augmentation, typ=self.typ)
+        # Enough data has been collected
+        train_data = SupervisionDataset(final_data, typ=self.typ, augment=False)
         return train_data
 
 
@@ -872,34 +921,45 @@ class SupervisedTrainer():
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=self.shuffle)
 
         self.model.train()
+        self.baseline_model.eval()
         for i, data in enumerate(dataloader):
-            reward, model_action, supervised_action = data
+            rl_reward, baseline_reward, rl_actions, cathegorical_choices = data
+            cathegorical_choices = cathegorical_choices.squeeze()
 
-            # ic(softmax(model_action).log())
-            # ic(softmax(model_action).log().shape)
-            # model_action = model_action.squeeze(2)
-            # ic(reward.shape)
-            # ic(softmax(model_action).log().sum(-1).shape)
-            loss = - torch.mean(reward.to(self.device) * softmax(model_action).log().sum(-1).to(self.device))
+            sumLogProbOfActions = torch.log(torch.index_select(softmax(rl_actions),dim=-1,index=cathegorical_choices)).sum(-1)
+            rl_reward = rl_reward.sum(-1)
+            baseline_reward = baseline_reward.sum(-1)
+
+            # loss = - torch.mean(reward.to(self.device) * softmax(model_action).log().sum(-1).to(self.device))
+
+            #loop:
+            #   idx = torch.argmax(prob_next_node, dim=1)
+            #   ProbOfChoices = prob_next_node[zero_to_bsz, idx]
+            #   sumLogProbOfActions.append( torch.log(ProbOfChoices) )
+            # sumLogProbOfActions = torch.stack(sumLogProbOfActions,dim=1).sum(dim=1)
+
+            # Obj: minimiser la distance  == maximiser la (-distance)=Reward
+            # dp - dm = positif -> minimiser
+            # - (dp - dm) = dm - dp = negatif -> maximiser
+            loss = torch.mean((rl_reward - baseline_reward) * sumLogProbOfActions )
+
+            ic(rl_reward, baseline_reward)
+            ic(loss)
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
-            total += reward.size(0)
-            correct += 0#np.sum((model_action.squeeze(1).argmax(-1) == supervised_action.squeeze(-1)).cpu().numpy())
+            total += rl_reward.size(0)
             running_loss += loss.item()
 
         acc = 100 * correct/total
-        print('-> Réussite: ', acc, '%')
         print('-> Loss:', 100*running_loss/total)
         self.scheduler.step(running_loss)
 
         if self.sacred :
-            self.sacred.get_logger().report_scalar(title='Train stats',
-                series='train loss', value=100*running_loss/total, iteration=self.current_epoch)
-            self.sacred.get_logger().report_scalar(title='Train stats',
-                series='Train accuracy', value=acc, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='RL stats',
+                series='RL train loss', value=100*running_loss/total, iteration=self.current_epoch)
 
     def load_partial_data(self):
         if len(self.dataset_names) > 10:
@@ -1049,18 +1109,18 @@ class SupervisedTrainer():
         for epoch in range(self.epochs):
             self.current_epoch = epoch
 
-            # Every million visits update the dataset
-            if round_counter * self.batch_size * self.train_rounds > self.data_size // 20:
-                if 'supervision_data' in locals():
-                    del supervision_data
-                    del validation_data
-                supervision_data, validation_data = self.updating_data()
-                round_counter = 0
-
             # Train
             if self.rl <= epoch:
+                self.supervision_function = ''
                 self.rl_train()
             else :
+                # Every million visits update the dataset
+                if round_counter * self.batch_size * self.train_rounds > self.data_size // 20:
+                    if 'supervision_data' in locals():
+                        del supervision_data
+                        del validation_data
+                    supervision_data, validation_data = self.updating_data()
+                    round_counter = 0
                 self.train(supervision_data)
 
             # Evaluate
@@ -1074,6 +1134,8 @@ class SupervisedTrainer():
             else :
                 if self.pretrain:
                     self.offline_evaluation(validation_data, saving=True)
+                elif self.rl <= epoch:
+                    self.dataset_evaluation()
                 else :
                     self.online_evaluation()
                     if self.dataset:

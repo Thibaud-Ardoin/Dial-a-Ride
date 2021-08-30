@@ -90,16 +90,19 @@ class SupervisionDataset(Dataset):
 
     def __getitem__(self, idx):
         """ simple idx """
-        obs, sup = self.data[idx]
-        world, targets, drivers, positions, time_constraints = obs
         if hasattr(self, 'augment') and self.augment is not None and self.augment:
+            obs, sup = self.data[idx]
+            world, targets, drivers, positions, time_constraints = obs
             rand_vect = torch.rand(2+4+1).double()     # 2 for time (1round, 1shift) + 4 for pos (2transp vect, 1rot, 1miror)  + 1dilation
             dilate = 1 + (rand_vect[-1] * 2 - 1)/10
             positions = self.pos_augmentation(positions, rand_vect[2:-1], dilate)
             time_constraints = self.time_augmentation(time_constraints, rand_vect[:2], dilate)
             targets = self.distance_dilatation(targets, dilate)
+            return [world, targets, drivers, positions, time_constraints], sup
 
-        return [world, targets, drivers, positions, time_constraints], sup
+        else :
+            return self.data[idx]
+
 
 class objdict(dict):
     def __getattr__(self, name):
