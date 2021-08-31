@@ -805,7 +805,7 @@ class SupervisedTrainer():
 
     def generate_rl_data(self):
         print(" - Generate ...")
-        size = 1 #self.batch_size
+        size = self.batch_size
         rl_actions = []
         baseline_actions = []
         rl_rewards = []
@@ -922,7 +922,12 @@ class SupervisedTrainer():
                 done = rl_done and baseline_done
 
             # Done with episode
-            final_data.append([torch.tensor(rl_rewards).to(self.device), torch.tensor(baseline_rewards).to(self.device), torch.stack(rl_actions), torch.stack(cathegorical_choices)])
+            cathegorical_choices = torch.stack(cathegorical_choices).squeeze()
+            sumLogProbOfActions = torch.log(torch.index_select(softmax(torch.stack(rl_actions)),dim=-1,index=cathegorical_choices)).sum(-1)
+            rl_reward = torch.tensor(rl_reward).sum(-1).to(self.device)
+            baseline_reward = torch.tensor(baseline_reward).sum(-1).to(self.device)
+
+            final_data.append([rl_rewards, baseline_rewards, sumLogProbOfActions, cathegorical_choices])
             rl_actions = []
             baseline_actions = []
             baseline_rewards = []
@@ -950,12 +955,7 @@ class SupervisedTrainer():
         self.model.train()
         self.baseline_model.eval()
         for i, data in enumerate(dataloader):
-            rl_reward, baseline_reward, rl_actions, cathegorical_choices = data
-            cathegorical_choices = cathegorical_choices.squeeze()
-
-            sumLogProbOfActions = torch.log(torch.index_select(softmax(rl_actions),dim=-1,index=cathegorical_choices)).sum(-1)
-            rl_reward = rl_reward.sum(-1)
-            baseline_reward = baseline_reward.sum(-1)
+            rl_reward, baseline_reward, sumLogProbOfActions, cathegorical_choices = data
 
             # loss = - torch.mean(reward.to(self.device) * softmax(model_action).log().sum(-1).to(self.device))
 
@@ -977,7 +977,7 @@ class SupervisedTrainer():
             loss.backward()
             self.optimizer.step()
 
-            running_baseline += rl_reward
+            running_reward += rl_reward
             running_baseline += baseline_reward
             total += rl_reward.size(0)
             running_loss += loss.item()
