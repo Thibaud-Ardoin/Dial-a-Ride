@@ -79,7 +79,7 @@ class ProportionalEndReward(BaseReward):
         else :
             return 0
 
-class ProportionalEndReward2(BaseReward):
+class ProportionalEndDistance(BaseReward):
     def __init__(self):
         """
         This function returns a reward of (MD - total_distance) at the end, if finished
@@ -91,7 +91,7 @@ class ProportionalEndReward2(BaseReward):
         if done and env.is_fit_solution() :
             return env.total_distance
         elif done :
-            return (env.size * env.target_population * 2)
+            return (env.size * env.target_population * 4)
         else :
             return 0
 

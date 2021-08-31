@@ -813,6 +813,7 @@ class SupervisedTrainer():
         cathegorical_choices = []
         final_data = []
         step = 0
+        get_optimal_baseline = True
         file_gen = DataFileGenerator(env=self.env, out_dir=self.rootdir + '/dialRL/strategies/data/DARP_cordeau/', data_size=1)
 
         # Generate a Memory batch
@@ -824,13 +825,37 @@ class SupervisedTrainer():
             instance_file_name = file_gen.generate_file(tmp_name='rl_instance')[0]
             reward_function = globals()[self.reward_function]()
             self.env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
-                                 rep_type=self.rep_type, reward_function=reward_function, test_env=True, dataset=instance_file_name)
+                                rep_type=self.rep_type, reward_function=reward_function, test_env=True, dataset=instance_file_name)
             self.eval_env = DarSeqEnv(size=self.image_size, target_population=self.nb_target, driver_population=self.nb_drivers,
                                       rep_type=self.rep_type, reward_function=reward_function, test_env=True, dataset=instance_file_name)
 
             done = rl_done = baseline_done = False
             baseline_observation = self.eval_env.reset()
             rl_observation = self.env.reset()
+
+            if get_optimal_baseline:
+                baseline_done = True
+                solution_file = ''
+                fail_counter = 0
+                while not solution_file :
+                    if not self.verbose:
+                        sys.stdout = open('test_file.out', 'w')
+                    try :
+                        rf_time = time.time()
+                        solution_file, supervision_perf, l_bound = run_rf_algo('0')
+                        rf_time = time.time() - rf_time
+                        if not self.verbose :
+                            sys.stdout = sys.__stdout__
+                        if l_bound is None :
+                            print('Wrong solution ?')
+                            solution_file = ''
+                    except:
+                        if not self.verbose :
+                            sys.stdout = sys.__stdout__
+                        fail_counter += 1
+                        print('ERROR in RUN RF ALGO. PASSING THROUGH', fail_counter)
+                baseline_rewards = [l_bound]
+
 
             # Run a full episode
             while not done :
@@ -866,7 +891,7 @@ class SupervisedTrainer():
                     rl_rewards.append(rl_reward)
 
                 # Pass in Baseline
-                if not baseline_done :
+                if not baseline_done and not get_optimal_baseline:
                     world, targets, drivers, positions, time_contraints = baseline_observation
                     w_t = [torch.tensor([winfo],  dtype=torch.float64) for winfo in world]
                     t_t = [[torch.tensor([tinfo], dtype=torch.float64 ) for tinfo in target] for target in targets]
@@ -941,7 +966,7 @@ class SupervisedTrainer():
             # Obj: minimiser la distance  == maximiser la (-distance)=Reward
             # dp - dm = positif -> minimiser
             # - (dp - dm) = dm - dp = negatif -> maximiser
-            loss = torch.mean((rl_reward - baseline_reward) * sumLogProbOfActions )
+            loss = torch.mean((baseline_reward - rl_reward) * sumLogProbOfActions )
 
             ic(rl_reward, baseline_reward)
             ic(loss)
