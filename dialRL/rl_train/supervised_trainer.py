@@ -939,6 +939,8 @@ class SupervisedTrainer():
     def rl_train(self):
         max_test_accuracy = 0
         running_loss = 0
+        running_baseline = 0
+        running_reward = 0
         total = 0
         correct = nearest_accuracy = pointing_accuracy = 0
 
@@ -975,6 +977,8 @@ class SupervisedTrainer():
             loss.backward()
             self.optimizer.step()
 
+            running_baseline += rl_reward
+            running_baseline += baseline_reward
             total += rl_reward.size(0)
             running_loss += loss.item()
 
@@ -984,7 +988,11 @@ class SupervisedTrainer():
 
         if self.sacred :
             self.sacred.get_logger().report_scalar(title='RL stats',
-                series='RL train loss', value=100*running_loss/total, iteration=self.current_epoch)
+                series='RL train loss', value=running_loss/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='RL stats',
+                series='Baseline reward', value=running_baseline/total, iteration=self.current_epoch)
+            self.sacred.get_logger().report_scalar(title='RL stats',
+                series='Training reward', value=running_reward/total, iteration=self.current_epoch)
 
     def load_partial_data(self):
         if len(self.dataset_names) > 10:
