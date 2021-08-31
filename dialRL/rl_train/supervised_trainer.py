@@ -854,6 +854,8 @@ class SupervisedTrainer():
                             sys.stdout = sys.__stdout__
                         fail_counter += 1
                         print('ERROR in RUN RF ALGO. PASSING THROUGH', fail_counter)
+                if math.isinf(l_bound) or math.isnan(l_bound) or l_bound is None :
+                    break;
                 baseline_rewards = [l_bound]
 
 
