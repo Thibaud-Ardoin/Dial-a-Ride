@@ -924,8 +924,8 @@ class SupervisedTrainer():
             # Done with episode
             cathegorical_choices = torch.stack(cathegorical_choices).squeeze()
             sumLogProbOfActions = torch.log(torch.index_select(softmax(torch.stack(rl_actions)),dim=-1,index=cathegorical_choices)).sum(-1)
-            rl_reward = torch.tensor(rl_reward).sum(-1).to(self.device)
-            baseline_reward = torch.tensor(baseline_reward).sum(-1).to(self.device)
+            rl_rewards = torch.tensor(rl_rewards).sum(-1).to(self.device)
+            baseline_rewards = torch.tensor(baseline_rewards).sum(-1).to(self.device)
 
             final_data.append([rl_rewards, baseline_rewards, sumLogProbOfActions, cathegorical_choices])
             rl_actions = []
