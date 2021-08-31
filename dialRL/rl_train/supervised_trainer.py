@@ -923,11 +923,12 @@ class SupervisedTrainer():
 
             # Done with episode
             cathegorical_choices = torch.stack(cathegorical_choices).squeeze()
-            sumLogProbOfActions = torch.log(torch.index_select(softmax(torch.stack(rl_actions)),dim=-1,index=cathegorical_choices)).sum(-1)
-            rl_rewards = torch.tensor(rl_rewards).sum(-1).to(self.device)
-            baseline_rewards = torch.tensor(baseline_rewards).sum(-1).to(self.device)
+            sumLogProbOfActions = torch.log(softmax(torch.stack(rl_actions).squeeze(1)).gather(1, cathegorical_choices.unsqueeze(-1))).double()
+            sumLogProbOfActions = sumLogProbOfActions.squeeze().sum(0)
+            rl_rewards = torch.tensor(rl_rewards).sum(-1).to(self.device).double()
+            baseline_rewards = torch.tensor(baseline_rewards).sum(-1).to(self.device).double()
 
-            final_data.append([rl_rewards, baseline_rewards, sumLogProbOfActions, cathegorical_choices])
+            final_data.append([rl_rewards, baseline_rewards, sumLogProbOfActions])
             rl_actions = []
             baseline_actions = []
             baseline_rewards = []
@@ -955,7 +956,7 @@ class SupervisedTrainer():
         self.model.train()
         self.baseline_model.eval()
         for i, data in enumerate(dataloader):
-            rl_reward, baseline_reward, sumLogProbOfActions, cathegorical_choices = data
+            rl_reward, baseline_reward, sumLogProbOfActions = data
 
             # loss = - torch.mean(reward.to(self.device) * softmax(model_action).log().sum(-1).to(self.device))
 
@@ -970,15 +971,15 @@ class SupervisedTrainer():
             # - (dp - dm) = dm - dp = negatif -> maximiser
             loss = torch.mean((baseline_reward - rl_reward) * sumLogProbOfActions )
 
-            ic(rl_reward, baseline_reward)
+            ic(rl_reward, baseline_reward, sumLogProbOfActions)
             ic(loss)
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
-            running_reward += rl_reward
-            running_baseline += baseline_reward
+            running_reward += torch.mean(rl_reward).cpu().item()
+            running_baseline += torch.mean(baseline_reward).cpu().item()
             total += rl_reward.size(0)
             running_loss += loss.item()
 
