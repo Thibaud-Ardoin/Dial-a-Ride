@@ -1,9 +1,9 @@
 # Dial-a-Ride
 ## _Combinatorial Problems with Transformers_
 
-Finding solutions to the Dial-a-Ride Problem with learned policies. The use of Transformers as policy model captures the complexity of the problems input. [[See poster|poster darp.pdf]].
+Finding solutions to the Dial-a-Ride Problem with learned policies. The use of Transformers as policy model captures the complexity of the problems input. [See poster](https://github.com/Thibaud-Ardoin/Dial-a-Ride/blob/master/poster%20darp.pdf).
 
-## Code structure Structure
+## Code
 
 Different code elements are:
 - Simulation environment.
@@ -13,8 +13,7 @@ Different code elements are:
 - Visual output.
 - ClearML logging system.
 
-![Strat-res_new](https://user-images.githubusercontent.com/36546850/137620915-a5b39c13-55c1-4f0f-9964-fe148cd6c65a.gif)
-
+<img src="https://user-images.githubusercontent.com/36546850/137620915-a5b39c13-55c1-4f0f-9964-fe148cd6c65a.gif" width="400" height="400"/>
 
 
 ## Usage
@@ -56,6 +55,12 @@ python dialRL/run_supervised_rl_clearML.py \
 --rl 0 \
 --augmentation 0
 ```
+
+# Results
+
+On one hand, this Method manages to reproduce to 100% a simple sub-optimal strategy such as Nearest Neighbor. This enable us to conclude that our model fully capture the multitype constraints of the problem.
+
+On the other hand, optimal strategies on small dataset are very complicated and are reproduced to only 92%. This keeps us a GAP to optimal strategy between 2 and 3%. This evaluations are made on Cordeau2007 dataset with instances that contain 3 drivers and 16 targets.
 
 ## Disclamer
 The repo needs a bit of restructuration and cleaning and commenting here and there. But don't hesitate to ask for any question in the Issues, or per Mail.
