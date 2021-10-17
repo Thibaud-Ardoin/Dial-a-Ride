@@ -1,7 +1,7 @@
 # Dial-a-Ride
 ## _Combinatorial Problems with Transformers_
 
-Finding solutions to the Dial-a-Ride Problem with learned policies. The use of Transformers as policy model captures the complexity of the problems input. See poster.
+Finding solutions to the Dial-a-Ride Problem with learned policies. The use of Transformers as policy model captures the complexity of the problems input. [[See poster|poster darp.pdf]].
 
 ## Code structure Structure
 
@@ -12,6 +12,9 @@ Different code elements are:
 - Training Environement.
 - Visual output.
 - ClearML logging system.
+
+![Strat-res_new](https://user-images.githubusercontent.com/36546850/137620915-a5b39c13-55c1-4f0f-9964-fe148cd6c65a.gif)
+
 
 
 ## Usage
